@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Local environments and tooling
+.venv/
+venv/
+.DS_Store
+
+# Keep future family-specific captures and exports private by default.
+private/
+data/**/*.png
+*.local.csv
+*.local.json
+*.local.xml
+*.local.png

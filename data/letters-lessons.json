@@ -1,0 +1,5468 @@
+{
+  "source": "Khan Academy Kids teacher-mode Letters tab",
+  "captured_on": "2026-09-08",
+  "android_app_version": "9.0.1 (versionCode 123)",
+  "capture_pages": 51,
+  "unique_titles": 103,
+  "assignable_lesson_cards": 392,
+  "notes": [
+    "The app displays titles, variants, and standards, but no prose lesson descriptions in the library.",
+    "Pedagogical targets are concise inferences from the displayed title and standard, not official app descriptions.",
+    "A plus sign beside a standard in the UI indicates more standards; only the visible standard was captured."
+  ],
+  "standard_descriptions": {
+    "CCSS.ELA.RF.K.1.D": "Recognize and name all uppercase and lowercase letters.",
+    "CCSS.ELA.RF.K.2.D": "Isolate and pronounce the initial, medial-vowel, and final sounds in three-phoneme consonant-vowel-consonant words.",
+    "CCSS.ELA.RF.K.3.A": "Produce the primary or most frequent sound for each consonant.",
+    "CCSS.ELA.RF.K.3.B": "Associate common spellings with the five major short-vowel sounds."
+  },
+  "lessons": [
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase a",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase a."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase b",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase b."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase c",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase c."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase d",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase d."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase e",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase e."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase f",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase f."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase g",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase g."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase h",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase h."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase i",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase i."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase j",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase j."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase k",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase k."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase l",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase l."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase m",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase m."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase n",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase n."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase o",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase o."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase p",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase p."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase q",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase q."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase r",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase r."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase s",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase s."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase t",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase t."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase u",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase u."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase v",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase v."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase w",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase w."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase x",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase x."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase y",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase y."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase z",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase z."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase A",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase A."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase B",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase B."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase C",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase C."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase D",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase D."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase E",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase E."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase F",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase F."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase G",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase G."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase H",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase H."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase I",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase I."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase J",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase J."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase K",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase K."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase L",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase L."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase M",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase M."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase N",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase N."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase O",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase O."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase P",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase P."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Q",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Q."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase R",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase R."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase S",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase S."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase T",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase T."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase U",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase U."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase V",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase V."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase W",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase W."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase X",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase X."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Y",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Y."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Z",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Z."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound b",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with b."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound c",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with c."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound d",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with d."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound f",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with f."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound g",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with g."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound h",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with h."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound j",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with j."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound k",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with k."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound l",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with l."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound m",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with m."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound n",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with n."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound p",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with p."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound q",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with q."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound r",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with r."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound s",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with s."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound t",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with t."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound v",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with v."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound w",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with w."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound y",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with y."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound z",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with z."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound b",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify b as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound d",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify d as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound g",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify g as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound k",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify k as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound l",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify l as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound m",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify m as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound n",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify n as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound p",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify p as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound s",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify s as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound t",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify t as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound x",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify x as the ending sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound a",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-a vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound e",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-e vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound i",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-i vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound o",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-o vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound u",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Basic"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-u vowel sound in spoken words."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with b, c, d",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring b, c, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with f, g, h",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring f, g, h."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with j, k, l",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring j, k, l."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with m, n, p",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring m, n, p."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Other Words",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring other consonants."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with b & d",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring b, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with g & k",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring g, k."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with m & n",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring m, n."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with p & s",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring p, s."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with t & x",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring t, x."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with a",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring a."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with e",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring e."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with i",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring i."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with o",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring o."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with u",
+      "variants": [
+        "Main",
+        "Practice 1",
+        "Practice 2"
+      ],
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring u."
+    }
+  ],
+  "cards": [
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase a",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase a."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase a",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase a."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase a",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase a."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase a",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase a."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase b",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase b."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase b",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase b."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase b",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase b."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase b",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase b."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase c",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase c."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase c",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase c."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase c",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase c."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase c",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase c."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase d",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase d."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase d",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase d."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase d",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase d."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase d",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase d."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase e",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase e."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase e",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase e."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase e",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase e."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase e",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase e."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase f",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase f."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase f",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase f."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase f",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase f."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase f",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase f."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase g",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase g."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase g",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase g."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase g",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase g."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase g",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase g."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase h",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase h."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase h",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase h."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase h",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase h."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase h",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase h."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase i",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase i."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase i",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase i."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase i",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase i."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase i",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase i."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase j",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase j."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase j",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase j."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase j",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase j."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase j",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase j."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase k",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase k."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase k",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase k."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase k",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase k."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase k",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase k."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase l",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase l."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase l",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase l."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase l",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase l."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase l",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase l."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase m",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase m."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase m",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase m."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase m",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase m."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase m",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase m."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase n",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase n."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase n",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase n."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase n",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase n."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase n",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase n."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase o",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase o."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase o",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase o."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase o",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase o."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase o",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase o."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase p",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase p."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase p",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase p."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase p",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase p."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase p",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase p."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase q",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase q."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase q",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase q."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase q",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase q."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase q",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase q."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase r",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase r."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase r",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase r."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase r",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase r."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase r",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase r."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase s",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase s."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase s",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase s."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase s",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase s."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase s",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase s."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase t",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase t."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase t",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase t."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase t",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase t."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase t",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase t."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase u",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase u."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase u",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase u."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase u",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase u."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase u",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase u."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase v",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase v."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase v",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase v."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase v",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase v."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase v",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase v."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase w",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase w."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase w",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase w."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase w",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase w."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase w",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase w."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase x",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase x."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase x",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase x."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase x",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase x."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase x",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase x."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase y",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase y."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase y",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase y."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase y",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase y."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase y",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase y."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase z",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase z."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase z",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase z."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase z",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase z."
+    },
+    {
+      "section": "Lowercase Letters",
+      "subsection": null,
+      "title": "Lowercase z",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name lowercase z."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase A",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase A."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase A",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase A."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase A",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase A."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase A",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase A."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase B",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase B."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase B",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase B."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase B",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase B."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase B",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase B."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase C",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase C."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase C",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase C."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase C",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase C."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase C",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase C."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase D",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase D."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase D",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase D."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase D",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase D."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase D",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase D."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase E",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase E."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase E",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase E."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase E",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase E."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase E",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase E."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase F",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase F."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase F",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase F."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase F",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase F."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase F",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase F."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase G",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase G."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase G",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase G."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase G",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase G."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase G",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase G."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase H",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase H."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase H",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase H."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase H",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase H."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase H",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase H."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase I",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase I."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase I",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase I."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase I",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase I."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase I",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase I."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase J",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase J."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase J",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase J."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase J",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase J."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase J",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase J."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase K",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase K."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase K",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase K."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase K",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase K."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase K",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase K."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase L",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase L."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase L",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase L."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase L",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase L."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase L",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase L."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase M",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase M."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase M",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase M."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase M",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase M."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase M",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase M."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase N",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase N."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase N",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase N."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase N",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase N."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase N",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase N."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase O",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase O."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase O",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase O."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase O",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase O."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase O",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase O."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase P",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase P."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase P",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase P."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase P",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase P."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase P",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase P."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Q",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Q."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Q",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Q."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Q",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Q."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Q",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Q."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase R",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase R."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase R",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase R."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase R",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase R."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase R",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase R."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase S",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase S."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase S",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase S."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase S",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase S."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase S",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase S."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase T",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase T."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase T",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase T."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase T",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase T."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase T",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase T."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase U",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase U."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase U",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase U."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase U",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase U."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase U",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase U."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase V",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase V."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase V",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase V."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase V",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase V."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase V",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase V."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase W",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase W."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase W",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase W."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase W",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase W."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase W",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase W."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase X",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase X."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase X",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase X."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase X",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase X."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase X",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase X."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Y",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Y."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Y",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Y."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Y",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Y."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Y",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Y."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Z",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Z."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Z",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Z."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Z",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Z."
+    },
+    {
+      "section": "Uppercase Letters",
+      "subsection": null,
+      "title": "Uppercase Z",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.1.D"
+      ],
+      "pedagogical_target_inferred": "Recognize and name uppercase Z."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound b",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with b."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound b",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with b."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound b",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with b."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound b",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with b."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound c",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with c."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound c",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with c."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound c",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with c."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound c",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with c."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound d",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with d."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound d",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with d."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound d",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with d."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound d",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with d."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound f",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with f."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound f",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with f."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound f",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with f."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound f",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with f."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound g",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with g."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound g",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with g."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound g",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with g."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound g",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with g."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound h",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with h."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound h",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with h."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound h",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with h."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound h",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with h."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound j",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with j."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound j",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with j."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound j",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with j."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound j",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with j."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound k",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with k."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound k",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with k."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound k",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with k."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound k",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with k."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound l",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with l."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound l",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with l."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound l",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with l."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound l",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with l."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound m",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with m."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound m",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with m."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound m",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with m."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound m",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with m."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound n",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with n."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound n",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with n."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound n",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with n."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound n",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with n."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound p",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with p."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound p",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with p."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound p",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with p."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound p",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with p."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound q",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with q."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound q",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with q."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound q",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with q."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound q",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with q."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound r",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with r."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound r",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with r."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound r",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with r."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound r",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with r."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound s",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with s."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound s",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with s."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound s",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with s."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound s",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with s."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound t",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with t."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound t",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with t."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound t",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with t."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound t",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with t."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound v",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with v."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound v",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with v."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound v",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with v."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound v",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with v."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound w",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with w."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound w",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with w."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound w",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with w."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound w",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with w."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound y",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with y."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound y",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with y."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound y",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with y."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound y",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with y."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound z",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with z."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound z",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with z."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound z",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with z."
+    },
+    {
+      "section": "Beginning Letter Sounds",
+      "subsection": null,
+      "title": "Beginning Sound z",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound associated with z."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound b",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify b as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound b",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify b as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound b",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify b as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound b",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify b as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound d",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify d as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound d",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify d as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound d",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify d as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound d",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify d as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound g",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify g as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound g",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify g as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound g",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify g as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound g",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify g as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound k",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify k as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound k",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify k as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound k",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify k as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound k",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify k as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound l",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify l as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound l",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify l as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound l",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify l as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound l",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify l as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound m",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify m as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound m",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify m as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound m",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify m as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound m",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify m as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound n",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify n as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound n",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify n as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound n",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify n as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound n",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify n as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound p",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify p as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound p",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify p as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound p",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify p as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound p",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify p as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound s",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify s as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound s",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify s as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound s",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify s as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound s",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify s as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound t",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify t as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound t",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify t as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound t",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify t as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound t",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify t as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound x",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify x as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound x",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify x as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound x",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify x as the ending sound in spoken words."
+    },
+    {
+      "section": "Ending Letter Sounds",
+      "subsection": null,
+      "title": "Ending Sound x",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.A"
+      ],
+      "pedagogical_target_inferred": "Identify x as the ending sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound a",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-a vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound a",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-a vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound a",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-a vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound e",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-e vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound e",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-e vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound e",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-e vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound i",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-i vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound i",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-i vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound i",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-i vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound o",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-o vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound o",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-o vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound o",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-o vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound u",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-u vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound u",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-u vowel sound in spoken words."
+    },
+    {
+      "section": "Short Vowel Sounds",
+      "subsection": null,
+      "title": "Short Vowel Sound u",
+      "variant": "Basic",
+      "standards": [
+        "CCSS.ELA.RF.K.3.B"
+      ],
+      "pedagogical_target_inferred": "Identify the short-u vowel sound in spoken words."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with b, c, d",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring b, c, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with b, c, d",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring b, c, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with b, c, d",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring b, c, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with f, g, h",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring f, g, h."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with f, g, h",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring f, g, h."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with f, g, h",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring f, g, h."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with j, k, l",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring j, k, l."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with j, k, l",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring j, k, l."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with j, k, l",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring j, k, l."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with m, n, p",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring m, n, p."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with m, n, p",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring m, n, p."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Words with m, n, p",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring m, n, p."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Other Words",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring other consonants."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Other Words",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring other consonants."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Beginning Sounds",
+      "title": "Other Words",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the beginning sound in CVC words featuring other consonants."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with b & d",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring b, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with b & d",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring b, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with b & d",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring b, d."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with g & k",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring g, k."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with g & k",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring g, k."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with g & k",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring g, k."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with m & n",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring m, n."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with m & n",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring m, n."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with m & n",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring m, n."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with p & s",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring p, s."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with p & s",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring p, s."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with p & s",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring p, s."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with t & x",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring t, x."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with t & x",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring t, x."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Ending Sounds",
+      "title": "Words with t & x",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the ending sound in CVC words featuring t, x."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with a",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring a."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with a",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring a."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with a",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring a."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with e",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring e."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with e",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring e."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with e",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring e."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with i",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring i."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with i",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring i."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with i",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring i."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with o",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring o."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with o",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring o."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with o",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring o."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with u",
+      "variant": "Main",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring u."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with u",
+      "variant": "Practice 1",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring u."
+    },
+    {
+      "section": "CVC Words",
+      "subsection": "CVC Words - Middle Sounds",
+      "title": "Words with u",
+      "variant": "Practice 2",
+      "standards": [
+        "CCSS.ELA.RF.K.2.D"
+      ],
+      "pedagogical_target_inferred": "Identify the middle-vowel sound in CVC words featuring u."
+    }
+  ]
+}
