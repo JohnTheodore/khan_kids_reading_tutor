@@ -53,7 +53,7 @@ def append_unique_rows(
         "w", newline="", dir=path.parent, prefix=f".{path.name}.", delete=False
     ) as handle:
         temporary = Path(handle.name)
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(existing)
         writer.writerows(additions)

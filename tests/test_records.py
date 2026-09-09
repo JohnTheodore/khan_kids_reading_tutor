@@ -21,6 +21,7 @@ class RecordTests(unittest.TestCase):
             self.assertEqual(append_unique_rows(path, fields, [row], identity_fields=fields), 0)
             with path.open(newline="") as handle:
                 self.assertEqual(len(list(csv.DictReader(handle))), 1)
+            self.assertNotIn(b"\r\n", path.read_bytes())
 
 
 if __name__ == "__main__":

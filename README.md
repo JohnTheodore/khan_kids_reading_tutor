@@ -460,7 +460,7 @@ Log in to the teacher account manually. Leave Khan Kids on the Students page,
 Class Reports, or either report tab, then run a read-only review first:
 
 ```bash
-python3 tools/mastery_workflow.py \
+./khan-mastery-sync \
   --serial "$KHAN_SERIAL" \
   --student Student A
 ```
@@ -484,7 +484,7 @@ Review the JSON plan and visible tablet state. To perform only its mastered
 transitions, rerun the same command with `--apply`:
 
 ```bash
-python3 tools/mastery_workflow.py \
+./khan-mastery-sync \
   --serial "$KHAN_SERIAL" \
   --student Student A \
   --apply
@@ -498,7 +498,9 @@ the append-only action log before rerunning.
 
 The default output paths are derived from the student name. Use `--attempts`,
 `--actions`, and `--plan` to direct a test run into `private/` or `/tmp`.
-Run `python3 tools/mastery_workflow.py --help` for all options.
+Run `./khan-mastery-sync --help` for all options.
+The wrapper resolves the repository location first, so it can also be invoked
+by absolute path from another working directory.
 
 Khan's report provides dates and percentages but no attempt timestamp or
 stable attempt ID. Therefore, two genuinely separate attempts with the same
