@@ -10,11 +10,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from khan_kids.adb import AndroidDevice
+from khan_kids.ui import visible_nodes
 
 GRADES = (
     "Preschool (Age 2)",
@@ -30,125 +31,36 @@ GRADE_SELECTOR_POINT = (2050, 438)
 SCROLL_X = 2320  # Deliberately outside the five lesson-card columns.
 
 
-def run(*args: str, capture: bool = False, timeout: int = 30) -> str:
-    result = subprocess.run(
-        args,
-        check=True,
-        stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
-        stderr=subprocess.PIPE if capture else None,
-        timeout=timeout,
-    )
-    return result.stdout.decode("utf-8", errors="replace") if capture else ""
-
-
-class Device:
-    def __init__(self, serial: str) -> None:
-        self.serial = serial
-
-    def adb(self, *args: str, capture: bool = False, timeout: int = 30) -> str:
-        return run("adb", "-s", self.serial, *args, capture=capture, timeout=timeout)
-
-    def tap(self, x: int, y: int) -> None:
-        self.adb("shell", "input", "tap", str(x), str(y))
-
-    def swipe(self, x1: int, y1: int, x2: int, y2: int, ms: int = 450) -> None:
-        self.adb(
-            "shell",
-            "input",
-            "swipe",
-            str(x1),
-            str(y1),
-            str(x2),
-            str(y2),
-            str(ms),
-        )
-
-    def dump(self, destination: Path) -> ET.Element:
-        remote = "/sdcard/khan-catalog-window.xml"
-        last_error: Exception | None = None
-        for attempt in range(3):
-            try:
-                self.adb("shell", "uiautomator", "dump", remote, timeout=60)
-                self.adb("pull", remote, str(destination), timeout=20)
-                return ET.parse(destination).getroot()
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ET.ParseError) as error:
-                last_error = error
-                time.sleep(2 + attempt * 2)
-        raise RuntimeError("Could not obtain a valid UI hierarchy after 3 attempts") from last_error
-
-    def screenshot(self, destination: Path) -> None:
-        result = subprocess.run(
-            ["adb", "-s", self.serial, "exec-out", "screencap", "-p"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=15,
-        )
-        destination.write_bytes(result.stdout)
-
-
-def nodes(root: ET.Element) -> list[dict[str, str]]:
-    return [dict(node.attrib) for node in root.iter("node")]
-
-
-def visible_text(root: ET.Element) -> list[dict[str, str]]:
-    return [
-        {"text": node.attrib["text"].strip(), "bounds": node.attrib.get("bounds", "")}
-        for node in root.iter("node")
-        if node.attrib.get("text", "").strip()
-    ]
-
-
-def center(bounds: str) -> tuple[int, int]:
-    values = [int(value) for value in re.findall(r"\d+", bounds)]
-    if len(values) != 4:
-        raise ValueError(f"Invalid bounds: {bounds!r}")
-    x1, y1, x2, y2 = values
-    return ((x1 + x2) // 2, (y1 + y2) // 2)
-
-
 def lesson_signature(root: ET.Element) -> tuple[tuple[str, str], ...]:
     # Ignore the fixed header. Comparing content text and bounds detects the end.
     return tuple(
-        (item["text"], item["bounds"])
-        for item in visible_text(root)
-        if (numbers := re.findall(r"\d+", item["bounds"])) and int(numbers[1]) >= 385
+        (item.text, item.rect.as_bounds()) for item in visible_nodes(root) if item.rect.top >= 385
     )
 
 
-def select_tab(device: Device, tab: str) -> None:
+def select_tab(device: AndroidDevice, tab: str) -> None:
     device.tap(*TAB_POINTS[tab])
     time.sleep(3)
 
 
-def scroll_to_top(device: Device) -> None:
-    # Give the app a moment between gestures. Back-to-back gestures can be
-    # coalesced while the React Native list is still settling.
-    for _ in range(30):
-        device.swipe(SCROLL_X, 520, SCROLL_X, 1450, 250)
-        time.sleep(0.08)
-    time.sleep(1)
-
-
-def select_grade(device: Device, grade: str, scratch: Path) -> None:
-    scroll_to_top(device)
+def select_grade(device: AndroidDevice, grade: str, scratch: Path) -> None:
+    device.scroll_to_top(SCROLL_X)
     device.tap(*GRADE_SELECTOR_POINT)
     time.sleep(1)
     menu_root = device.dump(scratch / "grade-menu.xml")
     matches = [
-        node
-        for node in menu_root.iter("node")
-        if node.attrib.get("text", "").strip() == grade
-        and center(node.attrib.get("bounds", ""))[1] >= 480
+        item
+        for item in visible_nodes(menu_root)
+        if item.text == grade and item.rect.center[1] >= 480
     ]
     if len(matches) != 1:
         raise RuntimeError(f"Expected one menu option for {grade!r}, found {len(matches)}")
-    device.tap(*center(matches[0].attrib["bounds"]))
+    device.tap_rect(matches[0].rect)
     time.sleep(3)
 
 
 def crawl_grade(
-    device: Device, tab: str, grade: str, output: Path, *, resume: bool = False
+    device: AndroidDevice, tab: str, grade: str, output: Path, *, resume: bool = False
 ) -> dict:
     slug = re.sub(r"[^a-z0-9]+", "-", grade.lower()).strip("-")
     grade_dir = output / tab.lower() / slug
@@ -166,8 +78,8 @@ def crawl_grade(
         xml_path = grade_dir / f"page-{page_number:03d}.xml"
         png_path = grade_dir / f"page-{page_number:03d}.png"
         root = device.dump(xml_path)
-        text = visible_text(root)
-        if tab not in {item["text"] for item in text}:
+        text = visible_nodes(root)
+        if tab not in {item.text for item in text}:
             # Tab labels are graphical in some states; verify using curriculum labels too.
             curriculum_markers = (
                 "Reading",
@@ -178,15 +90,12 @@ def crawl_grade(
                 "Phonics",
             )
             has_named_marker = any(
-                any(marker in item["text"] for marker in curriculum_markers)
-                for item in text
+                any(marker in item.text for marker in curriculum_markers) for item in text
             )
-            has_curriculum_standard = any(
-                item["text"].startswith("CCSS.ELA.RF.") for item in text
-            )
+            has_curriculum_standard = any(item.text.startswith("CCSS.ELA.RF.") for item in text)
             if not (has_named_marker or has_curriculum_standard):
                 raise RuntimeError(f"Unexpected screen while crawling {tab} / {grade}")
-        if grade != "All" and grade not in {item["text"] for item in text}:
+        if grade != "All" and grade not in {item.text for item in text}:
             raise RuntimeError(f"Grade selector no longer shows {grade!r}")
 
         device.screenshot(png_path)
@@ -198,7 +107,12 @@ def crawl_grade(
             png_path.unlink(missing_ok=True)
             break
 
-        pages.append({"page": page_number, "text": text})
+        pages.append(
+            {
+                "page": page_number,
+                "text": [{"text": item.text, "bounds": item.rect.as_bounds()} for item in text],
+            }
+        )
         prior_signature = signature
         manifest_path.write_text(
             json.dumps({"tab": tab, "grade": grade, "pages": pages}, indent=2) + "\n"
@@ -222,7 +136,8 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
-    device = Device(args.serial)
+    device = AndroidDevice(args.serial)
+    device.assert_connected()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     scratch = output / ".scratch"
@@ -234,15 +149,14 @@ def main() -> None:
             parser.error("The Letters tab has no grade selector")
         requested_grades = ("All",)
         if not args.resume:
-            scroll_to_top(device)
+            device.scroll_to_top(SCROLL_X)
     else:
         requested_grades = tuple(args.grade) if args.grade else GRADES
 
     summaries = []
     for grade in requested_grades:
-        if grade != "All":
-            if not args.resume:
-                select_grade(device, grade, scratch)
+        if grade != "All" and not args.resume:
+            select_grade(device, grade, scratch)
         summary = crawl_grade(device, args.tab, grade, output, resume=args.resume)
         summaries.append(summary)
         print(json.dumps(summary), flush=True)

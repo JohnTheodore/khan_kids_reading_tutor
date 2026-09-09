@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
+from khan_kids.ui import VARIANT_ORDER, node_rect
 
 GRADE_ORDER = (
     "preschool-age-2",
@@ -20,13 +21,7 @@ GRADE_ORDER = (
     "1st-grade",
     "2nd-grade",
 )
-VARIANT_ORDER = ("Main", "Practice 1", "Practice 2", "Basic")
 STUDENTS = ("Student A", "Student B")
-
-
-def bounds(node: ET.Element) -> tuple[int, int, int, int] | None:
-    values = [int(value) for value in re.findall(r"\d+", node.attrib.get("bounds", ""))]
-    return tuple(values) if len(values) == 4 else None  # type: ignore[return-value]
 
 
 def score_value(raw: str | None) -> dict[str, object]:
@@ -51,16 +46,20 @@ def page_rows(path: Path) -> list[dict[str, object]]:
     text_nodes = []
     for node in root.iter("node"):
         text = node.attrib.get("text", "").strip()
-        box = bounds(node)
-        if text and box is not None:
-            text_nodes.append((text, box))
+        rect = node_rect(node)
+        if text and rect is not None:
+            text_nodes.append((text, rect))
 
     rows = []
     for text, left_box in text_nodes:
-        x1, y1, x2, y2 = left_box
-        if not (385 <= y1 < 1600 and 90 <= x1 and x2 <= 570):
+        x1, y1, x2, y2 = (
+            left_box.left,
+            left_box.top,
+            left_box.right,
+            left_box.bottom,
+        )
+        if not (385 <= y1 < 1600 and x1 >= 90 and x2 <= 570):
             continue
-        center_y = (y1 + y2) / 2
         displays = {}
         for student, low_x, high_x in (
             ("Student A", 570, 780),
@@ -68,16 +67,19 @@ def page_rows(path: Path) -> list[dict[str, object]]:
         ):
             values = []
             for candidate, candidate_box in text_nodes:
-                candidate_center_y = (candidate_box[1] + candidate_box[3]) / 2
-                if low_x <= candidate_box[0] < high_x and y1 <= candidate_center_y <= y2:
-                    if candidate not in values:
-                        values.append(candidate)
+                candidate_center_y = candidate_box.center[1]
+                if (
+                    low_x <= candidate_box.left < high_x
+                    and y1 <= candidate_center_y <= y2
+                    and candidate not in values
+                ):
+                    values.append(candidate)
             displays[student] = " | ".join(values) if values else None
         rows.append(
             {
                 "text": text,
                 "x": x1,
-                "bounds": list(left_box),
+                "bounds": left_box.as_list(),
                 "results": {student: score_value(displays[student]) for student in STUDENTS},
             }
         )
@@ -85,7 +87,9 @@ def page_rows(path: Path) -> list[dict[str, object]]:
     return sorted(unique.values(), key=lambda row: (row["bounds"][1], row["x"]))  # type: ignore[index]
 
 
-def merge_result(destination: dict[str, object], source: dict[str, object], conflicts: list) -> None:
+def merge_result(
+    destination: dict[str, object], source: dict[str, object], conflicts: list
+) -> None:
     for student in STUDENTS:
         old = destination[student]
         new = source[student]
@@ -109,11 +113,16 @@ def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
     global_domain: str | None = None
     global_group: str | None = None
     current_key: tuple[str | None, str | None, str] | None = None
-    grade_label = manifest["grade"].replace("Pre-K.Age2", "Preschool (Age 2)").replace(
-        "Pre-K.Age3", "Preschool (Age 3)"
-    ).replace("Pre-K.Age4", "Preschool (Age 4)").replace("Grade1", "1st Grade").replace(
-        "Grade2", "2nd Grade"
-    ).replace("K :", "Kindergarten:").replace(" :", ":")
+    grade_label = (
+        manifest["grade"]
+        .replace("Pre-K.Age2", "Preschool (Age 2)")
+        .replace("Pre-K.Age3", "Preschool (Age 3)")
+        .replace("Pre-K.Age4", "Preschool (Age 4)")
+        .replace("Grade1", "1st Grade")
+        .replace("Grade2", "2nd Grade")
+        .replace("K :", "Kindergarten:")
+        .replace(" :", ":")
+    )
     reported_total = None
 
     for page_number in range(page_count):
@@ -161,10 +170,14 @@ def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
                     # At an overlapping page prefix, an earlier heading may be
                     # offscreen. Prefer the known placement unless this page has
                     # explicitly entered a new domain (the Age-4 Letters & Words case).
-                    if known_keys and key not in known_keys and not explicit_domain_seen:
-                        if len(known_keys) == 1:
-                            key = known_keys[0]
-                            domain, group = key[0], key[1]
+                    if (
+                        known_keys
+                        and key not in known_keys
+                        and not explicit_domain_seen
+                        and len(known_keys) == 1
+                    ):
+                        key = known_keys[0]
+                        domain, group = key[0], key[1]
                 page_current = key
                 if key not in records:
                     records[key] = {
@@ -246,7 +259,9 @@ def main() -> None:
 
     all_placements = [p for grade in grades for p in grade["lesson_placements"]]
     activity_count = sum(max(1, len(p["activities"])) for p in all_placements)
-    unique_titles = sorted({p["title"] for p in all_placements}, key=str.casefold)
+    unique_titles = sorted(
+        {p["title"] for p in all_placements}, key=lambda title: (title.casefold(), title)
+    )
     payload = {
         "source": "Khan Academy Kids Class Reports > All Progress > English Language Arts",
         "captured_on": "2026-09-08",

@@ -1,0 +1,10 @@
+student,lesson_title,activity_variant,status,evidence,decision_date,assignment_action,next_action
+Student A,Blend Syllables,Basic,mastered,100% on one completed attempt,2026-09-08,removed and saved; Main assigned 2026-09-09,complete Main and review
+Student A,Blend Sounds 1,Basic,not_mastered,"90%, then 80%",2026-09-09,keep at Basic,use Khan Kids corrective and reassess
+Student A,Word Families,Basic,not_mastered,"72%, 69%, then 69%",2026-09-09,keep at Basic,use Khan Kids corrective prerequisite before reassessment
+Student A,Beginning Sounds 2,Basic,not_mastered,"83%, then 70%",2026-09-09,keep at Basic,use Khan Kids corrective and reassess
+Student A,Ending Sound,Basic,not_mastered,58% on one completed attempt,2026-09-08,keep at Basic,use Khan Kids corrective prerequisite before reassessment
+Student A,Blend Sounds 2,Basic,provisional,"85%, then 92%",2026-09-09,leave assigned,seek another score of at least 90%
+Student A,Words: End Sound,Basic,mastered,100% on one completed attempt,2026-09-09,removed and saved; Main assigned 2026-09-09,complete Main and review
+Student A,Make New Words,Basic,provisional,92% on one completed attempt,2026-09-09,leave assigned,seek another score of at least 90%
+Student A,Middle Sound,Basic,not_mastered,50% on one completed attempt,2026-09-09,keep at Basic,use Khan Kids corrective prerequisite before reassessment

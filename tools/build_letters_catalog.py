@@ -5,31 +5,22 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
+from khan_kids.ui import VARIANT_ORDER, Rect, node_rect
 
-VARIANTS = ("Main", "Practice 1", "Practice 2", "Basic")
+VARIANTS = VARIANT_ORDER
 STANDARD_DESCRIPTIONS = {
     "CCSS.ELA.RF.K.1.D": "Recognize and name all uppercase and lowercase letters.",
     "CCSS.ELA.RF.K.2.D": (
         "Isolate and pronounce the initial, medial-vowel, and final sounds in "
         "three-phoneme consonant-vowel-consonant words."
     ),
-    "CCSS.ELA.RF.K.3.A": (
-        "Produce the primary or most frequent sound for each consonant."
-    ),
-    "CCSS.ELA.RF.K.3.B": (
-        "Associate common spellings with the five major short-vowel sounds."
-    ),
+    "CCSS.ELA.RF.K.3.A": ("Produce the primary or most frequent sound for each consonant."),
+    "CCSS.ELA.RF.K.3.B": ("Associate common spellings with the five major short-vowel sounds."),
 }
-
-
-def bounds(node: ET.Element) -> tuple[int, int, int, int] | None:
-    values = [int(value) for value in re.findall(r"\d+", node.attrib.get("bounds", ""))]
-    return tuple(values) if len(values) == 4 else None  # type: ignore[return-value]
 
 
 def classify(title: str) -> str:
@@ -73,7 +64,9 @@ def target(title: str, cvc_subsection: str | None) -> str:
     return f"Identify the {position} sound in CVC words featuring {focus}."
 
 
-def extract(xml_paths: list[Path]) -> tuple[list[tuple[str, str]], dict[str, set[str]], dict[str, str]]:
+def extract(
+    xml_paths: list[Path],
+) -> tuple[list[tuple[str, str]], dict[str, set[str]], dict[str, str]]:
     cards: list[tuple[str, str]] = []
     standards: dict[str, set[str]] = defaultdict(set)
     cvc_subsections: dict[str, str] = {}
@@ -87,7 +80,7 @@ def extract(xml_paths: list[Path]) -> tuple[list[tuple[str, str]], dict[str, set
             # finishes pulling it. Ignore that one in-progress page.
             continue
         visible = [
-            (node.attrib.get("text", "").strip(), bounds(node)) for node in root.iter("node")
+            (node.attrib.get("text", "").strip(), node_rect(node)) for node in root.iter("node")
         ]
         headings = [
             (text, box)
@@ -95,14 +88,14 @@ def extract(xml_paths: list[Path]) -> tuple[list[tuple[str, str]], dict[str, set
             if text.startswith("CVC Words - ") and box is not None
         ]
         if headings:
-            active_cvc_subsection = sorted(headings, key=lambda item: item[1][1])[0][0]
+            active_cvc_subsection = sorted(headings, key=lambda item: item[1].top)[0][0]
 
         standard_nodes = [
             (text.rstrip(" +"), box)
             for text, box in visible
             if text.startswith("CCSS.ELA.") and box is not None
         ]
-        page_cards: list[tuple[int, int, str, str, tuple[int, int, int, int]]] = []
+        page_cards: list[tuple[int, int, str, str, Rect]] = []
         for node in root.iter("node"):
             descendant_text = [
                 child.attrib.get("text", "").strip()
@@ -115,15 +108,15 @@ def extract(xml_paths: list[Path]) -> tuple[list[tuple[str, str]], dict[str, set
                 for text in descendant_text
                 if text not in VARIANTS and not text.startswith("CCSS.ELA.")
             ]
-            box = bounds(node)
+            rect = node_rect(node)
             if (
                 len(variants) == 1
                 and len(titles) == 1
-                and box is not None
-                and box[1] >= 385
-                and box[2] - box[0] < 350
+                and rect is not None
+                and rect.top >= 385
+                and rect.width < 350
             ):
-                page_cards.append((box[1], box[0], titles[0], variants[0], box))
+                page_cards.append((rect.top, rect.left, titles[0], variants[0], rect))
 
         for _, _, title, variant, box in sorted(page_cards):
             identity = (title, variant)
@@ -131,10 +124,10 @@ def extract(xml_paths: list[Path]) -> tuple[list[tuple[str, str]], dict[str, set
                 cards.append(identity)
             if classify(title) == "CVC Words" and active_cvc_subsection:
                 cvc_subsections.setdefault(title, active_cvc_subsection)
-            center_x = (box[0] + box[2]) / 2
+            center_x = box.center[0]
             for standard, standard_box in standard_nodes:
-                standard_x = (standard_box[0] + standard_box[2]) / 2
-                if abs(standard_x - center_x) < 35 and 0 <= standard_box[1] - box[3] <= 100:
+                standard_x = standard_box.center[0]
+                if abs(standard_x - center_x) < 35 and 0 <= standard_box.top - box.bottom <= 100:
                     standards[title].add(standard)
 
     return cards, standards, cvc_subsections
@@ -236,7 +229,14 @@ def main() -> None:
             ]
         )
     args.markdown.write_text("\n".join(lines).rstrip() + "\n")
-    print(json.dumps({key: payload[key] for key in ("capture_pages", "unique_titles", "assignable_lesson_cards")}))
+    print(
+        json.dumps(
+            {
+                key: payload[key]
+                for key in ("capture_pages", "unique_titles", "assignable_lesson_cards")
+            }
+        )
+    )
 
 
 if __name__ == "__main__":

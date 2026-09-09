@@ -26,6 +26,8 @@ skills, and assigned a small ordering-and-blending sequence to one child.
 - [Capture your own lesson data](#capture-your-own-lesson-data)
 - [Analyze a child's progress](#analyze-a-childs-progress)
 - [Assign lessons safely](#assign-lessons-safely)
+- [Run the mastery workflow](#run-the-mastery-workflow)
+- [Test the tools](#test-the-tools)
 - [Privacy, safety, and limitations](#privacy-safety-and-limitations)
 - [Troubleshooting](#troubleshooting)
 
@@ -67,12 +69,14 @@ several variants.
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
 | [`ordering-assignments-2026-09-08.md`](ordering-assignments-2026-09-08.md) | Exact 16-activity assignment record |
+| [`mastery-learning-policy.md`](mastery-learning-policy.md) | Evidence-based, family-specific promotion policy |
+| [`student-records/`](student-records/) | Attempt history, mastery state, progress notes, and assignment-action audit log |
 | [`khan-kids-school-dashboard-deep-dive.md`](khan-kids-school-dashboard-deep-dive.md) | Research on free Class Accounts versus the paid school web dashboard |
 | [`report-source.md`](report-source.md) | Claim-to-source ledger for the dashboard research |
 | `data/raw/` | Original teacher-library UI XML and manifests |
 | `data/raw-verified/` | Re-captured and verified Letters UI XML evidence |
 | `data/raw-reports/ela/` | All Progress UI XML and per-grade manifests |
-| `tools/` | Capture and archive-building scripts |
+| `tools/` | Shared Android automation package, crawlers, builders, and mastery CLI |
 
 The crawlers create PNG screenshots locally for live validation, but captured
 PNGs are ignored by Git and are not included in the repository. The retained
@@ -443,10 +447,81 @@ The final list is in
 We verified it in **Class Reports → Assignments**: the 16 rows were dated Today,
 the Student A column was active, and the Student B column was gray.
 
-There is deliberately no general-purpose assignment script in this repository.
-Assignment changes external account state, and coordinate automation is too
-brittle to run safely without visual confirmation and roster-aware checkbox
-validation.
+The repository includes a deliberately narrow, state-checked mastery workflow.
+It is not a general-purpose bulk assigner: it only advances scored active
+assignments that meet the configured mastery rule, verifies the exact lesson
+and variant, reads every student's checkbox before and after a change, and
+checks the saved result in Assignments. Any ambiguous screen or checkbox causes
+an abort before Save.
+
+## Run the mastery workflow
+
+Log in to the teacher account manually. Leave Khan Kids on the Students page,
+Class Reports, or either report tab, then run a read-only review first:
+
+```bash
+python3 tools/mastery_workflow.py \
+  --serial "$KHAN_SERIAL" \
+  --student Student A
+```
+
+The default dry run:
+
+- filters Assignments to the named child;
+- opens each scored activity's full score history;
+- appends newly observed attempts without duplicating prior rows;
+- evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
+  mastery policy; and
+- writes a compact review plan to `private/mastery-plan.json`.
+
+Screenshots used to distinguish checked from unchecked boxes live only in a
+temporary directory and are deleted when the command exits. Passwords, pairing
+codes, and device addresses are neither requested nor stored by the script.
+The command temporarily prevents sleep and restores the tablet's prior screen
+timeout and plugged-in stay-awake setting on success or failure.
+
+Review the JSON plan and visible tablet state. To perform only its mastered
+transitions, rerun the same command with `--apply`:
+
+```bash
+python3 tools/mastery_workflow.py \
+  --serial "$KHAN_SERIAL" \
+  --student Student A \
+  --apply
+```
+
+For each mastered rung, apply mode unchecks the completed assignment, saves and
+logs that action, then assigns the next available variant and verifies it in
+the Assignments report. A final mastered variant is removed without a
+successor. Each Save is an external operation; if a later step fails, consult
+the append-only action log before rerunning.
+
+The default output paths are derived from the student name. Use `--attempts`,
+`--actions`, and `--plan` to direct a test run into `private/` or `/tmp`.
+Run `python3 tools/mastery_workflow.py --help` for all options.
+
+Khan's report provides dates and percentages but no attempt timestamp or
+stable attempt ID. Therefore, two genuinely separate attempts with the same
+lesson, variant, date, and percentage are indistinguishable and are stored as
+one record. The command never interprets a blank result as zero.
+
+## Test the tools
+
+The automated test suite covers mastery decisions, date and report parsing,
+catalog lookup, duplicate-safe records, workflow planning, and graphical
+checkbox recognition:
+
+```bash
+python3 -m compileall -q tools tests
+python3 -m unittest discover -s tests -v
+ruff check .
+ruff format --check .
+```
+
+ImageMagick is required for the checkbox test. The GitHub Actions workflow in
+`.github/workflows/tests.yml` installs it and runs all four checks on pushes and
+pull requests. Live UI validation still requires the calibrated Android tablet;
+unit tests cannot guarantee compatibility with a future Khan Kids redesign.
 
 ## Privacy, safety, and limitations
 
@@ -477,6 +552,9 @@ rewriting or start a clean repository if personal data has entered history.
 
 - Coordinates and column bounds are device-, orientation-, roster-, and
   app-version-specific.
+- The mastery workflow is intentionally fail-closed, but assignment Saves are
+  not transactional across multiple lessons; use its audit log when recovering
+  from an interrupted apply run.
 - Android's UI hierarchy omits some graphical text and does not expose reliable
   checkbox state for every React Native control.
 - The library does not provide prose descriptions for most lessons. Some targets

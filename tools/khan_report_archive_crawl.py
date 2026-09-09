@@ -11,11 +11,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from khan_kids.adb import AndroidDevice, run_command
+from khan_kids.ui import VARIANT_ORDER, node_rect, visible_nodes
 
 GRADES = (
     ("preschool-age-2", 580),
@@ -25,65 +26,19 @@ GRADES = (
     ("1st-grade", 1013),
     ("2nd-grade", 1112),
 )
-VARIANTS = {"Main", "Practice 1", "Practice 2", "Basic"}
-
-
-def run(args: list[str], *, timeout: int = 60, capture: bool = False) -> bytes:
-    result = subprocess.run(
-        args,
-        check=True,
-        stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        timeout=timeout,
-    )
-    return result.stdout if capture else b""
-
-
-class Device:
-    def __init__(self, serial: str) -> None:
-        self.prefix = ["adb", "-s", serial]
-
-    def tap(self, x: int, y: int) -> None:
-        run(self.prefix + ["shell", "input", "tap", str(x), str(y)])
-
-    def swipe(self, x1: int, y1: int, x2: int, y2: int, ms: int = 850) -> None:
-        run(
-            self.prefix
-            + ["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(ms)]
-        )
-
-    def dump(self, path: Path) -> ET.Element:
-        remote = "/sdcard/khan-report-window.xml"
-        last_error: Exception | None = None
-        for attempt in range(3):
-            try:
-                run(self.prefix + ["shell", "uiautomator", "dump", remote], timeout=60)
-                run(self.prefix + ["pull", remote, str(path)], timeout=20)
-                return ET.parse(path).getroot()
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ET.ParseError) as error:
-                last_error = error
-                time.sleep(2 + 2 * attempt)
-        raise RuntimeError("Could not obtain report UI hierarchy") from last_error
-
-    def screenshot(self, path: Path) -> None:
-        path.write_bytes(run(self.prefix + ["exec-out", "screencap", "-p"], timeout=20, capture=True))
-
-
-def box(node: ET.Element) -> tuple[int, int, int, int] | None:
-    values = [int(value) for value in re.findall(r"\d+", node.attrib.get("bounds", ""))]
-    return tuple(values) if len(values) == 4 else None  # type: ignore[return-value]
+VARIANTS = set(VARIANT_ORDER)
 
 
 def report_rows(root: ET.Element) -> list[dict[str, object]]:
     rows = []
     for node in root.iter("node"):
         text = node.attrib.get("text", "").strip()
-        bounds = box(node)
-        if not text or bounds is None:
+        rect = node_rect(node)
+        if not text or rect is None:
             continue
-        x1, y1, x2, y2 = bounds
+        x1, y1, x2 = rect.left, rect.top, rect.right
         if 385 <= y1 < 1600 and x2 <= 570 and x1 >= 90:
-            rows.append({"text": text, "bounds": list(bounds), "x": x1, "y": y1})
+            rows.append({"text": text, "bounds": rect.as_list(), "x": x1, "y": y1})
     # TextViews are unique here, but this keeps the manifest stable if an
     # accessibility wrapper echoes a label in a future app version.
     unique = {(row["text"], tuple(row["bounds"])): row for row in rows}
@@ -94,8 +49,8 @@ def report_label(root: ET.Element) -> str:
     candidates = []
     for node in root.iter("node"):
         text = node.attrib.get("text", "").strip()
-        bounds = box(node)
-        if bounds and text.endswith(": ELA") and bounds[0] < 600:
+        rect = node_rect(node)
+        if rect and text.endswith(": ELA") and rect.left < 600:
             candidates.append(text)
     if not candidates:
         raise RuntimeError("Expected an ELA All Progress report")
@@ -108,15 +63,13 @@ def has_disclosure(image: Path, row: dict[str, object]) -> bool:
     crop_x = x1 - 40
     crop_y = y1 + 5
     crop_h = max(12, y2 - y1 - 10)
-    pixels = run(
+    pixels = run_command(
         ["magick", str(image), "-crop", f"35x{crop_h}+{crop_x}+{crop_y}", "txt:-"],
         timeout=15,
         capture=True,
     ).decode("utf-8", errors="replace")
     dark_pixels = 0
-    for match in re.finditer(
-        r"srgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", pixels
-    ):
+    for match in re.finditer(r"srgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", pixels):
         red, green, blue = (int(value) for value in match.groups())
         if red < 180 and green < 190 and blue < 205:
             dark_pixels += 1
@@ -133,7 +86,9 @@ def collapsed_rows(rows: list[dict[str, object]], image: Path) -> list[dict[str,
             continue
         if not has_disclosure(image, row):
             continue
-        following = next((candidate for candidate in rows[index + 1 :] if int(candidate["y"]) > y), None)
+        following = next(
+            (candidate for candidate in rows[index + 1 :] if int(candidate["y"]) > y), None
+        )
         if following is None:
             continue
         # A greater indentation immediately below proves this row is expanded.
@@ -143,9 +98,11 @@ def collapsed_rows(rows: list[dict[str, object]], image: Path) -> list[dict[str,
     return result
 
 
-def expand_visible(device: Device, scratch: Path) -> tuple[ET.Element, list[dict[str, object]]]:
+def expand_visible(
+    device: AndroidDevice, scratch: Path
+) -> tuple[ET.Element, list[dict[str, object]]]:
     ignored: set[tuple[str, int]] = set()
-    for expansion_round in range(12):
+    for _expansion_round in range(12):
         root = device.dump(scratch / "expansion.xml")
         report_label(root)
         rows = report_rows(root)
@@ -175,21 +132,21 @@ def expand_visible(device: Device, scratch: Path) -> tuple[ET.Element, list[dict
     raise RuntimeError("Visible rows did not settle after expansion")
 
 
-def select_grade(device: Device, grade_y: int, scratch: Path) -> str:
+def select_grade(device: AndroidDevice, grade_y: int, scratch: Path) -> str:
     current = device.dump(scratch / "before-grade-modal.xml")
     subject_labels = []
     for node in current.iter("node"):
         text = node.attrib.get("text", "").strip()
-        bounds = box(node)
-        if text.endswith(": ELA") and bounds and bounds[1] < 385:
-            subject_labels.append(bounds)
+        rect = node_rect(node)
+        if text.endswith(": ELA") and rect and rect.top < 385:
+            subject_labels.append(rect)
     if len(subject_labels) != 1:
         raise RuntimeError(f"Expected one subject-filter label, found {len(subject_labels)}")
-    x1, y1, x2, y2 = subject_labels[0]
-    device.tap(x2 + 38, (y1 + y2) // 2)  # Pencil immediately after the label.
+    subject = subject_labels[0]
+    device.tap(subject.right + 38, subject.center[1])  # Pencil immediately after the label.
     time.sleep(1)
     modal = device.dump(scratch / "grade-modal.xml")
-    modal_text = {node.attrib.get("text", "").strip() for node in modal.iter("node")}
+    modal_text = {item.text for item in visible_nodes(modal)}
     if "Select Grade & Subject" not in modal_text:
         raise RuntimeError("Grade/subject modal did not open")
     device.tap(730, grade_y)
@@ -199,7 +156,9 @@ def select_grade(device: Device, grade_y: int, scratch: Path) -> str:
     return report_label(report)
 
 
-def crawl_grade(device: Device, output: Path, slug: str, label: str, scratch: Path) -> dict[str, object]:
+def crawl_grade(
+    device: AndroidDevice, output: Path, slug: str, label: str, scratch: Path
+) -> dict[str, object]:
     destination = output / slug
     destination.mkdir(parents=True, exist_ok=True)
     pages = []
@@ -238,7 +197,8 @@ def main() -> None:
     parser.add_argument("--grade", choices=[grade[0] for grade in GRADES], action="append")
     args = parser.parse_args()
 
-    device = Device(args.serial)
+    device = AndroidDevice(args.serial)
+    device.assert_connected()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     scratch = output / ".scratch"

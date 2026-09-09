@@ -1,0 +1,87 @@
+# Student A — Khan Kids lesson progress log
+
+## September 8, 2026
+
+Captured from **Class Reports → Assignments**. Each completed row was opened in
+**Student A's Lesson Scores** to verify the activity variant, attempt day, and
+score. Each score-history dialog contained one attempt dated `Today`, resolved
+here to 2026-09-08. Blank assignment rows were not recorded as attempts.
+
+| Lesson | Variant | Grade/report area | Score |
+|---|---|---|---:|
+| Blend Syllables | Basic | Preschool (Age 4) — Phonological Awareness: Syllables | 100% |
+| Blend Sounds 1 | Basic | Preschool (Age 4) — Phonological Awareness: Onset & Rime | 90% |
+| Word Families | Basic | Preschool (Age 4) — Phonological Awareness: Onset & Rime | 72% |
+| Beginning Sounds 2 | Basic | Preschool (Age 4) — Phonological Awareness: Three-Phoneme Words | 83% |
+| Ending Sound | Basic | 1st Grade — Beginning, Middle & Ending Sounds | 58% |
+
+### Snapshot analysis
+
+- Completed: **5 of the 16** currently assigned ordering-focused activities.
+- Mean score: **80.6%**; median score: **83%**.
+- Strongest evidence: syllable blending (**100%**) and onset/rime blending
+  (**90%**).
+- Beginning-sound identification was solid in this attempt (**83%**).
+- Word-family performance was less secure (**72%**).
+- Ending-sound identification was the clearest difficulty (**58%**) and is the
+  best candidate for review before advancing further into ordered phoneme work.
+
+These are single app attempts, not a diagnosis or a mastery determination.
+Future captures should append attempt-history rows rather than overwrite prior
+scores, especially when Khan Kids shows multiple attempts for the same lesson.
+
+### Mastery actions
+
+| Date | Lesson | Variant | Evidence | Decision | Assignment action |
+|---|---|---|---|---|---|
+| 2026-09-08 | Blend Syllables | Basic | 100% on one completed attempt | Mastered at the Basic variant | Removed from Student A's assignments and saved; next rung is Main |
+
+The attempt remains in the permanent record even after the mastered assignment
+is removed from Student A's assignment queue.
+
+Machine-readable record: [`student-a-lesson-attempts.csv`](student-a-lesson-attempts.csv)
+
+## September 9, 2026
+
+Checked **Class Reports → Assignments** and opened each affected score-history
+dialog. The following attempts were explicitly dated `Today` in Khan Kids:
+
+| Lesson | Variant | Score | Mastery decision |
+|---|---|---:|---|
+| Word Families | Basic | 69% | Not mastered |
+| Blend Sounds 2 | Basic | 92% | Provisional; needs another ≥90% |
+| Beginning Sounds 2 | Basic | 70% | Not mastered |
+| Words: End Sound | Basic | 100% | Mastered; ready to remove and advance to Main |
+| Make New Words | Basic | 92% | Provisional; needs another ≥90% |
+
+The history dialogs also exposed attempts not present in the prior capture:
+`Blend Sounds 2 — Basic` at 85% on September 1, plus September 8 attempts of
+`Blend Sounds 1 — Basic` at 80%, `Word Families — Basic` at 69%, and
+`Middle Sound — Basic` at 50%. These were added to the machine-readable record.
+
+### Snapshot analysis
+
+- **Words: End Sound — Basic** meets the family's immediate-mastery rule at
+  100%.
+- **Blend Sounds 2 — Basic** and **Make New Words — Basic** are promising but
+  provisional at 92%; each needs one more score of at least 90%.
+- **Word Families — Basic** remains consistently developing (72%, 69%, 69%).
+- **Beginning Sounds 2 — Basic** declined from 83% to 70%, so it should not
+  advance.
+- **Blend Sounds 1 — Basic** now has 90% followed by 80%, so the earlier 90%
+  does not establish stable mastery.
+
+### Assignment changes
+
+After recording the results, the mastered Basic assignments were removed and
+their next available variants were assigned to Student A only:
+
+| Checkbox action | Lesson | Variant | Reason/result |
+|---|---|---|---|
+| Unchecked and saved | Words: End Sound | Basic | Mastered at 100%; removed from assignment queue |
+| Checked and saved | Blend Syllables | Main | Next rung after mastered Basic; visible in Assignments dated Today |
+| Checked and saved | Words: End Sound | Main | Next rung after mastered Basic; visible in Assignments dated Today |
+
+`Blend Syllables — Basic` had already been unchecked and saved on September 8.
+Student B's checkboxes were not changed. The complete machine-readable action log
+is [`student-a-assignment-actions.csv`](student-a-assignment-actions.csv).
