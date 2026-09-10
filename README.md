@@ -29,6 +29,7 @@ skills, and assigned a small ordering-and-blending sequence to one child.
 - [Convert Khan Kids to a Class Account](#convert-khan-kids-to-a-class-account)
 - [Set up an Ubuntu control computer](#set-up-an-ubuntu-control-computer)
 - [Connect the Android device](#connect-the-android-device)
+- [Open Khan Kids safely](#open-khan-kids-safely)
 - [Capture your own lesson data](#capture-your-own-lesson-data)
 - [Analyze a child's progress](#analyze-a-childs-progress)
 - [Assign lessons safely](#assign-lessons-safely)
@@ -257,6 +258,37 @@ KHAN_SERIAL='192.168.1.50:42817'
 adb -s "$KHAN_SERIAL" get-state
 ```
 
+## Open Khan Kids safely
+
+The state-aware launcher handles an awake or sleeping tablet, an already-open
+app, another foreground app, and an Android PIN lock:
+
+```bash
+./khan-kids-open --serial "$KHAN_SERIAL"
+```
+
+It reads the PIN only when Android is locked. The PIN is never passed as a
+command-line argument or written to a report. It makes one unlock attempt,
+verifies that the lock is gone, opens Khan Kids if necessary, and verifies that
+Khan Kids is foreground.
+
+Local credentials live in the Git-ignored `.secrets.json` file:
+
+```bash
+{
+  "android_pin": "...",
+  "khan_parent_password": "..."
+}
+```
+
+The file must have `0600` permissions. The launcher rejects symlinks,
+non-regular files, and files accessible by the group or other users. It loads
+`.secrets.json` automatically when present, or accepts another location with
+`--secrets-file`. It never prints either value. After a tablet reboot, Android
+may not restore wireless ADB until the first manual unlock; the launcher cannot
+bypass that platform restriction. An ignored file remains available after a
+Codex `/clear` or restart, but it is not included in clones or backups of Git.
+
 ### Prevent sleep during a long capture
 
 `scrcpy --stay-awake` is the first choice. For an unplugged tablet or a long
@@ -467,11 +499,23 @@ LLM.
 
 ## Run the mastery workflow
 
-Log in to the teacher account manually. Leave Khan Kids on the Students page,
-Class Reports, or either report tab, then run a read-only review first:
+Log in to the teacher account manually. The command can wake the tablet,
+unlock Android, and launch Khan Kids, but it does not enter the separate Khan
+parent password. Leave the teacher account on the Students page, Class Reports,
+or either report tab, then run a read-only review first:
 
 ```bash
 ./khan-reading-sync --serial "$KHAN_SERIAL" --student Student A
+```
+
+When Android may be PIN-locked, the default `.secrets.json` is used
+automatically. To select another protected file explicitly:
+
+```bash
+./khan-reading-sync \
+  --serial "$KHAN_SERIAL" \
+  --student Student A \
+  --secrets-file /secure/local/khan-secrets.json
 ```
 
 The default dry run:
@@ -488,8 +532,9 @@ The default dry run:
   `student-records/student-a-reading-sync-log.md`.
 
 Screenshots used to distinguish checked from unchecked boxes live only in a
-temporary directory and are deleted when the command exits. Passwords, pairing
-codes, and device addresses are neither requested nor stored by the script.
+temporary directory and are deleted when the command exits. The optional
+Android PIN is read only when the lock screen is present and is never stored by
+the script. Khan passwords, pairing codes, and device addresses are not stored.
 The command temporarily prevents sleep and restores the tablet's prior screen
 timeout and plugged-in stay-awake setting on success or failure.
 

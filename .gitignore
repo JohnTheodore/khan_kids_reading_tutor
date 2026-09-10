@@ -9,6 +9,7 @@ venv/
 
 # Keep future family-specific captures and exports private by default.
 private/
+.secrets.json
 data/**/*.png
 *.local.csv
 *.local.json

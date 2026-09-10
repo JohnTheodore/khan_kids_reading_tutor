@@ -15,6 +15,7 @@ from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
+from khan_kids.launcher import ensure_khan_kids_open, pin_provider
 from khan_kids.planner import (
     QueueAction,
     QueuePlan,
@@ -166,6 +167,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="ADB serial, usually IP:port")
     parser.add_argument("--student", required=True)
+    parser.add_argument(
+        "--secrets-file",
+        type=Path,
+        help="owner-private JSON file (default: .secrets.json when present)",
+    )
     parser.add_argument("--catalog", type=Path, default=Path("data/reading-ela-archive.json"))
     parser.add_argument("--curriculum", type=Path, default=Path("data/reading-curriculum.json"))
     parser.add_argument("--attempts", type=Path)
@@ -203,6 +209,7 @@ def main() -> None:
     device = AndroidDevice(args.serial)
     device.assert_connected()
     with device.awake_session(), tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary:
+        ensure_khan_kids_open(device, pin_provider=pin_provider(args.secrets_file))
         automation = KhanKidsAutomation(
             device,
             student=args.student,

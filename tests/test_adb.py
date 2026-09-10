@@ -74,6 +74,44 @@ class AndroidDeviceTests(unittest.TestCase):
         self.assertEqual(signature.call_count, 3)
         self.assertEqual(swipe.call_count, 2)
 
+    def test_unlock_sends_pin_as_individual_key_events(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(device, "command") as command,
+            patch.object(device, "swipe") as swipe,
+            patch("khan_kids.adb.time.sleep"),
+        ):
+            device.unlock_with_pin("1357")
+
+        swipe.assert_called_once()
+        calls = [call.args for call in command.call_args_list]
+        self.assertEqual(
+            calls,
+            [
+                ("shell", "input", "keyevent", "KEYCODE_1"),
+                ("shell", "input", "keyevent", "KEYCODE_3"),
+                ("shell", "input", "keyevent", "KEYCODE_5"),
+                ("shell", "input", "keyevent", "KEYCODE_7"),
+                ("shell", "input", "keyevent", "KEYCODE_ENTER"),
+            ],
+        )
+        self.assertFalse(any("1357" in argument for call in calls for argument in call))
+
+    def test_lock_state_reads_window_markers(self) -> None:
+        device = AndroidDevice("test-device")
+        with patch.object(
+            device,
+            "command",
+            return_value=b"mShowingDream=false mDreamingLockscreen=true\n",
+        ):
+            self.assertTrue(device.is_locked())
+
+    def test_foreground_package_parses_current_focus(self) -> None:
+        device = AndroidDevice("test-device")
+        state = b"mCurrentFocus=Window{abc u0 org.khankids.android/.MainActivity}\n"
+        with patch.object(device, "command", return_value=state):
+            self.assertEqual(device.foreground_package(), "org.khankids.android")
+
 
 if __name__ == "__main__":
     unittest.main()

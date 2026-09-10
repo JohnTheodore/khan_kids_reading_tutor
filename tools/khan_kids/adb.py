@@ -87,9 +87,47 @@ class AndroidDevice:
             time.sleep(settle)
 
     def keep_awake(self) -> None:
-        self.command("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        self.wake()
         self.command("shell", "svc", "power", "stayon", "true")
         self._set_setting("system", "screen_off_timeout", "2147483647")
+
+    def wake(self) -> None:
+        self.command("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        time.sleep(self.settle_seconds)
+
+    def is_locked(self) -> bool:
+        state = self.command("shell", "dumpsys", "window", capture=True).decode(errors="replace")
+        return any(
+            marker in state
+            for marker in (
+                "mDreamingLockscreen=true",
+                "mShowingLockscreen=true",
+                "isStatusBarKeyguard=true",
+            )
+        )
+
+    def unlock_with_pin(self, pin: str) -> None:
+        """Make one PIN attempt without placing the complete PIN in an argv value."""
+        if not 4 <= len(pin) <= 16 or not pin.isascii() or not pin.isdigit():
+            raise AutomationError("Android PIN must contain 4 to 16 ASCII digits")
+        self.swipe(1280, 1350, 1280, 400, 300, settle=self.settle_seconds)
+        for digit in pin:
+            self.command("shell", "input", "keyevent", f"KEYCODE_{digit}")
+        self.command("shell", "input", "keyevent", "KEYCODE_ENTER")
+        time.sleep(self.settle_seconds)
+
+    def foreground_package(self) -> str | None:
+        state = self.command("shell", "dumpsys", "window", capture=True).decode(errors="replace")
+        for line in state.splitlines():
+            if "mCurrentFocus=" not in line or "/" not in line:
+                continue
+            component = line.rsplit(maxsplit=1)[-1].rstrip("}")
+            return component.split("/", maxsplit=1)[0]
+        return None
+
+    def start_activity(self, component: str) -> None:
+        self.command("shell", "am", "start", "-n", component)
+        time.sleep(self.settle_seconds)
 
     @contextmanager
     def awake_session(self) -> Iterator[None]:

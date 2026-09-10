@@ -37,6 +37,9 @@ CURRICULUM_PATH_GRADE_TOKENS = {
     "2nd Grade": "2:",
 }
 
+KHAN_KIDS_PACKAGE = "org.khankids.android"
+KHAN_KIDS_ACTIVITY = f"{KHAN_KIDS_PACKAGE}/.MainActivity"
+
 
 def normalize_report_grade_label(label: str) -> str:
     replacements = {
