@@ -51,6 +51,9 @@ def create_plan_payload(
     new_attempt_records: int,
     generated_at: datetime,
 ) -> dict[str, object]:
+    stretch_keys = {
+        activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
+    }
     return {
         "version": PLAN_VERSION,
         "status": "review_required",
@@ -73,6 +76,9 @@ def create_plan_payload(
             for row in snapshot.rows
         ],
         "desired_assignments": [activity.as_dict() for activity in plan.desired],
+        "stretch_assignments": [
+            activity.as_dict() for activity in plan.desired if activity.key in stretch_keys
+        ],
         "actions": [action.as_dict() for action in plan.actions],
         "track_states": [_track_payload(state) for state in plan.tracks],
     }
@@ -105,9 +111,7 @@ def validate_reviewed_plan(
         raise AutomationError("Reviewed plan has invalid actions")
     desired = tuple(Activity.from_dict(item) for item in raw_desired)
     actions = tuple(QueueAction.from_dict(item) for item in raw_actions)
-    permitted = {
-        activity.key: activity for track in curriculum.tracks for activity in track.activities
-    }
+    permitted = curriculum.activities_by_key
     if len(desired) > curriculum.queue_limit:
         raise AutomationError("Reviewed plan exceeds the curriculum queue limit")
     for activity in desired:
@@ -474,6 +478,7 @@ def _summary(
         "student": payload["student"],
         "new_attempt_records": payload.get("new_attempt_records", 0),
         "desired_count": len(payload["desired_assignments"]),
+        "stretch_count": len(payload.get("stretch_assignments", [])),
         "action_count": len(payload["actions"]),
         "actions": payload["actions"],
         "plan": str(plan_path),

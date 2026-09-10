@@ -28,6 +28,39 @@
       ]
     }
   ],
+  "stretch_slots": 2,
+  "stretch_pool": [
+    {
+      "id": "cvc_beginning_fgh",
+      "grade": "Preschool (Age 4)",
+      "title": "Words with f, g, h",
+      "retry_milestones": ["three_phoneme_blending", "cvc_beginning_bcd"]
+    },
+    {
+      "id": "cvc_ending_mn",
+      "grade": "Preschool (Age 4)",
+      "title": "Words with m & n",
+      "retry_milestones": ["oral_final_sound", "short_a_cvc_middle"]
+    },
+    {
+      "id": "cvc_ending_bd",
+      "grade": "Preschool (Age 4)",
+      "title": "Words with b & d",
+      "retry_milestones": ["oral_final_sound", "three_phoneme_blending"]
+    },
+    {
+      "id": "cvc_beginning_mnp",
+      "grade": "Preschool (Age 4)",
+      "title": "Words with m, n, p",
+      "retry_milestones": ["cvc_beginning_bcd", "three_phoneme_blending"]
+    },
+    {
+      "id": "cvc_ending_gk",
+      "grade": "Preschool (Age 4)",
+      "title": "Words with g & k",
+      "retry_milestones": ["oral_final_sound", "cvc_ending_m_n"]
+    }
+  ],
   "tracks": [
     {
       "id": "three_phoneme_blending",

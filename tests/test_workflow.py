@@ -41,6 +41,11 @@ EXPECTED_DIVERSE_QUEUE = EXPECTED_LIVE_QUEUE - {
     ("Short Vowel Sound e", "Basic"),
     ("Short Vowel Sound o", "Basic"),
 }
+STRETCH_QUEUE = {
+    ("Words with f, g, h", "Main"),
+    ("Words with m & n", "Main"),
+}
+EXPECTED_TEN_QUEUE = EXPECTED_DIVERSE_QUEUE | STRETCH_QUEUE
 
 
 class WorkflowTests(unittest.TestCase):
@@ -49,19 +54,51 @@ class WorkflowTests(unittest.TestCase):
         cls.catalog = CatalogIndex(CATALOG_PATH)
         cls.curriculum = ReadingCurriculum.load(CURRICULUM_PATH, cls.catalog)
 
-    def test_current_records_cap_short_vowels_at_three_without_filler(self) -> None:
+    def test_current_records_cap_vowels_and_fill_two_stretch_slots(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
 
         plan = build_queue_plan(self.curriculum, scores, EXPECTED_LIVE_QUEUE)
 
-        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_DIVERSE_QUEUE)
+        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_TEN_QUEUE)
         self.assertEqual(
             [(action.kind, action.key) for action in plan.actions],
             [
                 ("remove", ("Short Vowel Sound e", "Basic")),
                 ("remove", ("Short Vowel Sound o", "Basic")),
+                ("add", ("Words with f, g, h", "Main")),
+                ("add", ("Words with m & n", "Main")),
             ],
         )
+
+    def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        current = set(EXPECTED_TEN_QUEUE)
+
+        untouched = build_queue_plan(self.curriculum, scores, current)
+        self.assertEqual({activity.key for activity in untouched.desired}, current)
+
+        scores[("Words with f, g, h", "Main")] = (65,)
+        rotated = build_queue_plan(self.curriculum, scores, current)
+        desired = {activity.key for activity in rotated.desired}
+        self.assertNotIn(("Words with f, g, h", "Main"), desired)
+        self.assertIn(("Words with b & d", "Main"), desired)
+        removal = next(
+            action for action in rotated.actions if action.key == ("Words with f, g, h", "Main")
+        )
+        self.assertIn("deferred for retry", removal.reason)
+
+    def test_deferred_stretch_becomes_eligible_after_supporting_mastery(self) -> None:
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores[("Words with f, g, h", "Main")] = (65,)
+        blend_track = next(
+            track for track in self.curriculum.tracks if track.track_id == "three_phoneme_blending"
+        )
+        for activity in blend_track.activities:
+            scores[activity.key] = (100,)
+
+        plan = build_queue_plan(self.curriculum, scores, EXPECTED_DIVERSE_QUEUE)
+
+        self.assertIn(("Words with f, g, h", "Main"), {activity.key for activity in plan.desired})
 
     def test_completed_vowel_track_rotates_in_next_deferred_vowel(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
@@ -101,7 +138,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(rows[0]["report_grade"], "Preschool (Age 4)")
 
     def test_mastery_replaces_a_rung_without_growing_the_queue(self) -> None:
-        current = set(EXPECTED_DIVERSE_QUEUE)
+        current = set(EXPECTED_TEN_QUEUE)
         current.remove(("Blend Sounds 2", "Main"))
         current.add(("Blend Sounds 2", "Basic"))
         scores = {
@@ -118,7 +155,7 @@ class WorkflowTests(unittest.TestCase):
 
         plan = build_queue_plan(self.curriculum, scores, current)
 
-        self.assertEqual(len(plan.desired), 8)
+        self.assertEqual(len(plan.desired), 10)
         self.assertIn(("Blend Sounds 2", "Main"), {activity.key for activity in plan.desired})
         self.assertEqual(
             [(action.kind, action.key) for action in plan.actions],
@@ -153,6 +190,32 @@ class WorkflowTests(unittest.TestCase):
                 curriculum_path=CURRICULUM_PATH,
                 curriculum=self.curriculum,
             )
+
+    def test_reviewed_plan_accepts_catalog_validated_stretch_activities(self) -> None:
+        snapshot = AssignmentSnapshot((), ())
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        plan = build_queue_plan(self.curriculum, scores, set())
+        payload = create_plan_payload(
+            student="Student A",
+            snapshot=snapshot,
+            plan=plan,
+            curriculum=self.curriculum,
+            catalog_path=CATALOG_PATH,
+            curriculum_path=CURRICULUM_PATH,
+            new_attempt_records=0,
+            generated_at=datetime(2026, 9, 10),
+        )
+
+        desired, _actions = validate_reviewed_plan(
+            payload,
+            student="Student A",
+            snapshot=snapshot,
+            catalog_path=CATALOG_PATH,
+            curriculum_path=CURRICULUM_PATH,
+            curriculum=self.curriculum,
+        )
+
+        self.assertIn(("Words with f, g, h", "Main"), {activity.key for activity in desired})
 
     def test_apply_records_each_action_and_verifies_the_final_queue(self) -> None:
         snapshot = _snapshot(score=92)

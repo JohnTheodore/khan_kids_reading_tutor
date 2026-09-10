@@ -65,3 +65,26 @@ transition from a vowel sound to that vowel in printed CVC words.
 short *e* and short *o*. Do not backfill their slots with grammar, read-aloud
 stories, repeated low-yield activities, or prerequisite-locked phonics. Until a
 sound replacement becomes eligible, eight assignments is the correct queue.
+
+## 2026-09-10 — Reserve two rotating stretch slots
+
+**Decision:** Maintain eight mastery-path slots and two stretch slots so the
+learner has ten choices. Start with `Words with f, g, h — Main` and
+`Words with m & n — Main`. All stretch-pool families are print-linked CVC work;
+grammar, passive stories, and unrelated ELA remain ineligible.
+
+**Persistence rule:** Once assigned, a stretch family is pinned until it has at
+least one score. A score of 70% or higher keeps it active under the ordinary
+mastery progression. A score below 70% removes it from the active queue but
+preserves its attempt and marks it deferred, rather than rejecting it from the
+curriculum.
+
+**Retry rule:** A below-70% family cannot return immediately. It earns another
+attempt allowance only after mastery of a configured supporting track. A
+fallback stretch already on screen is likewise pinned until attempted, so a
+newly re-eligible lesson cannot displace an untried one.
+
+**Curated fallback order:** `Words with b & d`, `Words with m, n, p`, then
+`Words with g & k`. These retain the printed CVC structure and vary beginning
+and ending position without introducing blends, multisyllable words, grammar,
+or connected-text demands prematurely.

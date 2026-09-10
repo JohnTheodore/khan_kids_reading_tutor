@@ -534,6 +534,9 @@ The default review:
 - selects at most ten lessons whose prerequisite tracks are complete;
 - limits configured groups of similar lessons, currently short-vowel/CVC-middle
   work, to three active choices and permits an underfilled queue rather than filler;
+- fills two reserved stretch slots from a curated printed-CVC pool, pins each
+  lesson until its first attempt, and preserves below-70% lessons for a later
+  evidence-gated retry;
 - computes the exact difference between the live and desired queues; and
 - writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
 - appends a human-readable run report to

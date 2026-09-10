@@ -64,6 +64,7 @@ def render_sync_report(payload: dict[str, object]) -> str:
         "no_op": "Verified",
     }.get(status, "Planned")
     desired = _object_list(payload.get("desired_assignments"))
+    stretches = _object_list(payload.get("stretch_assignments"))
     tracks = _object_list(payload.get("track_states"))
 
     lines = [
@@ -94,6 +95,10 @@ def render_sync_report(payload: dict[str, object]) -> str:
         "### Desired queue",
         "",
         *([f"- {_lesson(item)}" for item in desired] if desired else ["No lessons selected."]),
+        "",
+        "### Stretch slots",
+        "",
+        *([f"- {_lesson(item)}" for item in stretches] if stretches else ["None."]),
         "",
         "### Mastery holds in the desired queue",
         "",

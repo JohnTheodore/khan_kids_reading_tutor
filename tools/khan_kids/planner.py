@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 from typing import Literal
 
-from .curriculum import Activity, DiversityGroup, ReadingCurriculum, Track
+from .curriculum import Activity, DiversityGroup, ReadingCurriculum, StretchTrack, Track
 from .mastery import MasteryDecision, MasteryStatus, evaluate_mastery
 from .reports import AssignmentSnapshot
 
@@ -92,11 +92,23 @@ def build_queue_plan(
         for track, state in candidates
         if track.track_id not in selected_track_ids and state.next_activity is not None
     }
-    desired = tuple(
+    core_limit = curriculum.queue_limit - curriculum.stretch_slots
+    core_desired = tuple(
         state.next_activity
         for track, state in candidates
         if track.track_id in selected_track_ids and state.next_activity is not None
-    )[: curriculum.queue_limit]
+    )[:core_limit]
+    stretch_desired = _select_stretch_activities(
+        curriculum,
+        scores,
+        current,
+        complete,
+        excluded={activity.key for activity in core_desired},
+        limit=curriculum.queue_limit - len(core_desired),
+    )
+    for activity in stretch_desired:
+        reasons[activity.key] = "next mastery rung in a rotating stretch slot"
+    desired = core_desired + stretch_desired
     desired_by_key = {activity.key: activity for activity in desired}
     desired_keys = set(desired_by_key)
     configured = {
@@ -104,13 +116,25 @@ def build_queue_plan(
         for track in curriculum.tracks
         for position, activity in enumerate(track.activities)
     }
+    stretch_locations = {
+        activity.key: (stretch, position, activity)
+        for stretch in curriculum.stretch_pool
+        for position, activity in enumerate(stretch.activities)
+    }
     removals = tuple(
         QueueAction(
             "remove",
             title,
             variant,
-            configured[(title, variant)][2].grade if (title, variant) in configured else "",
-            _removal_reason((title, variant), configured, scores, desired_keys, diversity_holds),
+            _activity_grade((title, variant), configured, stretch_locations),
+            _removal_reason(
+                (title, variant),
+                configured,
+                stretch_locations,
+                scores,
+                desired_keys,
+                diversity_holds,
+            ),
         )
         for title, variant in sorted(current - desired_keys)
     )
@@ -126,6 +150,64 @@ def build_queue_plan(
         if activity.key not in current
     )
     return QueuePlan(desired, removals + additions, tuple(states))
+
+
+def _select_stretch_activities(
+    curriculum: ReadingCurriculum,
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    current: set[tuple[str, str]],
+    complete_tracks: set[str],
+    *,
+    excluded: set[tuple[str, str]],
+    limit: int,
+) -> tuple[Activity, ...]:
+    candidates = [
+        (stretch, activity, decision)
+        for stretch in curriculum.stretch_pool
+        if (evaluated := _evaluate_stretch(stretch, scores)) is not None
+        for activity, decision in (evaluated,)
+        if activity.key not in excluded
+    ]
+    selected: list[Activity] = []
+    # Once exposed, an unattempted or adequately placed stretch lesson is pinned.
+    for stretch, activity, decision in candidates:
+        family_is_active = any(item.key in current for item in stretch.activities)
+        if family_is_active and (not decision.scores or decision.scores[-1] >= 70):
+            selected.append(activity)
+            if len(selected) == limit:
+                return tuple(selected)
+    selected_keys = {activity.key for activity in selected}
+    for stretch, activity, decision in candidates:
+        if activity.key in selected_keys:
+            continue
+        if _stretch_is_eligible(stretch, decision, complete_tracks):
+            selected.append(activity)
+            selected_keys.add(activity.key)
+            if len(selected) == limit:
+                break
+    return tuple(selected)
+
+
+def _evaluate_stretch(
+    stretch: StretchTrack, scores: dict[tuple[str, str], tuple[int, ...]]
+) -> tuple[Activity, MasteryDecision] | None:
+    for activity in stretch.activities:
+        decision = evaluate_mastery(scores.get(activity.key, ()))
+        if decision.status is not MasteryStatus.MASTERED:
+            return activity, decision
+    return None
+
+
+def _stretch_is_eligible(
+    stretch: StretchTrack, decision: MasteryDecision, complete_tracks: set[str]
+) -> bool:
+    if not decision.scores or decision.scores[-1] >= 70:
+        return True
+    attempts_below_floor = sum(score < 70 for score in decision.scores)
+    attempt_allowance = 1 + sum(
+        milestone in complete_tracks for milestone in stretch.retry_milestones
+    )
+    return attempts_below_floor < attempt_allowance
 
 
 def _select_diverse_tracks(
@@ -163,9 +245,22 @@ def _diversity_rank(candidate: tuple[Track, TrackState]) -> tuple[int, int, int,
     return (not in_instructional_band, -progress, track.priority, track.track_id)
 
 
+def _activity_grade(
+    key: tuple[str, str],
+    configured: dict[tuple[str, str], tuple[Track, int, Activity]],
+    stretch_locations: dict[tuple[str, str], tuple[StretchTrack, int, Activity]],
+) -> str:
+    if key in configured:
+        return configured[key][2].grade
+    if key in stretch_locations:
+        return stretch_locations[key][2].grade
+    return ""
+
+
 def _removal_reason(
     key: tuple[str, str],
     configured: dict[tuple[str, str], tuple[Track, int, Activity]],
+    stretch_locations: dict[tuple[str, str], tuple[StretchTrack, int, Activity]],
     scores: dict[tuple[str, str], tuple[int, ...]],
     desired_keys: set[tuple[str, str]],
     diversity_holds: dict[tuple[str, str], int],
@@ -174,6 +269,26 @@ def _removal_reason(
         limit = diversity_holds[key]
         return f"deferred: active instructional group is limited to {limit} lessons"
     location = configured.get(key)
+    stretch_location = stretch_locations.get(key)
+    if stretch_location is not None:
+        stretch, position, _activity = stretch_location
+        decision = evaluate_mastery(scores.get(key, ()))
+        if decision.status is MasteryStatus.MASTERED:
+            if position + 1 == len(stretch.activities):
+                return f"mastered: {decision.reason}; stretch lesson family complete"
+            successor = stretch.activities[position + 1]
+            if successor.key in desired_keys:
+                return (
+                    f"mastered: {decision.reason}; promote to "
+                    f"{successor.title} — {successor.variant}"
+                )
+        if decision.scores and decision.scores[-1] < 70:
+            return (
+                f"deferred for retry: latest stretch attempt is below 70% "
+                f"({decision.scores[-1]}%); waiting for supporting mastery"
+            )
+        if location is None:
+            return "waiting for an open stretch slot"
     if location is None:
         return "not in the approved reading path"
     track, position, _activity = location

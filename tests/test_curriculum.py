@@ -27,6 +27,11 @@ class CurriculumTests(unittest.TestCase):
         self.assertEqual(curriculum.queue_limit, 10)
         self.assertEqual(len(curriculum.diversity_groups), 1)
         self.assertEqual(curriculum.diversity_groups[0].max_active, 3)
+        self.assertEqual(curriculum.stretch_slots, 2)
+        self.assertEqual(len(curriculum.stretch_pool), 5)
+        self.assertEqual(
+            curriculum.stretch_pool[0].activities[0].key, ("Words with f, g, h", "Main")
+        )
         self.assertEqual(len(curriculum.tracks), 15)
         self.assertEqual(sum(len(track.activities) for track in curriculum.tracks), 83)
 

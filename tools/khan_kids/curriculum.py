@@ -48,6 +48,13 @@ class DiversityGroup:
 
 
 @dataclass(frozen=True, slots=True)
+class StretchTrack:
+    stretch_id: str
+    retry_milestones: tuple[str, ...]
+    activities: tuple[Activity, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ReadingCurriculum:
     path_id: str
     name: str
@@ -57,11 +64,21 @@ class ReadingCurriculum:
     segment_exit_criteria: tuple[str, ...]
     queue_limit: int
     diversity_groups: tuple[DiversityGroup, ...]
+    stretch_slots: int
+    stretch_pool: tuple[StretchTrack, ...]
     tracks: tuple[Track, ...]
 
     @property
     def activities_by_key(self) -> dict[tuple[str, str], Activity]:
-        return {activity.key: activity for track in self.tracks for activity in track.activities}
+        activities = {
+            activity.key: activity for track in self.tracks for activity in track.activities
+        }
+        activities.update(
+            (activity.key, activity)
+            for stretch in self.stretch_pool
+            for activity in stretch.activities
+        )
+        return activities
 
     @classmethod
     def load(cls, path: Path, catalog: CatalogIndex) -> ReadingCurriculum:
@@ -130,6 +147,7 @@ class ReadingCurriculum:
                 raise ValueError(f"track {track.track_id!r} cannot require itself")
         _reject_dependency_cycles(tracks)
         diversity_groups = _load_diversity_groups(payload, known)
+        stretch_slots, stretch_pool = _load_stretch_pool(payload, catalog, known)
         return cls(
             path_id,
             name,
@@ -139,6 +157,8 @@ class ReadingCurriculum:
             segment_exit_criteria,
             queue_limit,
             diversity_groups,
+            stretch_slots,
+            stretch_pool,
             tuple(sorted(tracks, key=lambda track: (track.priority, track.track_id))),
         )
 
@@ -212,3 +232,45 @@ def _load_diversity_groups(
         assigned_tracks.update(track_ids)
         groups.append(DiversityGroup(group_id, max_active, track_ids))
     return tuple(groups)
+
+
+def _load_stretch_pool(
+    payload: dict[str, object], catalog: CatalogIndex, known_tracks: set[str]
+) -> tuple[int, tuple[StretchTrack, ...]]:
+    stretch_slots = payload.get("stretch_slots", 0)
+    raw_pool = payload.get("stretch_pool", [])
+    if not isinstance(stretch_slots, int) or stretch_slots < 0:
+        raise ValueError("stretch_slots must be a non-negative integer")
+    if stretch_slots > payload["queue_limit"]:
+        raise ValueError("stretch_slots cannot exceed queue_limit")
+    if not isinstance(raw_pool, list):
+        raise ValueError("stretch_pool must be a list")
+    pool: list[StretchTrack] = []
+    identifiers: set[str] = set()
+    activity_keys: set[tuple[str, str]] = set()
+    for raw_stretch in raw_pool:
+        if not isinstance(raw_stretch, dict):
+            raise ValueError("each stretch candidate must be an object")
+        stretch_id = _required_string(raw_stretch, "id")
+        grade = _required_string(raw_stretch, "grade")
+        title = _required_string(raw_stretch, "title")
+        milestones = _string_list(raw_stretch, "retry_milestones")
+        if stretch_id in identifiers:
+            raise ValueError(f"stretch candidate id is duplicated: {stretch_id!r}")
+        missing = set(milestones) - known_tracks
+        if missing:
+            raise ValueError(f"stretch candidate {stretch_id!r} has unknown milestones: {missing}")
+        entry = catalog.find_title_exact(grade, title)
+        variants = tuple(variant for variant in LEARNING_SEQUENCE if variant in entry.variants)
+        if not variants:
+            raise ValueError(f"stretch candidate {stretch_id!r} has no assignable variants")
+        activities = tuple(Activity(grade, title, variant) for variant in variants)
+        overlap = activity_keys.intersection(activity.key for activity in activities)
+        if overlap:
+            raise ValueError(f"stretch pool contains duplicate activities: {overlap}")
+        identifiers.add(stretch_id)
+        activity_keys.update(activity.key for activity in activities)
+        pool.append(StretchTrack(stretch_id, milestones, activities))
+    if stretch_slots and len(pool) < stretch_slots:
+        raise ValueError("stretch_pool must contain at least stretch_slots candidates")
+    return stretch_slots, tuple(pool)

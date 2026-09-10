@@ -28,9 +28,16 @@ The queue also enforces instructional diversity. All five short-vowel/CVC-middle
 tracks share a maximum of three active lessons. Within that group, current
 80–99% evidence is preferred, followed by the most advanced mastered sequence
 and then curriculum order. A promotion retains the same group slot. When a
-complete vowel track frees a slot, the next deferred vowel rotates in. The
-queue may remain below ten rather than admit a redundant, premature, or
-non-reading filler lesson.
+complete vowel track frees a slot, the next deferred vowel rotates in. The core
+allocation may remain underfilled rather than admit redundant, premature, or
+non-reading filler; curated stretch work fills the remaining queue positions.
+
+For the current segment, up to eight positions are reserved for the mastery
+spine and at least two for a curated stretch pool of printed CVC lessons. Stretch lessons remain
+assigned until attempted. Results of 70% or higher keep the lesson in its slot;
+a lower result defers it while preserving the score, and later mastery in a
+configured supporting track makes it retry-eligible. This diagnostic exposure
+does not mark a prerequisite mastered.
 
 ## Entry point
 

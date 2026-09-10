@@ -576,3 +576,84 @@ None.
 | startup.ui_backend | 1 | 1.387 | 1.387 | 1.387 |
 | wait.teacher roster after login | 1 | 1.078 | 1.078 | 1.078 |
 | startup.connected | 1 | 0.008 | 0.008 | 0.008 |
+
+## 2026-09-10T16:42:54-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 10
+- Assignment changes: 2
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Words with f, g, h — Main: next mastery rung in a rotating stretch slot
+- Words with m & n — Main: next mastery rung in a rotating stretch slot
+
+### Desired queue
+
+- Blend Sounds 2 — Main
+- Make New Words — Basic
+- Words: End Sound — Main
+- Blend Syllables — Practice 2
+- Short Vowel Sound a — Basic
+- Short Vowel Sound i — Basic
+- Short Vowel Sound u — Basic
+- Words with b, c, d — Main
+- Words with f, g, h — Main
+- Words with m & n — Main
+
+### Stretch slots
+
+- Words with f, g, h — Main
+- Words with m & n — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Main: not_mastered (69%)
+- Make New Words — Basic: not_mastered (92%, 71%, 100%, 85%)
+- Words: End Sound — Main: not_mastered (83%, 56%)
+- Blend Syllables — Practice 2: provisional (93%)
+- Short Vowel Sound a — Basic: not_mastered (89%)
+- Short Vowel Sound i — Basic: not_mastered (not attempted)
+- Short Vowel Sound u — Basic: not_mastered (89%)
+- Words with b, c, d — Main: not_mastered (not attempted)
+- Words with m & n — Main: not_mastered (not attempted)
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 120.077 seconds
+- Score-history cache: 6 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 57 | 76.506 | 1.342 | 2.813 |
+| adb.swipe | 28 | 28.684 | 1.024 | 1.191 |
+| workflow.scan_assignments | 2 | 8.405 | 4.203 | 4.702 |
+| wait.lesson variants | 2 | 3.834 | 1.917 | 2.005 |
+| wait.assignments report | 2 | 3.399 | 1.699 | 1.725 |
+| wait.all progress report | 2 | 2.965 | 1.483 | 2.268 |
+| adb.screenshot | 4 | 2.573 | 0.643 | 0.817 |
+| adb.tap | 12 | 2.4 | 0.2 | 0.249 |
+| adb.other | 6 | 2.282 | 0.38 | 1.329 |
+| startup.launch | 1 | 2.025 | 2.025 | 2.025 |
+| adb.settings | 11 | 1.977 | 0.18 | 0.219 |
+| startup.ui_backend | 1 | 1.333 | 1.333 | 1.333 |
+| wait.assignment dialog | 2 | 0.975 | 0.487 | 0.6 |
+| wait.assignment saved | 2 | 0.509 | 0.255 | 0.301 |
+| adb.keyevent | 2 | 0.454 | 0.227 | 0.301 |
+| startup.connected | 1 | 0.006 | 0.006 | 0.006 |
