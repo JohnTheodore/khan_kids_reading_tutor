@@ -657,3 +657,84 @@ None.
 | wait.assignment saved | 2 | 0.509 | 0.255 | 0.301 |
 | adb.keyevent | 2 | 0.454 | 0.227 | 0.301 |
 | startup.connected | 1 | 0.006 | 0.006 | 0.006 |
+
+## 2026-09-10T17:40:05-04:00 — no_op
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 10
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Mastered
+
+None this run.
+
+### Verified unchecks
+
+None.
+
+### Verified promotions
+
+None.
+
+### Verified additions
+
+None.
+
+### Desired queue
+
+- Blend Sounds 2 — Main
+- Make New Words — Basic
+- Words: End Sound — Main
+- Blend Syllables — Practice 2
+- Short Vowel Sound a — Basic
+- Short Vowel Sound i — Basic
+- Short Vowel Sound u — Basic
+- Words with b, c, d — Main
+- Words with f, g, h — Main
+- Words with m & n — Main
+
+### Stretch slots
+
+- Words with f, g, h — Main
+- Words with m & n — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Main: not_mastered (69%)
+- Make New Words — Basic: not_mastered (92%, 71%, 100%, 85%)
+- Words: End Sound — Main: not_mastered (83%, 56%)
+- Blend Syllables — Practice 2: provisional (93%)
+- Short Vowel Sound a — Basic: not_mastered (89%)
+- Short Vowel Sound i — Basic: not_mastered (not attempted)
+- Short Vowel Sound u — Basic: not_mastered (89%)
+- Words with b, c, d — Main: not_mastered (not attempted)
+- Words with m & n — Main: not_mastered (not attempted)
+
+### Performance
+
+- Outcome: no_op
+- UI backend: uiautomator2
+- Wall time: 19.283 seconds
+- Score-history cache: 6 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| workflow.scan_assignments | 1 | 9.814 | 9.814 | 9.814 |
+| ui.hierarchy | 8 | 4.378 | 0.547 | 0.874 |
+| adb.keyevent | 14 | 3.791 | 0.271 | 0.352 |
+| adb.settings | 11 | 2.145 | 0.195 | 0.301 |
+| adb.other | 6 | 2.113 | 0.352 | 1.243 |
+| startup.launch | 1 | 1.945 | 1.945 | 1.945 |
+| startup.ui_backend | 1 | 1.778 | 1.778 | 1.778 |
+| wait.teacher roster after login | 1 | 1.097 | 1.097 | 1.097 |
+| adb.swipe | 1 | 1.024 | 1.024 | 1.024 |
+| adb.tap | 4 | 0.9 | 0.225 | 0.296 |
+| wait.parent password dialog | 1 | 0.672 | 0.672 | 0.672 |
+| wait.assignments report | 1 | 0.605 | 0.605 | 0.605 |
+| startup.connected | 1 | 0.004 | 0.004 | 0.004 |

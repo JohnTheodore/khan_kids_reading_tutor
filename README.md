@@ -544,7 +544,16 @@ every screen.
 
 The command can wake the tablet, unlock Android, launch Khan Kids, select the
 parent profile, enter the parent password, and safely navigate from the teacher
-roster to Class Reports. Run a read-only review with:
+roster to Class Reports.
+
+Khan Kids can become the foreground app before its React Native accessibility
+tree finishes loading. At workflow entry, startup therefore waits up to ten
+seconds for an approved semantic screen and requires two consecutive matching
+classifications before its first navigation. A fully loaded Assignments report
+returns after one read, preserving the common no-op fast path. Unknown states
+still time out without tapping.
+
+Run a read-only review with:
 
 ```bash
 ./khan-reading-sync --serial "$KHAN_SERIAL" --student Student A
@@ -607,6 +616,7 @@ stretch policy are described in [`reading-path.md`](reading-path.md).
 
 Every successful run ends with a readable terminal report containing:
 
+- a visually dominant “Changes Since Last Sync” summary;
 - newly observed scores and the relevant score history;
 - lessons that met the mastery rule;
 - assignments unchecked and the evidence-based reason for each removal;
@@ -618,6 +628,12 @@ Every successful run ends with a readable terminal report containing:
 Review-only output labels changes as proposed and not yet applied. Sync output
 labels changes as applied only after exact post-write verification. For scripts
 that consume the older compact payload, add `--json`.
+
+Interactive terminals color new scores yellow, mastery green, removals magenta,
+additions blue, and unchanged queue rows dim. Symbols preserve the same meaning
+when color is unavailable. Color defaults to `auto`, respects the `NO_COLOR`
+environment variable, and can be controlled explicitly with
+`--color always` or `--color never`.
 
 Review the JSON plan. Apply that exact plan with:
 

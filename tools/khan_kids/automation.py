@@ -78,28 +78,25 @@ class KhanKidsAutomation:
             )
 
     def ensure_assignments_report(self) -> ET.Element:
-        root = self.live_root()
-        if is_assignment_report(root):
+        root, state = self._wait_for_navigation_state()
+        if state == "assignments_report":
             return root
-        texts = text_set(root)
-        if "Class Report: All Progress" in texts:
+        if state == "all_progress_report":
             self._tap_header(root, "Assignments")
-        elif "Class Reports" in texts:
+        elif state == "class_reports_menu":
             self.device.tap_rect(_unique_visible(root, "Class Reports").rect)
-        elif "Students" in texts and all(student in texts for student in self.roster):
+        elif state == "teacher_roster":
             self._open_class_reports_from_roster(root)
-        elif self._is_profile_chooser(texts):
+        elif state == "profile_chooser":
             root = self._login_parent(root)
             self._open_class_reports_from_roster(root)
-        elif "Enter Password" in texts:
+        elif state == "password_dialog":
             root = self._submit_parent_password(root)
             self._open_class_reports_from_roster(root)
-        elif "Assignments" in texts and "All Progress" in texts:
+        elif state == "report_tabs":
             self.device.tap_rect(_unique_visible(root, "Assignments").rect)
         else:
-            raise AutomationError(
-                "Open the logged-in Teacher view or Class Reports before running automation"
-            )
+            raise AssertionError(f"Unhandled navigation state: {state}")
         root = self._wait_for_root(
             lambda candidate: is_assignment_report(candidate),
             description="assignments report",
@@ -108,6 +105,62 @@ class KhanKidsAutomation:
             raise AutomationError("Navigation did not reach Class Report: Assignments")
         self._assignments_at_top = True
         return root
+
+    def _wait_for_navigation_state(
+        self,
+        *,
+        timeout: float = 10,
+        stable_reads: int = 2,
+    ) -> tuple[ET.Element, str]:
+        """Wait for React Native to expose one stable, approved navigation state."""
+        if stable_reads < 1:
+            raise ValueError("stable_reads must be positive")
+        last_state: str | None = None
+        matching_reads = 0
+
+        def is_stable(root: ET.Element) -> bool:
+            nonlocal last_state, matching_reads
+            state = self._navigation_state(root)
+            if state is None:
+                last_state = None
+                matching_reads = 0
+                return False
+            if state == last_state:
+                matching_reads += 1
+            else:
+                last_state = state
+                matching_reads = 1
+            required_reads = 1 if state == "assignments_report" else stable_reads
+            return matching_reads >= required_reads
+
+        root = self._wait_for_root(
+            is_stable,
+            description="stable Khan navigation state",
+            timeout=timeout,
+            persist=False,
+        )
+        if last_state is None:
+            raise AssertionError("Stable navigation predicate returned without a state")
+        return root, last_state
+
+    def _navigation_state(self, root: ET.Element) -> str | None:
+        """Classify only screens from which navigation is explicitly supported."""
+        if is_assignment_report(root):
+            return "assignments_report"
+        texts = text_set(root)
+        if "Class Report: All Progress" in texts:
+            return "all_progress_report"
+        if "Class Reports" in texts:
+            return "class_reports_menu"
+        if "Students" in texts and all(student in texts for student in self.roster):
+            return "teacher_roster"
+        if self._is_profile_chooser(texts):
+            return "profile_chooser"
+        if "Enter Password" in texts:
+            return "password_dialog"
+        if "Assignments" in texts and "All Progress" in texts:
+            return "report_tabs"
+        return None
 
     def _is_profile_chooser(self, texts: set[str]) -> bool:
         return (

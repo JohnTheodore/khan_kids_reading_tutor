@@ -16,3 +16,7 @@ Whenever the user asks to run Khan Kids mastery sync:
 5. Treat the command's structured payload and terminal summary as the source of
    truth. Do not infer scores or actions from screenshots when structured data
    is available.
+6. Make changes since the preceding sync visually dominant. Preserve the
+   terminal report's symbols in chat: 🟢 mastered, 🔵 added, 🟡 new score/hold,
+   🟣 unchecked/deferred, and ⚪ unchanged. Chat does not reliably render ANSI
+   terminal colors, so never rely on color alone.

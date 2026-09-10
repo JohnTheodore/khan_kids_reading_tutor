@@ -3,10 +3,15 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from khan_kids.sync_report import render_sync_report, render_terminal_summary
+from khan_kids.sync_report import (
+    render_sync_report,
+    render_terminal_summary,
+    terminal_color_enabled,
+)
 
 
 class SyncReportTests(unittest.TestCase):
@@ -88,6 +93,11 @@ class SyncReportTests(unittest.TestCase):
         self.assertIn("ASSIGNED NOW (1)", terminal)
         self.assertIn("Duration: 18.4 seconds", terminal)
 
+        colored = render_terminal_summary(payload, color=True)
+        self.assertIn("\033[32mMASTERY FOUND\033[0m", colored)
+        self.assertIn("\033[34mADDED\033[0m", colored)
+        self.assertIn("\033[33mNEW SCORES\033[0m", colored)
+
     def test_review_output_labels_changes_as_not_applied(self) -> None:
         payload = {
             "status": "review_required",
@@ -146,7 +156,9 @@ class SyncReportTests(unittest.TestCase):
         terminal = render_terminal_summary(payload)
 
         self.assertIn("no changes needed; live queue verified", terminal)
-        self.assertIn("NEW SCORES\n  None.", terminal)
+        self.assertIn("CHANGES SINCE LAST SYNC", terminal)
+        self.assertIn("No new lesson attempts or assignment changes", terminal)
+        self.assertIn("NEW SCORES\n  ○ None.", terminal)
         self.assertIn("UNCHECKED\n  None.", terminal)
         self.assertIn("ADDED\n  None.", terminal)
         self.assertIn("HOLD; scores: 69%", terminal)
@@ -189,6 +201,19 @@ class SyncReportTests(unittest.TestCase):
         self.assertIn("ADDED BEFORE INTERRUPTION", terminal)
         self.assertIn("Short Vowel Sound i", terminal)
         self.assertNotIn("Short Vowel Sound e", terminal)
+
+    def test_terminal_color_auto_respects_tty_no_color_and_dumb_term(self) -> None:
+        stream = Mock()
+        stream.isatty.return_value = True
+
+        with patch.dict("os.environ", {"TERM": "xterm-256color"}, clear=True):
+            self.assertTrue(terminal_color_enabled("auto", stream))
+        with patch.dict("os.environ", {"TERM": "xterm-256color", "NO_COLOR": "1"}, clear=True):
+            self.assertFalse(terminal_color_enabled("auto", stream))
+            self.assertTrue(terminal_color_enabled("always", stream))
+        with patch.dict("os.environ", {"TERM": "dumb"}, clear=True):
+            self.assertFalse(terminal_color_enabled("auto", stream))
+        self.assertFalse(terminal_color_enabled("never", stream))
 
     def test_interrupted_report_includes_only_completed_actions(self) -> None:
         payload = {

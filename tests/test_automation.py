@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 import xml.etree.ElementTree as ET
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -16,7 +17,7 @@ from khan_kids.ui import Rect
 
 class AutomationTests(unittest.TestCase):
     def test_roster_only_students_screen_is_not_tapped_by_coordinate(self) -> None:
-        device = Mock()
+        device = _device()
         automation = KhanKidsAutomation(
             device,
             student="Student A",
@@ -35,7 +36,7 @@ class AutomationTests(unittest.TestCase):
         device.tap.assert_not_called()
 
     def test_exact_roster_screen_opens_class_reports_at_guarded_coordinate(self) -> None:
-        device = Mock()
+        device = _device()
         automation = KhanKidsAutomation(
             device,
             student="Student A",
@@ -53,14 +54,110 @@ class AutomationTests(unittest.TestCase):
         )
         for text in ("Assignments", "All Progress", "Students:", "All"):
             ET.SubElement(report_parent, "node", bounds="[100,100][300,160]", text=text)
-        automation._wait_for_root = Mock(return_value=report)
+        device.dump.return_value = report
 
         automation.ensure_assignments_report()
 
         device.tap.assert_called_once_with(1280, 459)
 
+    def test_navigation_waits_for_two_stable_profile_chooser_reads(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        blank = _screen_with_text()
+        incomplete = _screen_with_text(("dad", Rect(100, 100, 300, 160)))
+        chooser = _screen_with_text(
+            ("dad", Rect(100, 100, 300, 160)),
+            ("Student A", Rect(400, 100, 600, 160)),
+            ("Student B", Rect(700, 100, 900, 160)),
+            ("Sign Out", Rect(2200, 1400, 2500, 1550)),
+        )
+        device.hierarchy.side_effect = (blank, incomplete, chooser, chooser)
+
+        with patch("khan_kids.automation.time.sleep"):
+            root, state = automation._wait_for_navigation_state()
+
+        self.assertIs(root, chooser)
+        self.assertEqual(state, "profile_chooser")
+        self.assertEqual(device.hierarchy.call_count, 4)
+
+    def test_stable_assignments_report_returns_after_one_read(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        report = _screen_with_text(
+            ("Class Report: Assignments", Rect(100, 100, 600, 160)),
+            ("Assignments", Rect(100, 200, 300, 260)),
+            ("All Progress", Rect(400, 200, 600, 260)),
+            ("Students:", Rect(700, 200, 900, 260)),
+            ("All", Rect(1000, 200, 1100, 260)),
+        )
+        device.hierarchy.return_value = report
+
+        root, state = automation._wait_for_navigation_state()
+
+        self.assertIs(root, report)
+        self.assertEqual(state, "assignments_report")
+        device.hierarchy.assert_called_once_with()
+
+    def test_navigation_state_change_resets_stability(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        chooser = _screen_with_text(
+            ("dad", Rect(100, 100, 300, 160)),
+            ("Student A", Rect(400, 100, 600, 160)),
+            ("Student B", Rect(700, 100, 900, 160)),
+            ("Sign Out", Rect(2200, 1400, 2500, 1550)),
+        )
+        password = _screen_with_text(
+            ("Enter Password", Rect(900, 100, 1600, 200)),
+            ("Enter", Rect(1100, 440, 1400, 510)),
+        )
+        device.hierarchy.side_effect = (chooser, password, password)
+
+        with patch("khan_kids.automation.time.sleep"):
+            _root, state = automation._wait_for_navigation_state()
+
+        self.assertEqual(state, "password_dialog")
+        self.assertEqual(device.hierarchy.call_count, 3)
+
+    def test_unknown_navigation_state_times_out_without_tapping(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        device.hierarchy.return_value = _screen_with_text(
+            ("Unknown screen", Rect(100, 100, 300, 160))
+        )
+
+        with (
+            patch("khan_kids.automation.time.monotonic", side_effect=(0, 0, 11)),
+            patch("khan_kids.automation.time.sleep"),
+            self.assertRaisesRegex(AutomationError, "stable Khan navigation state"),
+        ):
+            automation._wait_for_navigation_state()
+
+        device.tap.assert_not_called()
+        device.tap_rect.assert_not_called()
+
     def test_portrait_ui_is_rejected_before_navigation(self) -> None:
-        device = Mock()
+        device = _device()
         hierarchy = ET.Element("hierarchy")
         ET.SubElement(hierarchy, "node", bounds="[0,0][1600,2560]", text="")
         device.dump.return_value = hierarchy
@@ -75,7 +172,7 @@ class AutomationTests(unittest.TestCase):
             automation.root()
 
     def test_password_submit_uses_bounds_refreshed_after_keyboard_opens(self) -> None:
-        device = Mock()
+        device = _device()
         automation = KhanKidsAutomation(
             device,
             student="Student A",
@@ -107,7 +204,7 @@ class AutomationTests(unittest.TestCase):
         device.tap_rect.assert_called_once_with(shifted_enter)
 
     def test_bulk_unassignment_uses_one_traversal_and_bottom_first(self) -> None:
-        device = Mock()
+        device = _device()
         automation = KhanKidsAutomation(
             device,
             student="Student A",
@@ -144,6 +241,12 @@ def _row(title: str, top: int) -> AssignmentRow:
         score=None,
         score_rect=None,
     )
+
+
+def _device() -> Mock:
+    device = Mock()
+    device.timing.span.return_value = nullcontext()
+    return device
 
 
 def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:

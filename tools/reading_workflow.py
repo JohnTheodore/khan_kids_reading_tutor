@@ -38,6 +38,7 @@ from khan_kids.sync_report import (
     append_performance_report,
     append_sync_report,
     render_terminal_summary,
+    terminal_color_enabled,
 )
 from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
@@ -232,6 +233,12 @@ def main() -> None:
         action="store_true",
         help="emit compact machine-readable output instead of the default readable summary",
     )
+    parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help="colorize readable output (default: auto; NO_COLOR disables auto color)",
+    )
     args = parser.parse_args()
     if sum(bool(value) for value in (args.plan, args.apply_plan, args.sync)) > 1:
         parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
@@ -330,7 +337,12 @@ def main() -> None:
     if args.json:
         print(json.dumps(summary, separators=(",", ":")))
     else:
-        print(render_terminal_summary(output_payload))
+        print(
+            render_terminal_summary(
+                output_payload,
+                color=terminal_color_enabled(args.color, sys.stdout),
+            )
+        )
 
 
 def _review_snapshot(

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from typing import TextIO
 
 from .records import append_text_atomic
 
@@ -113,7 +115,16 @@ def render_sync_report(payload: dict[str, object]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_terminal_summary(payload: dict[str, object]) -> str:
+def terminal_color_enabled(mode: str, stream: TextIO) -> bool:
+    """Resolve standard auto/always/never terminal color behavior."""
+    if mode == "always":
+        return True
+    if mode == "never":
+        return False
+    return "NO_COLOR" not in os.environ and stream.isatty() and os.environ.get("TERM") != "dumb"
+
+
+def render_terminal_summary(payload: dict[str, object], *, color: bool = False) -> str:
     """Render the mandatory human-readable result printed after every successful run."""
     status = str(payload.get("status", "unknown"))
     actions = _reported_actions(payload)
@@ -128,37 +139,79 @@ def render_terminal_summary(payload: dict[str, object]) -> str:
     performance = payload.get("performance")
     duration = performance.get("wall_seconds") if isinstance(performance, dict) else None
 
+    new_attempt_count = int(payload.get("new_attempt_records", 0))
     lines = [
-        f"Khan Mastery Sync — {payload.get('student', 'Unknown student')}",
+        _paint(
+            f"Khan Mastery Sync — {payload.get('student', 'Unknown student')}",
+            "bold",
+            color,
+        ),
         "=" * 60,
-        f"Outcome: {_outcome(status)}",
+        _paint(f"Outcome: {_outcome(status)}", _outcome_style(status), color),
         f"Queue: {len(observed)} before → {len(desired)} desired",
-        f"New attempt records: {payload.get('new_attempt_records', 0)}",
+        f"New attempt records: {new_attempt_count}",
     ]
     if duration is not None:
         lines.append(f"Duration: {duration} seconds")
 
-    lines.extend(["", "NEW SCORES", *_terminal_new_scores(payload)])
-    lines.extend(["", "MASTERY FOUND", *_terminal_actions(mastered, evidence)])
+    lines.extend(
+        [
+            "",
+            _paint("CHANGES SINCE LAST SYNC", "bold", color),
+            *_change_summary_lines(new_attempt_count, mastered, removals, additions, color=color),
+            "",
+            _paint("NEW SCORES", "yellow", color),
+            *_terminal_new_scores(payload, color=color),
+            "",
+            _paint("MASTERY FOUND", "green", color),
+            *_terminal_actions(mastered, evidence, style="green", color=color),
+        ]
+    )
 
     removal_heading, addition_heading = _terminal_action_headings(status)
-    lines.extend(["", removal_heading, *_terminal_actions(removals, evidence)])
-    lines.extend(["", addition_heading, *_terminal_additions(additions, mastered)])
-    lines.extend(["", f"ASSIGNED NOW ({len(desired)})"])
+    lines.extend(
+        [
+            "",
+            _paint(removal_heading, "magenta", color),
+            *_terminal_actions(removals, evidence, style="magenta", color=color),
+            "",
+            _paint(addition_heading, "blue", color),
+            *_terminal_additions(additions, mastered, color=color),
+            "",
+            _paint(f"ASSIGNED NOW ({len(desired)})", "bold", color),
+        ]
+    )
     stretches = {
         (item.get("title"), item.get("variant"))
         for item in _object_list(payload.get("stretch_assignments"))
+    }
+    addition_keys = {(item.get("title"), item.get("variant")) for item in additions}
+    new_attempt_keys = {
+        (item.get("title"), item.get("variant"))
+        for item in _object_list(payload.get("new_attempts"))
     }
     for item in desired:
         key = (item.get("title"), item.get("variant"))
         record = evidence.get(key)
         role = "stretch" if key in stretches else "core"
         if record is None:
-            lines.append(f"  • {_lesson(item)} [{role}] — score evidence unavailable")
+            lines.append(
+                _paint(
+                    f"  · {_lesson(item)} [{role}] — score evidence unavailable",
+                    "dim",
+                    color,
+                )
+            )
             continue
         scores = _scores_text(record.get("scores"))
         state = _queue_state(record)
-        lines.append(f"  • {_lesson(item)} [{role}] — {state}; scores: {scores}")
+        line = f"  · {_lesson(item)} [{role}] — {state}; scores: {scores}"
+        if key in addition_keys:
+            lines.append(_paint(line, "blue", color))
+        elif key in new_attempt_keys:
+            lines.append(_paint(line, "yellow", color))
+        else:
+            lines.append(_paint(line, "dim", color))
     if not desired:
         lines.append("  None.")
     return "\n".join(lines)
@@ -272,15 +325,23 @@ def _new_score_lines(payload: dict[str, object]) -> list[str]:
     return lines
 
 
-def _terminal_new_scores(payload: dict[str, object]) -> list[str]:
+def _terminal_new_scores(payload: dict[str, object], *, color: bool) -> list[str]:
+    if not _object_list(payload.get("new_attempts")):
+        count = int(payload.get("new_attempt_records", 0))
+        text = "None." if count == 0 else f"{count} new record(s); details unavailable."
+        return [_paint(f"  ○ {text}", "dim", color)]
     return [
-        f"  {line[2:] if line.startswith('- ') else line}" for line in _new_score_lines(payload)
+        _paint(f"  ◆ {line[2:] if line.startswith('- ') else line}", "yellow", color)
+        for line in _new_score_lines(payload)
     ]
 
 
 def _terminal_actions(
     actions: list[dict[str, object]],
     evidence: dict[tuple[object, object], dict[str, object]],
+    *,
+    style: str,
+    color: bool,
 ) -> list[str]:
     if not actions:
         return ["  None."]
@@ -288,27 +349,32 @@ def _terminal_actions(
     for action in actions:
         record = evidence.get((action.get("title"), action.get("variant")))
         lines.extend(
-            [
+            _paint(line, style, color)
+            for line in (
                 f"  • {_lesson(action)}",
                 f"    Scores: {_scores_text(record.get('scores') if record else None)}",
                 f"    Why: {_friendly_reason(action.get('reason'))}",
-            ]
+            )
         )
     return lines
 
 
 def _terminal_additions(
-    additions: list[dict[str, object]], mastered: list[dict[str, object]]
+    additions: list[dict[str, object]],
+    mastered: list[dict[str, object]],
+    *,
+    color: bool,
 ) -> list[str]:
     if not additions:
         return ["  None."]
     lines = []
     for action in additions:
         lines.extend(
-            [
+            _paint(line, "blue", color)
+            for line in (
                 f"  • {_lesson(action)}",
                 f"    Why: {_addition_reason(action, mastered)}",
-            ]
+            )
         )
     return lines
 
@@ -366,3 +432,45 @@ def _terminal_action_headings(status: str) -> tuple[str, str]:
     if status == "interrupted":
         return ("UNCHECKED BEFORE INTERRUPTION", "ADDED BEFORE INTERRUPTION")
     return ("UNCHECKED", "ADDED")
+
+
+def _change_summary_lines(
+    new_attempts: int,
+    mastered: list[dict[str, object]],
+    removals: list[dict[str, object]],
+    additions: list[dict[str, object]],
+    *,
+    color: bool,
+) -> list[str]:
+    if new_attempts == 0 and not removals and not additions:
+        return [_paint("  ○ No new lesson attempts or assignment changes.", "dim", color)]
+    return [
+        _paint(f"  ◆ New attempts: {new_attempts}", "yellow", color),
+        _paint(f"  ✓ Mastered: {len(mastered)}", "green", color),
+        _paint(f"  − Unchecked: {len(removals)}", "magenta", color),
+        _paint(f"  + Added: {len(additions)}", "blue", color),
+    ]
+
+
+def _outcome_style(status: str) -> str:
+    return {
+        "applied": "green",
+        "no_op": "dim",
+        "review_required": "yellow",
+        "interrupted": "red",
+    }.get(status, "bold")
+
+
+def _paint(text: str, style: str, enabled: bool) -> str:
+    if not enabled:
+        return text
+    codes = {
+        "bold": "1",
+        "dim": "2",
+        "red": "31",
+        "green": "32",
+        "yellow": "33",
+        "blue": "34",
+        "magenta": "35",
+    }
+    return f"\033[{codes[style]}m{text}\033[0m"
