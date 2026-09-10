@@ -42,14 +42,24 @@ ACTION_FIELDS = (
 
 
 def write_json_atomic(path: Path, payload: object) -> None:
+    write_text_atomic(path, json.dumps(payload, indent=2) + "\n")
+
+
+def write_text_atomic(path: Path, content: str) -> None:
+    """Replace a UTF-8 text file atomically."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
         "w", dir=path.parent, prefix=f".{path.name}.", delete=False
     ) as handle:
         temporary = Path(handle.name)
-        json.dump(payload, handle, indent=2)
-        handle.write("\n")
+        handle.write(content)
     os.replace(temporary, path)
+
+
+def append_text_atomic(path: Path, content: str) -> None:
+    """Append text by atomically replacing the complete file."""
+    existing = path.read_text() if path.exists() else ""
+    write_text_atomic(path, existing + content)
 
 
 def append_unique_rows(

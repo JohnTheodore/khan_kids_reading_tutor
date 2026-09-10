@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 
 from .catalog import CatalogIndex
@@ -10,12 +10,20 @@ from .reports import ScoreHistory
 
 
 def histories_to_attempt_rows(
-    histories: Iterable[ScoreHistory], catalog: CatalogIndex
+    histories: Iterable[ScoreHistory],
+    catalog: CatalogIndex,
+    preferred_grades: Mapping[tuple[str, str], str] | None = None,
 ) -> list[dict[str, object]]:
     captured_at = datetime.now().astimezone().isoformat(timespec="seconds")
     rows: list[dict[str, object]] = []
     for history in histories:
-        entry = catalog.find(history.title, history.variant, history.curriculum_path)
+        key = (history.title, history.variant)
+        preferred_grade = (preferred_grades or {}).get(key)
+        entry = (
+            catalog.find_exact(preferred_grade, history.title, history.variant)
+            if preferred_grade
+            else catalog.find(history.title, history.variant, history.curriculum_path)
+        )
         for attempt in reversed(history.attempts_newest_first):
             rows.append(
                 {

@@ -6,7 +6,7 @@ import subprocess
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 from .ui import Rect
@@ -17,13 +17,22 @@ class AutomationError(RuntimeError):
 
 
 def run_command(args: Sequence[str], *, timeout: int = 60, capture: bool = False) -> bytes:
-    result = subprocess.run(
-        list(args),
-        check=True,
-        stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
-        stderr=subprocess.PIPE if capture else subprocess.DEVNULL,
-        timeout=timeout,
-    )
+    try:
+        result = subprocess.run(
+            list(args),
+            check=True,
+            stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+        )
+    except FileNotFoundError as error:
+        raise AutomationError(f"Command is unavailable: {args[0]}") from error
+    except subprocess.TimeoutExpired as error:
+        raise AutomationError(f"Command timed out after {timeout}s: {args[0]}") from error
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.decode(errors="replace").strip()
+        suffix = f": {detail}" if detail else ""
+        raise AutomationError(f"Command failed: {' '.join(args[:3])}{suffix}") from error
     return result.stdout if capture else b""
 
 
@@ -80,35 +89,26 @@ class AndroidDevice:
     def keep_awake(self) -> None:
         self.command("shell", "input", "keyevent", "KEYCODE_WAKEUP")
         self.command("shell", "svc", "power", "stayon", "true")
-        self.command("shell", "settings", "put", "system", "screen_off_timeout", "2147483647")
+        self._set_setting("system", "screen_off_timeout", "2147483647")
 
     @contextmanager
     def awake_session(self) -> Iterator[None]:
-        """Keep the screen awake temporarily and restore both prior settings."""
+        """Keep the screen awake in landscape, then restore all prior settings."""
         timeout = self._setting("system", "screen_off_timeout")
         stay_on = self._setting("global", "stay_on_while_plugged_in")
-        self.keep_awake()
-        try:
+        accelerometer = self._setting("system", "accelerometer_rotation")
+        rotation = self._setting("system", "user_rotation")
+        with ExitStack() as restore:
+            restore.callback(self._set_setting, "system", "accelerometer_rotation", accelerometer)
+            restore.callback(self._set_setting, "system", "user_rotation", rotation)
+            restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
+            restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
+            self.keep_awake()
+            self.command("shell", "wm", "set-ignore-orientation-request", "false")
+            self._set_setting("system", "accelerometer_rotation", "0")
+            self._set_setting("system", "user_rotation", "3")
+            time.sleep(self.settle_seconds)
             yield
-        finally:
-            try:
-                self.command(
-                    "shell",
-                    "settings",
-                    "put",
-                    "system",
-                    "screen_off_timeout",
-                    timeout,
-                )
-            finally:
-                self.command(
-                    "shell",
-                    "settings",
-                    "put",
-                    "global",
-                    "stay_on_while_plugged_in",
-                    stay_on,
-                )
 
     def _setting(self, namespace: str, key: str) -> str:
         value = (
@@ -117,6 +117,9 @@ class AndroidDevice:
         if not value or value == "null":
             raise AutomationError(f"Android setting {namespace}/{key} is unavailable")
         return value
+
+    def _set_setting(self, namespace: str, key: str, value: str) -> None:
+        self.command("shell", "settings", "put", namespace, key, value)
 
     def scroll_to_top(
         self,

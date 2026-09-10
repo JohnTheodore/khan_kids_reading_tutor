@@ -24,9 +24,9 @@ class CurriculumTests(unittest.TestCase):
         self.assertIn("independent decoding", curriculum.objective)
         self.assertTrue(curriculum.entry_criteria)
         self.assertTrue(curriculum.segment_exit_criteria)
-        self.assertEqual(curriculum.queue_limit, 5)
-        self.assertEqual(len(curriculum.tracks), 11)
-        self.assertEqual(sum(len(track.activities) for track in curriculum.tracks), 62)
+        self.assertEqual(curriculum.queue_limit, 10)
+        self.assertEqual(len(curriculum.tracks), 15)
+        self.assertEqual(sum(len(track.activities) for track in curriculum.tracks), 83)
 
     def test_dependency_cycles_are_rejected(self) -> None:
         payload = json.loads(Path("data/reading-curriculum.json").read_text())

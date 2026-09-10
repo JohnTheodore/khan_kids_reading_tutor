@@ -88,8 +88,19 @@ def build_queue_plan(
     desired = tuple(candidates[: curriculum.queue_limit])
     desired_by_key = {activity.key: activity for activity in desired}
     desired_keys = set(desired_by_key)
+    configured = {
+        activity.key: (track, position, activity)
+        for track in curriculum.tracks
+        for position, activity in enumerate(track.activities)
+    }
     removals = tuple(
-        QueueAction("remove", title, variant, "", "not in the mastery-gated desired queue")
+        QueueAction(
+            "remove",
+            title,
+            variant,
+            configured[(title, variant)][2].grade if (title, variant) in configured else "",
+            _removal_reason((title, variant), configured, scores, desired_keys),
+        )
         for title, variant in sorted(current - desired_keys)
     )
     additions = tuple(
@@ -104,6 +115,27 @@ def build_queue_plan(
         if activity.key not in current
     )
     return QueuePlan(desired, removals + additions, tuple(states))
+
+
+def _removal_reason(
+    key: tuple[str, str],
+    configured: dict[tuple[str, str], tuple[Track, int, Activity]],
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    desired_keys: set[tuple[str, str]],
+) -> str:
+    location = configured.get(key)
+    if location is None:
+        return "not in the approved reading path"
+    track, position, _activity = location
+    decision = evaluate_mastery(scores.get(key, ()))
+    if decision.status is not MasteryStatus.MASTERED:
+        return "not in the mastery-gated desired queue"
+    if position + 1 == len(track.activities):
+        return f"mastered: {decision.reason}; selected lesson family complete"
+    successor = track.activities[position + 1]
+    if successor.key in desired_keys:
+        return f"mastered: {decision.reason}; promote to {successor.title} — {successor.variant}"
+    return f"mastered: {decision.reason}; successor waiting for an open queue slot"
 
 
 def snapshot_fingerprint(snapshot: AssignmentSnapshot) -> str:

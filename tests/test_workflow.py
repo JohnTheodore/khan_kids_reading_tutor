@@ -18,12 +18,25 @@ from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.planner import QueueAction, QueuePlan, build_queue_plan
 from khan_kids.records import read_attempt_scores
-from khan_kids.reports import AssignmentRow, AssignmentSnapshot
+from khan_kids.reports import AssignmentRow, AssignmentSnapshot, ScoreAttempt, ScoreHistory
 from khan_kids.ui import Rect
+from khan_kids.workflow import histories_to_attempt_rows
 from reading_workflow import _apply_reviewed_plan, create_plan_payload, validate_reviewed_plan
 
 CATALOG_PATH = Path("data/reading-ela-archive.json")
 CURRICULUM_PATH = Path("data/reading-curriculum.json")
+EXPECTED_QUEUE = {
+    ("Blend Sounds 2", "Main"),
+    ("Make New Words", "Basic"),
+    ("Words: End Sound", "Main"),
+    ("Blend Syllables", "Practice 2"),
+    ("Short Vowel Sound a", "Basic"),
+    ("Short Vowel Sound i", "Basic"),
+    ("Short Vowel Sound e", "Basic"),
+    ("Short Vowel Sound o", "Basic"),
+    ("Short Vowel Sound u", "Basic"),
+    ("Words with b, c, d", "Main"),
+}
 
 
 class WorkflowTests(unittest.TestCase):
@@ -32,29 +45,38 @@ class WorkflowTests(unittest.TestCase):
         cls.catalog = CatalogIndex(CATALOG_PATH)
         cls.curriculum = ReadingCurriculum.load(CURRICULUM_PATH, cls.catalog)
 
-    def test_current_records_reproduce_the_five_item_queue(self) -> None:
+    def test_current_records_produce_the_ten_item_queue(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        expected = {
-            ("Blend Sounds 2", "Basic"),
-            ("Make New Words", "Basic"),
-            ("Words: End Sound", "Main"),
-            ("Blend Syllables", "Main"),
-            ("Short Vowel Sound a", "Basic"),
-        }
 
-        plan = build_queue_plan(self.curriculum, scores, expected)
+        plan = build_queue_plan(self.curriculum, scores, EXPECTED_QUEUE)
 
-        self.assertEqual({activity.key for activity in plan.desired}, expected)
+        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_QUEUE)
         self.assertEqual(plan.actions, ())
 
+    def test_curriculum_grade_disambiguates_repeated_live_title(self) -> None:
+        history = ScoreHistory(
+            student="Student A",
+            title="Short Vowel Sound a",
+            variant="Basic",
+            curriculum_path="",
+            assigned_date=date(2026, 9, 9),
+            attempts_newest_first=(ScoreAttempt("Today", date(2026, 9, 10), 100),),
+        )
+
+        rows = histories_to_attempt_rows(
+            (history,),
+            self.catalog,
+            preferred_grades={(history.title, history.variant): "Preschool (Age 4)"},
+        )
+
+        self.assertEqual(rows[0]["report_grade"], "Preschool (Age 4)")
+
     def test_mastery_replaces_a_rung_without_growing_the_queue(self) -> None:
-        current = {
-            ("Blend Sounds 2", "Basic"),
-            ("Make New Words", "Basic"),
-            ("Words: End Sound", "Main"),
-            ("Blend Syllables", "Main"),
-            ("Short Vowel Sound a", "Basic"),
-        }
+        current = set(EXPECTED_QUEUE)
+        current.remove(("Blend Sounds 2", "Main"))
+        current.add(("Blend Sounds 2", "Basic"))
+        current.remove(("Blend Syllables", "Practice 2"))
+        current.add(("Blend Syllables", "Main"))
         scores = {
             ("Blend Sounds 2", "Basic"): (85, 92, 90),
             ("Make New Words", "Basic"): (92,),
@@ -66,7 +88,7 @@ class WorkflowTests(unittest.TestCase):
 
         plan = build_queue_plan(self.curriculum, scores, current)
 
-        self.assertEqual(len(plan.desired), 5)
+        self.assertEqual(len(plan.desired), 10)
         self.assertIn(("Blend Sounds 2", "Main"), {activity.key for activity in plan.desired})
         self.assertEqual(
             [(action.kind, action.key) for action in plan.actions],
@@ -168,12 +190,14 @@ class WorkflowTests(unittest.TestCase):
                     snapshot=snapshot,
                     automation=automation,
                     actions_path=temporary_path / "actions.csv",
+                    report_path=temporary_path / "sync-log.md",
                     curriculum=self.curriculum,
                 )
 
             self.assertEqual(payload["status"], "applied")
             self.assertEqual(len((temporary_path / "actions.csv").read_text().splitlines()), 3)
             self.assertTrue(args.apply_plan.exists())
+            self.assertIn("Applied promotions", (temporary_path / "sync-log.md").read_text())
 
 
 def _snapshot(*, score: int) -> AssignmentSnapshot:

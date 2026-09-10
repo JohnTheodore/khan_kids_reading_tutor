@@ -8,12 +8,47 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
+from khan_kids.adb import AutomationError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.reports import AssignmentRow
 from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_roster_only_students_screen_is_not_tapped_by_coordinate(self) -> None:
+        device = Mock()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        root = ET.Element("hierarchy")
+        parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
+        for text in ("Students", "Student A", "Student B"):
+            ET.SubElement(parent, "node", bounds="[100,100][300,160]", text=text)
+        automation.root = Mock(return_value=root)
+
+        with self.assertRaisesRegex(AutomationError, "Open Class Reports manually"):
+            automation.ensure_assignments_report()
+
+        device.tap.assert_not_called()
+
+    def test_portrait_ui_is_rejected_before_navigation(self) -> None:
+        device = Mock()
+        hierarchy = ET.Element("hierarchy")
+        ET.SubElement(hierarchy, "node", bounds="[0,0][1600,2560]", text="")
+        device.dump.return_value = hierarchy
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+
+        with self.assertRaisesRegex(AutomationError, "expected landscape"):
+            automation.root()
+
     def test_bulk_unassignment_uses_one_traversal_and_bottom_first(self) -> None:
         device = Mock()
         automation = KhanKidsAutomation(

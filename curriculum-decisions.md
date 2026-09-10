@@ -30,3 +30,20 @@ claim of independent reading. Later decisions must add a minimal route through
 the remaining vowel patterns, digraphs, longer words, and connected-text
 accuracy. The stopping rule will be demonstrated reading ability, not catalog
 completion.
+
+## 2026-09-10 — Expand the daily choice set to ten
+
+**Decision:** Increase the active queue ceiling from five to ten and add five
+low-inference-gap entry tracks: short *e*, short *i*, short *o*, short *u*, and
+`Words with b, c, d`.
+
+**Reason:** Student A has secure bidirectional letter-sound knowledge and needs a
+larger set of appropriate choices. The four vowel entries preserve a simple
+sound-recognition task before their corresponding printed CVC work.
+`Words with b, c, d — Main` is especially well placed because Student A's archived
+result is 92%, making it a near-mastery reassessment rather than a conceptual
+jump.
+
+**Guardrail:** Harder whole-sequence lessons remain locked until all five
+short-vowel tracks and the selected CVC-ending tracks are mastered. Expanding
+choice therefore does not unlock the previously deferred first-grade tasks.

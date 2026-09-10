@@ -51,6 +51,10 @@ class ReadingCurriculum:
     queue_limit: int
     tracks: tuple[Track, ...]
 
+    @property
+    def activities_by_key(self) -> dict[tuple[str, str], Activity]:
+        return {activity.key: activity for track in self.tracks for activity in track.activities}
+
     @classmethod
     def load(cls, path: Path, catalog: CatalogIndex) -> ReadingCurriculum:
         payload = json.loads(path.read_text())

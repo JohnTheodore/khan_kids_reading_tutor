@@ -14,7 +14,7 @@
     "Identifies middle and ending sounds in CVC words at the selected Khan lesson levels",
     "Begins decoding words containing initial consonant blends"
   ],
-  "queue_limit": 5,
+  "queue_limit": 10,
   "tracks": [
     {
       "id": "three_phoneme_blending",
@@ -78,7 +78,7 @@
     {
       "id": "short_i_cvc_middle",
       "priority": 60,
-      "requires": ["short_a_cvc_middle"],
+      "requires": [],
       "lesson_groups": [
         {
           "grade": "Preschool (Age 4)",
@@ -87,6 +87,62 @@
         {
           "grade": "Preschool (Age 4)",
           "title": "Words with i"
+        }
+      ]
+    },
+    {
+      "id": "short_e_cvc_middle",
+      "priority": 61,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Short Vowel Sound e"
+        },
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with e"
+        }
+      ]
+    },
+    {
+      "id": "short_o_cvc_middle",
+      "priority": 62,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Short Vowel Sound o"
+        },
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with o"
+        }
+      ]
+    },
+    {
+      "id": "short_u_cvc_middle",
+      "priority": 63,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Short Vowel Sound u"
+        },
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with u"
+        }
+      ]
+    },
+    {
+      "id": "cvc_beginning_bcd",
+      "priority": 64,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with b, c, d"
         }
       ]
     },
@@ -115,7 +171,14 @@
     {
       "id": "whole_phoneme_sequence",
       "priority": 90,
-      "requires": ["short_i_cvc_middle", "cvc_ending_p_s"],
+      "requires": [
+        "short_a_cvc_middle",
+        "short_e_cvc_middle",
+        "short_i_cvc_middle",
+        "short_o_cvc_middle",
+        "short_u_cvc_middle",
+        "cvc_ending_p_s"
+      ],
       "lesson_groups": [
         {
           "grade": "1st Grade",

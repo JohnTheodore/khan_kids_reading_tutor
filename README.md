@@ -75,6 +75,7 @@ several variants.
 | [`data/reading-curriculum.json`](data/reading-curriculum.json) | Validated mastery-gated Khan-only reading sequence and prerequisites |
 | [`reading-path.md`](reading-path.md) | Human-readable minimum path, entry point, stopping rule, and record model |
 | [`curriculum-decisions.md`](curriculum-decisions.md) | Append-only rationale for selecting, deferring, or reordering lesson families |
+| [`INCIDENTS.md`](INCIDENTS.md) | Append-only operational incident record and corrective actions |
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
 | [`student-a-next-reading-lessons-science-of-reading.md`](student-a-next-reading-lessons-science-of-reading.md) | Research-backed, Khan-only next-lesson sequence tailored to Student A's scores |
@@ -480,9 +481,11 @@ The default dry run:
 - appends newly observed attempts without duplicating prior rows;
 - evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
   mastery policy;
-- selects at most five lessons whose prerequisite tracks are complete;
+- selects at most ten lessons whose prerequisite tracks are complete;
 - computes the exact difference between the live and desired queues; and
-- writes a compact reviewed plan to `private/student-a-reading-plan.json`.
+- writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
+- appends a human-readable run report to
+  `student-records/student-a-reading-sync-log.md`.
 
 Screenshots used to distinguish checked from unchecked boxes live only in a
 temporary directory and are deleted when the command exits. Passwords, pairing
@@ -506,9 +509,13 @@ the approved curriculum, and that the queue remains within its configured
 limit. Each successful Save is logged immediately, and the final live queue is
 verified exactly. If a run is interrupted, generate a new dry-run plan; the
 append-only logs and live-state comparison make the remaining work idempotent.
+Every successful review or apply appends a Markdown report naming mastery,
+unchecks, promotions, additions, the desired queue, and held lessons. An
+interrupted apply records only the actions that completed before the error;
+rerun the review command to produce a safe remainder plan.
 
 The default output paths are derived from the student name. Use `--attempts`,
-`--actions`, `--plan`, and `--max-actions` to customize the run. The legacy
+`--actions`, `--report`, `--plan`, and `--max-actions` to customize the run. The legacy
 `khan-mastery-sync` executable is a compatibility alias for this same workflow;
 it contains no separate implementation. Run `./khan-reading-sync --help` for
 all options. Both wrappers resolve the repository location first, so they can

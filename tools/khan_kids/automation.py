@@ -52,7 +52,14 @@ class KhanKidsAutomation:
         self.scratch.mkdir(parents=True, exist_ok=True)
 
     def root(self, name: str = "window") -> ET.Element:
-        return self.device.dump(self.scratch / f"{name}.xml")
+        root = self.device.dump(self.scratch / f"{name}.xml")
+        screen = _screen_rect(root)
+        if screen != Rect(0, 0, 2560, 1600):
+            raise AutomationError(
+                "Unsupported display orientation or size: "
+                f"{screen}; expected landscape [0,0][2560,1600]"
+            )
+        return root
 
     def ensure_assignments_report(self) -> ET.Element:
         root = self.root("before-assignments")
@@ -64,8 +71,10 @@ class KhanKidsAutomation:
         elif "Class Reports" in texts:
             self.device.tap_rect(_unique_visible(root, "Class Reports").rect, settle=4)
         elif "Students" in texts and all(student in texts for student in self.roster):
-            screen = _screen_rect(root)
-            self.device.tap(int(screen.right * 0.5), int(screen.bottom * 0.295), settle=4)
+            raise AutomationError(
+                "Open Class Reports manually; the Students screen has no safely identifiable "
+                "Class Reports control"
+            )
         else:
             raise AutomationError(
                 "Open the logged-in Teacher view or Class Reports before running automation"

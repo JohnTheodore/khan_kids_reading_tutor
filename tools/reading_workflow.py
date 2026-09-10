@@ -31,6 +31,7 @@ from khan_kids.records import (
     write_json_atomic,
 )
 from khan_kids.reports import AssignmentSnapshot
+from khan_kids.sync_report import append_sync_report
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
 
 PLAN_VERSION = 1
@@ -169,6 +170,7 @@ def main() -> None:
     parser.add_argument("--curriculum", type=Path, default=Path("data/reading-curriculum.json"))
     parser.add_argument("--attempts", type=Path)
     parser.add_argument("--actions", type=Path)
+    parser.add_argument("--report", type=Path)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--apply-plan", type=Path)
     parser.add_argument("--max-actions", type=int, default=20)
@@ -182,6 +184,7 @@ def main() -> None:
     slug = args.student.casefold().replace(" ", "-")
     attempts_path = args.attempts or Path(f"student-records/{slug}-lesson-attempts.csv")
     actions_path = args.actions or Path(f"student-records/{slug}-assignment-actions.csv")
+    report_path = args.report or Path(f"student-records/{slug}-reading-sync-log.md")
     plan_path = args.plan or Path(f"private/{slug}-reading-plan.json")
     catalog = CatalogIndex(args.catalog)
     if args.student not in catalog.roster:
@@ -215,11 +218,17 @@ def main() -> None:
                 snapshot=snapshot,
                 automation=automation,
                 actions_path=actions_path,
+                report_path=report_path,
                 curriculum=curriculum,
             )
             return
 
-        attempt_rows = histories_to_attempt_rows(snapshot.histories, catalog)
+        preferred_grades = {
+            key: activity.grade for key, activity in curriculum.activities_by_key.items()
+        }
+        attempt_rows = histories_to_attempt_rows(
+            snapshot.histories, catalog, preferred_grades=preferred_grades
+        )
         appended = append_unique_rows(
             attempts_path,
             ATTEMPT_FIELDS,
@@ -242,7 +251,13 @@ def main() -> None:
             generated_at=datetime.now().astimezone(),
         )
         write_json_atomic(plan_path, payload)
-        print(json.dumps(_summary(payload, plan_path=plan_path), separators=(",", ":")))
+        append_sync_report(report_path, payload)
+        print(
+            json.dumps(
+                _summary(payload, plan_path=plan_path, report_path=report_path),
+                separators=(",", ":"),
+            )
+        )
 
 
 def _apply_reviewed_plan(
@@ -252,6 +267,7 @@ def _apply_reviewed_plan(
     snapshot: AssignmentSnapshot,
     automation: KhanKidsAutomation,
     actions_path: Path,
+    report_path: Path,
     curriculum: ReadingCurriculum,
 ) -> None:
     desired, actions = validate_reviewed_plan(
@@ -267,38 +283,55 @@ def _apply_reviewed_plan(
             f"Reviewed plan contains {len(actions)} actions; limit is {args.max_actions}"
         )
     applied: list[dict[str, str]] = []
-    removals = {action.key: action for action in actions if action.kind == "remove"}
-    for result in automation.unassign_many(removals):
-        action = removals[(result.title, result.variant)]
-        _record_applied_action(
-            result=result,
-            action=action,
-            actions_path=actions_path,
-            student=args.student,
-            action_date=args.today,
-            applied=applied,
-        )
-    for action in (item for item in actions if item.kind == "add"):
-        result = automation.assign(action.grade, action.title, action.variant)
-        _record_applied_action(
-            result=result,
-            action=action,
-            actions_path=actions_path,
-            student=args.student,
-            action_date=args.today,
-            applied=applied,
-        )
+    try:
+        removals = {action.key: action for action in actions if action.kind == "remove"}
+        for result in automation.unassign_many(removals):
+            action = removals[(result.title, result.variant)]
+            _record_applied_action(
+                result=result,
+                action=action,
+                actions_path=actions_path,
+                student=args.student,
+                action_date=args.today,
+                applied=applied,
+            )
+        for action in (item for item in actions if item.kind == "add"):
+            result = automation.assign(action.grade, action.title, action.variant)
+            _record_applied_action(
+                result=result,
+                action=action,
+                actions_path=actions_path,
+                student=args.student,
+                action_date=args.today,
+                applied=applied,
+            )
 
-    final_snapshot = automation.scan_assignments(today=args.today, include_score_histories=False)
-    final_keys = {(row.title, row.variant) for row in final_snapshot.rows}
-    desired_keys = {activity.key for activity in desired}
-    if final_keys != desired_keys:
-        raise AutomationError("Post-apply verification did not match the desired queue")
+        final_snapshot = automation.scan_assignments(
+            today=args.today, include_score_histories=False
+        )
+        final_keys = {(row.title, row.variant) for row in final_snapshot.rows}
+        desired_keys = {activity.key for activity in desired}
+        if final_keys != desired_keys:
+            raise AutomationError("Post-apply verification did not match the desired queue")
+    except Exception as error:
+        payload["status"] = "interrupted"
+        payload["interrupted_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+        payload["error"] = str(error)
+        payload["applied"] = applied
+        write_json_atomic(args.apply_plan, payload)
+        append_sync_report(report_path, payload)
+        raise
     payload["status"] = "applied"
     payload["applied_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
     payload["applied"] = applied
     write_json_atomic(args.apply_plan, payload)
-    print(json.dumps(_summary(payload, plan_path=args.apply_plan), separators=(",", ":")))
+    append_sync_report(report_path, payload)
+    print(
+        json.dumps(
+            _summary(payload, plan_path=args.apply_plan, report_path=report_path),
+            separators=(",", ":"),
+        )
+    )
 
 
 def _record_applied_action(
@@ -336,7 +369,9 @@ def _track_payload(state: TrackState) -> dict[str, object]:
     }
 
 
-def _summary(payload: dict[str, object], *, plan_path: Path) -> dict[str, object]:
+def _summary(
+    payload: dict[str, object], *, plan_path: Path, report_path: Path
+) -> dict[str, object]:
     return {
         "status": payload["status"],
         "student": payload["student"],
@@ -345,6 +380,7 @@ def _summary(payload: dict[str, object], *, plan_path: Path) -> dict[str, object
         "action_count": len(payload["actions"]),
         "actions": payload["actions"],
         "plan": str(plan_path),
+        "report": str(report_path),
     }
 
 

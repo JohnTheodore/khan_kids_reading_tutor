@@ -16,7 +16,7 @@ for adding, removing, or reordering a lesson is never lost.
 This is a mastery-gated spine, not a fixed calendar. The numbered order is the
 default route for a typical learner who already knows letter-sound
 correspondences. A child may have several unlocked tracks at once, but the
-assignment queue stays at five or fewer activities. Each activity follows the
+assignment queue stays at ten or fewer activities. Each activity follows the
 family's `Basic → Main → Practice 1 → Practice 2` rule, skipping variants Khan
 does not provide.
 
@@ -47,18 +47,25 @@ not meet them needs a letter-sound entry segment before this path.
 | 6 | Words with a | Transfer short *a* into printed CVC words | Prior row in the same track |
 | 7 | Short Vowel Sound i | Add a second controlled middle vowel | Short-*a* track mastered |
 | 8 | Words with i | Transfer short *i* into printed CVC words | Prior row in the same track |
-| 9 | Words with m & n | Decode comparatively easy continuous final consonants | Short-*a* track mastered |
-| 10 | Words with p & s | Generalize CVC endings to a stop and continuous consonant | Words with m & n mastered |
-| 11 | Middle Sound | Reassess middle-position analysis after narrow CVC work | Short-*i* and ending tracks mastered |
-| 12 | Ending Sound | Reassess final-position analysis after narrow CVC work | Prior row in the same track |
-| 13 | First & Last Sound | Coordinate both boundary positions | Prior row in the same track |
-| 14 | Isolate All Sounds | Segment an entire ordered phoneme sequence | Prior row in the same track |
-| 15 | 1-Syllable Words | Apply the component skills to whole-word decoding | Whole-sequence track mastered |
-| 16 | Blends: st | Introduce an adjacent-consonant sequence | One-syllable words mastered |
-| 17 | Blends: sp | Generalize the adjacent-consonant sequence | Prior row in the same track |
-| 18 | st, sp, sk, sm | Check transfer across several initial blends | Prior row in the same track |
+| 9 | Short Vowel Sound e | Add short *e* without increasing positional complexity | Entry criteria |
+| 10 | Words with e | Transfer short *e* into printed CVC words | Prior row in the same track |
+| 11 | Short Vowel Sound o | Add short *o* without increasing positional complexity | Entry criteria |
+| 12 | Words with o | Transfer short *o* into printed CVC words | Prior row in the same track |
+| 13 | Short Vowel Sound u | Add short *u* without increasing positional complexity | Entry criteria |
+| 14 | Words with u | Transfer short *u* into printed CVC words | Prior row in the same track |
+| 15 | Words with b, c, d | Use Student A's prior 92% CVC-beginning performance as a near-mastery option | Entry criteria |
+| 16 | Words with m & n | Decode comparatively easy continuous final consonants | Short-*a* track mastered |
+| 17 | Words with p & s | Generalize CVC endings to a stop and continuous consonant | Words with m & n mastered |
+| 18 | Middle Sound | Reassess middle-position analysis after narrow CVC work | All short-vowel and ending tracks mastered |
+| 19 | Ending Sound | Reassess final-position analysis after narrow CVC work | Prior row in the same track |
+| 20 | First & Last Sound | Coordinate both boundary positions | Prior row in the same track |
+| 21 | Isolate All Sounds | Segment an entire ordered phoneme sequence | Prior row in the same track |
+| 22 | 1-Syllable Words | Apply the component skills to whole-word decoding | Whole-sequence track mastered |
+| 23 | Blends: st | Introduce an adjacent-consonant sequence | One-syllable words mastered |
+| 24 | Blends: sp | Generalize the adjacent-consonant sequence | Prior row in the same track |
+| 25 | st, sp, sk, sm | Check transfer across several initial blends | Prior row in the same track |
 
-This segment contains 18 deliberately selected lesson families and 62
+This segment contains 25 deliberately selected lesson families and 83
 assignable variants, compared with 2,956 activity placements in the captured
 ELA archive. Within a selected family, the current policy advances through each
 available variant; mastery controls when that advancement occurs.
@@ -93,6 +100,7 @@ The project keeps distinct records so plans and evidence are not confused:
 | `student-records/student-a-assignment-actions.csv` | Immutable checked/unchecked actions and their reasons |
 | `student-records/student-a-mastery-state.csv` | Human-readable mastery decisions at specific rungs |
 | `student-records/student-a-progress-log.md` | Narrative session summaries and exceptions |
+| `student-records/student-a-reading-sync-log.md` | Report from every successful review and apply command |
 | `private/student-a-reading-plan.json` | Temporary reviewed proposal for the next queue; never the historical record |
 
 This separation lets another family reuse the generic path without inheriting
