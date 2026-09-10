@@ -9,7 +9,41 @@ from .records import append_text_atomic
 
 def append_sync_report(path: Path, payload: dict[str, object]) -> None:
     """Append one complete review or apply report."""
-    append_text_atomic(path, render_sync_report(payload))
+    _append_report(path, render_sync_report(payload))
+
+
+def append_performance_report(
+    path: Path,
+    timing: dict[str, object],
+    *,
+    status: str,
+    backend: str,
+    cache_hits: int,
+    cache_misses: int,
+) -> None:
+    """Append secret-safe operational timings for one invocation."""
+    lines = [
+        "### Performance",
+        "",
+        f"- Outcome: {status}",
+        f"- UI backend: {backend}",
+        f"- Wall time: {timing.get('wall_seconds', 0)} seconds",
+        f"- Score-history cache: {cache_hits} hits, {cache_misses} misses",
+        "",
+        "| Step | Calls | Total (s) | Average (s) | Max (s) |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    steps = timing.get("steps")
+    if isinstance(steps, list):
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            lines.append(
+                f"| {step.get('name', '')} | {step.get('count', 0)} | "
+                f"{step.get('total_seconds', 0)} | {step.get('average_seconds', 0)} | "
+                f"{step.get('max_seconds', 0)} |"
+            )
+    _append_report(path, "\n".join(lines).rstrip() + "\n")
 
 
 def render_sync_report(payload: dict[str, object]) -> str:
@@ -27,6 +61,7 @@ def render_sync_report(payload: dict[str, object]) -> str:
     verb = {
         "applied": "Applied",
         "interrupted": "Applied before interruption",
+        "no_op": "Verified",
     }.get(status, "Planned")
     desired = _object_list(payload.get("desired_assignments"))
     tracks = _object_list(payload.get("track_states"))
@@ -65,7 +100,12 @@ def render_sync_report(payload: dict[str, object]) -> str:
         *_hold_lines(tracks, desired),
         "",
     ]
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _append_report(path: Path, report: str) -> None:
+    separator = "\n" if path.exists() and path.read_text() else ""
+    append_text_atomic(path, separator + report)
 
 
 def _reported_actions(payload: dict[str, object]) -> list[dict[str, object]]:

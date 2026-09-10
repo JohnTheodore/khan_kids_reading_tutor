@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 from typing import Literal
 
-from .curriculum import Activity, ReadingCurriculum, Track
+from .curriculum import Activity, DiversityGroup, ReadingCurriculum, Track
 from .mastery import MasteryDecision, MasteryStatus, evaluate_mastery
 from .reports import AssignmentSnapshot
 
@@ -68,7 +68,7 @@ def build_queue_plan(
     preliminary = {track.track_id: _evaluate_track(track, scores) for track in curriculum.tracks}
     complete = {track_id for track_id, state in preliminary.items() if state.complete}
     states: list[TrackState] = []
-    candidates: list[Activity] = []
+    candidates: list[tuple[Track, TrackState]] = []
     reasons: dict[tuple[str, str], str] = {}
     for track in curriculum.tracks:
         state = preliminary[track.track_id]
@@ -82,10 +82,21 @@ def build_queue_plan(
         )
         states.append(state)
         if unlocked and not state.complete and state.next_activity is not None:
-            candidates.append(state.next_activity)
+            candidates.append((track, state))
             reasons[state.next_activity.key] = _target_reason(track, state)
 
-    desired = tuple(candidates[: curriculum.queue_limit])
+    selected_track_ids = _select_diverse_tracks(curriculum, candidates)
+    group_by_track = _group_by_track(curriculum)
+    diversity_holds = {
+        state.next_activity.key: group_by_track[track.track_id].max_active
+        for track, state in candidates
+        if track.track_id not in selected_track_ids and state.next_activity is not None
+    }
+    desired = tuple(
+        state.next_activity
+        for track, state in candidates
+        if track.track_id in selected_track_ids and state.next_activity is not None
+    )[: curriculum.queue_limit]
     desired_by_key = {activity.key: activity for activity in desired}
     desired_keys = set(desired_by_key)
     configured = {
@@ -99,7 +110,7 @@ def build_queue_plan(
             title,
             variant,
             configured[(title, variant)][2].grade if (title, variant) in configured else "",
-            _removal_reason((title, variant), configured, scores, desired_keys),
+            _removal_reason((title, variant), configured, scores, desired_keys, diversity_holds),
         )
         for title, variant in sorted(current - desired_keys)
     )
@@ -117,12 +128,51 @@ def build_queue_plan(
     return QueuePlan(desired, removals + additions, tuple(states))
 
 
+def _select_diverse_tracks(
+    curriculum: ReadingCurriculum, candidates: list[tuple[Track, TrackState]]
+) -> set[str]:
+    """Apply configured caps without filling the queue with weaker substitutes."""
+    group_by_track = _group_by_track(curriculum)
+    grouped: dict[str, list[tuple[Track, TrackState]]] = {}
+    selected = {
+        track.track_id for track, _state in candidates if track.track_id not in group_by_track
+    }
+    for track, state in candidates:
+        group = group_by_track.get(track.track_id)
+        if group is not None:
+            grouped.setdefault(group.group_id, []).append((track, state))
+    for group in curriculum.diversity_groups:
+        ranked = sorted(grouped.get(group.group_id, ()), key=_diversity_rank)
+        selected.update(track.track_id for track, _state in ranked[: group.max_active])
+    return selected
+
+
+def _group_by_track(curriculum: ReadingCurriculum) -> dict[str, DiversityGroup]:
+    return {
+        track_id: group for group in curriculum.diversity_groups for track_id in group.track_ids
+    }
+
+
+def _diversity_rank(candidate: tuple[Track, TrackState]) -> tuple[int, int, int, str]:
+    """Prefer active learning evidence, then established progress and curriculum order."""
+    track, state = candidate
+    decision = state.decision
+    latest = decision.scores[-1] if decision and decision.scores else None
+    in_instructional_band = latest is not None and 80 <= latest < 100
+    progress = track.activities.index(state.next_activity) if state.next_activity else -1
+    return (not in_instructional_band, -progress, track.priority, track.track_id)
+
+
 def _removal_reason(
     key: tuple[str, str],
     configured: dict[tuple[str, str], tuple[Track, int, Activity]],
     scores: dict[tuple[str, str], tuple[int, ...]],
     desired_keys: set[tuple[str, str]],
+    diversity_holds: dict[tuple[str, str], int],
 ) -> str:
+    if key in diversity_holds:
+        limit = diversity_holds[key]
+        return f"deferred: active instructional group is limited to {limit} lessons"
     location = configured.get(key)
     if location is None:
         return "not in the approved reading path"

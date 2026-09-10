@@ -3,4 +3,4 @@ set -euo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_dir"
-exec python3 tools/open_khan_kids.py "$@"
+exec "$repo_dir/tools/run-python" tools/open_khan_kids.py "$@"

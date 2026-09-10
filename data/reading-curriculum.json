@@ -15,6 +15,19 @@
     "Begins decoding words containing initial consonant blends"
   ],
   "queue_limit": 10,
+  "diversity_groups": [
+    {
+      "id": "short_vowel_cvc_middle",
+      "max_active": 3,
+      "track_ids": [
+        "short_a_cvc_middle",
+        "short_i_cvc_middle",
+        "short_e_cvc_middle",
+        "short_o_cvc_middle",
+        "short_u_cvc_middle"
+      ]
+    }
+  ],
   "tracks": [
     {
       "id": "three_phoneme_blending",

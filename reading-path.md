@@ -24,6 +24,14 @@ A rung advances after either one 100% result or two consecutive results of at
 least 90%. Lower results hold the rung or trigger a narrower Khan prerequisite.
 They do not cause automatic promotion.
 
+The queue also enforces instructional diversity. All five short-vowel/CVC-middle
+tracks share a maximum of three active lessons. Within that group, current
+80–99% evidence is preferred, followed by the most advanced mastered sequence
+and then curriculum order. A promotion retains the same group slot. When a
+complete vowel track frees a slot, the next deferred vowel rotates in. The
+queue may remain below ten rather than admit a redundant, premature, or
+non-reading filler lesson.
+
 ## Entry point
 
 The current route assumes the learner can:

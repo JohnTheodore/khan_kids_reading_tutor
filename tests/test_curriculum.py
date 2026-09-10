@@ -25,6 +25,8 @@ class CurriculumTests(unittest.TestCase):
         self.assertTrue(curriculum.entry_criteria)
         self.assertTrue(curriculum.segment_exit_criteria)
         self.assertEqual(curriculum.queue_limit, 10)
+        self.assertEqual(len(curriculum.diversity_groups), 1)
+        self.assertEqual(curriculum.diversity_groups[0].max_active, 3)
         self.assertEqual(len(curriculum.tracks), 15)
         self.assertEqual(sum(len(track.activities) for track in curriculum.tracks), 83)
 
@@ -56,6 +58,18 @@ class CurriculumTests(unittest.TestCase):
             path.write_text(json.dumps(payload))
 
             with self.assertRaisesRegex(ValueError, "duplicated"):
+                ReadingCurriculum.load(path, self.catalog)
+
+    def test_track_cannot_belong_to_multiple_diversity_groups(self) -> None:
+        payload = json.loads(Path("data/reading-curriculum.json").read_text())
+        payload["diversity_groups"].append(
+            {"id": "overlap", "max_active": 2, "track_ids": ["short_a_cvc_middle"]}
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "curriculum.json"
+            path.write_text(json.dumps(payload))
+
+            with self.assertRaisesRegex(ValueError, "multiple diversity groups"):
                 ReadingCurriculum.load(path, self.catalog)
 
 

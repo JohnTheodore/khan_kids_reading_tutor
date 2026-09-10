@@ -9,7 +9,9 @@ from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
+from .timing import TimingRecorder
 from .ui import Rect
+from .ui_backend import UiBackendError, UiHierarchyBackend, create_ui_backend
 
 
 class AutomationError(RuntimeError):
@@ -48,13 +50,33 @@ def prepare_capture_workspace(serial: str, output: Path) -> tuple[AndroidDevice,
 
 
 class AndroidDevice:
-    def __init__(self, serial: str, *, settle_seconds: float = 1.0) -> None:
+    def __init__(
+        self,
+        serial: str,
+        *,
+        settle_seconds: float = 1.0,
+        timing: TimingRecorder | None = None,
+    ) -> None:
         self.serial = serial
         self.prefix = ("adb", "-s", serial)
         self.settle_seconds = settle_seconds
+        self.timing = timing or TimingRecorder()
+        self.ui_backend: UiHierarchyBackend | None = None
+
+    @property
+    def ui_backend_name(self) -> str:
+        return self.ui_backend.name if self.ui_backend else "legacy-adb"
+
+    def enable_ui_backend(self, mode: str) -> None:
+        with self.timing.span("startup.ui_backend"):
+            try:
+                self.ui_backend = create_ui_backend(self.serial, mode)
+            except UiBackendError as error:
+                raise AutomationError(str(error)) from error
 
     def command(self, *args: str, timeout: int = 60, capture: bool = False) -> bytes:
-        return run_command((*self.prefix, *args), timeout=timeout, capture=capture)
+        with self.timing.span(_command_metric(args)):
+            return run_command((*self.prefix, *args), timeout=timeout, capture=capture)
 
     def assert_connected(self) -> None:
         state = self.command("get-state", timeout=10, capture=True).decode().strip()
@@ -116,6 +138,13 @@ class AndroidDevice:
         self.command("shell", "input", "keyevent", "KEYCODE_ENTER")
         time.sleep(self.settle_seconds)
 
+    def enter_alphanumeric_secret(self, secret: str) -> None:
+        """Enter a secret one key at a time so it never appears as one process argument."""
+        if not secret or not secret.isascii() or not secret.isalnum():
+            raise AutomationError("Secret contains unsupported input characters")
+        for character in secret:
+            self.command("shell", "input", "keyevent", f"KEYCODE_{character.upper()}")
+
     def foreground_package(self) -> str | None:
         state = self.command("shell", "dumpsys", "window", capture=True).decode(errors="replace")
         for line in state.splitlines():
@@ -171,61 +200,55 @@ class AndroidDevice:
         prior_signature = self._window_signature()
         for _ in range(gestures):
             self.swipe(x, start_y, x, end_y, duration_ms)
-            time.sleep(0.15)
             current_signature = self._window_signature()
             if current_signature == prior_signature:
                 break
             prior_signature = current_signature
-        time.sleep(self.settle_seconds)
 
     def _window_signature(self, *, attempts: int = 3) -> tuple[tuple[str, ...], ...]:
         """Return stable, visible UI state for detecting a scroll boundary."""
-        remote = "/sdcard/khan-kids-scroll-probe.xml"
-        last_error: Exception | None = None
-        for attempt in range(attempts):
-            try:
-                self.command("shell", "uiautomator", "dump", remote, timeout=60)
-                raw = self.command("exec-out", "cat", remote, timeout=20, capture=True)
-                root = ET.fromstring(raw)
-                return tuple(
-                    (
-                        node.attrib.get("class", ""),
-                        node.attrib.get("text", ""),
-                        node.attrib.get("content-desc", ""),
-                        node.attrib.get("bounds", ""),
-                        node.attrib.get("checked", ""),
-                        node.attrib.get("selected", ""),
-                    )
-                    for node in root.iter("node")
-                    if node.attrib.get("visible-to-user", "true") == "true"
-                )
-            except (
-                subprocess.TimeoutExpired,
-                subprocess.CalledProcessError,
-                ET.ParseError,
-            ) as error:
-                last_error = error
-                time.sleep(2 + 2 * attempt)
-        raise AutomationError(
-            f"Could not inspect the UI scroll position after {attempts} attempts"
-        ) from last_error
+        root = self._hierarchy_root(attempts=attempts)
+        return tuple(
+            (
+                node.attrib.get("class", ""),
+                node.attrib.get("text", ""),
+                node.attrib.get("content-desc", ""),
+                node.attrib.get("bounds", ""),
+                node.attrib.get("checked", ""),
+                node.attrib.get("selected", ""),
+            )
+            for node in root.iter("node")
+            if node.attrib.get("visible-to-user", "true") == "true"
+        )
 
     def dump(self, destination: Path, *, attempts: int = 3) -> ET.Element:
+        root, raw = self._hierarchy_root(attempts=attempts, include_raw=True)
         destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(raw)
+        return root
+
+    def hierarchy(self, *, attempts: int = 3) -> ET.Element:
+        """Return the live hierarchy without persisting potentially sensitive UI text."""
+        return self._hierarchy_root(attempts=attempts)
+
+    def _hierarchy_root(
+        self, *, attempts: int, include_raw: bool = False
+    ) -> ET.Element | tuple[ET.Element, bytes]:
         remote = "/sdcard/khan-kids-window.xml"
         last_error: Exception | None = None
         for attempt in range(attempts):
             try:
-                self.command("shell", "uiautomator", "dump", remote, timeout=60)
-                self.command("pull", remote, str(destination), timeout=20)
-                return ET.parse(destination).getroot()
-            except (
-                subprocess.TimeoutExpired,
-                subprocess.CalledProcessError,
-                ET.ParseError,
-            ) as error:
+                with self.timing.span("ui.hierarchy"):
+                    if self.ui_backend is None:
+                        self.command("shell", "uiautomator", "dump", remote, timeout=60)
+                        raw = self.command("exec-out", "cat", remote, timeout=20, capture=True)
+                    else:
+                        raw = self.ui_backend.dump_hierarchy()
+                    root = ET.fromstring(raw)
+                return (root, raw) if include_raw else root
+            except (ET.ParseError, UiBackendError, AutomationError) as error:
                 last_error = error
-                time.sleep(2 + 2 * attempt)
+                time.sleep(0.25 * (attempt + 1))
         raise AutomationError(
             f"Could not obtain a valid UI hierarchy after {attempts} attempts"
         ) from last_error
@@ -235,3 +258,22 @@ class AndroidDevice:
         destination.write_bytes(
             self.command("exec-out", "screencap", "-p", timeout=20, capture=True)
         )
+
+
+def _command_metric(args: Sequence[str]) -> str:
+    """Classify commands without retaining coordinates, text, or credentials."""
+    if args[:3] == ("shell", "input", "tap"):
+        return "adb.tap"
+    if args[:3] == ("shell", "input", "swipe"):
+        return "adb.swipe"
+    if args[:3] == ("shell", "input", "keyevent"):
+        return "adb.keyevent"
+    if args[:3] == ("shell", "uiautomator", "dump"):
+        return "adb.hierarchy_dump"
+    if args[:2] == ("exec-out", "cat"):
+        return "adb.hierarchy_read"
+    if args[:2] == ("exec-out", "screencap"):
+        return "adb.screenshot"
+    if args[:2] == ("shell", "settings"):
+        return "adb.settings"
+    return "adb.other"

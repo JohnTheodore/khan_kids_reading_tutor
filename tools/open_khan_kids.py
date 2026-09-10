@@ -10,7 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from khan_kids.adb import AndroidDevice, AutomationError
-from khan_kids.launcher import ensure_khan_kids_open, pin_provider
+from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
 
 
 def main() -> None:
@@ -23,10 +23,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    secrets = local_secrets_provider(args.secrets_file)
     device = AndroidDevice(args.serial)
     device.assert_connected()
     with device.awake_session():
-        result = ensure_khan_kids_open(device, pin_provider=pin_provider(args.secrets_file))
+        result = ensure_khan_kids_open(device, pin_provider=lambda: secrets().android_pin)
     print(json.dumps({"status": "open", **asdict(result)}, separators=(",", ":")))
 
 

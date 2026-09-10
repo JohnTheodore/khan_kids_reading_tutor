@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import time
 import xml.etree.ElementTree as ET
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -21,7 +22,7 @@ from .reports import (
     parse_score_history,
 )
 from .ui import Rect, UiText, find_text, near, node_rect, text_set, visible_nodes
-from .vision import CheckboxState, read_checkbox
+from .vision import CheckboxReading, CheckboxState, read_checkbox
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +42,8 @@ class KhanKidsAutomation:
         roster: tuple[str, ...],
         scratch: Path,
         layout: ReportLayout = DEFAULT_REPORT_LAYOUT,
+        parent_password_provider: Callable[[], str] | None = None,
+        history_lookup: Callable[[AssignmentRow], ScoreHistory | None] | None = None,
     ) -> None:
         if student not in roster:
             raise ValueError(f"Student {student!r} is not in roster {roster!r}")
@@ -49,49 +52,155 @@ class KhanKidsAutomation:
         self.roster = roster
         self.scratch = scratch
         self.layout = layout
+        self.parent_password_provider = parent_password_provider
+        self.history_lookup = history_lookup
+        self._assignments_at_top = False
         self.scratch.mkdir(parents=True, exist_ok=True)
 
     def root(self, name: str = "window") -> ET.Element:
         root = self.device.dump(self.scratch / f"{name}.xml")
+        self._validate_screen(root)
+        return root
+
+    def live_root(self) -> ET.Element:
+        """Inspect state without persisting sensitive transient UI text."""
+        root = self.device.hierarchy()
+        self._validate_screen(root)
+        return root
+
+    @staticmethod
+    def _validate_screen(root: ET.Element) -> None:
         screen = _screen_rect(root)
         if screen != Rect(0, 0, 2560, 1600):
             raise AutomationError(
                 "Unsupported display orientation or size: "
                 f"{screen}; expected landscape [0,0][2560,1600]"
             )
-        return root
 
     def ensure_assignments_report(self) -> ET.Element:
-        root = self.root("before-assignments")
+        root = self.live_root()
         if is_assignment_report(root):
             return root
         texts = text_set(root)
         if "Class Report: All Progress" in texts:
             self._tap_header(root, "Assignments")
         elif "Class Reports" in texts:
-            self.device.tap_rect(_unique_visible(root, "Class Reports").rect, settle=4)
+            self.device.tap_rect(_unique_visible(root, "Class Reports").rect)
         elif "Students" in texts and all(student in texts for student in self.roster):
-            raise AutomationError(
-                "Open Class Reports manually; the Students screen has no safely identifiable "
-                "Class Reports control"
-            )
+            self._open_class_reports_from_roster(root)
+        elif self._is_profile_chooser(texts):
+            root = self._login_parent(root)
+            self._open_class_reports_from_roster(root)
+        elif "Enter Password" in texts:
+            root = self._submit_parent_password(root)
+            self._open_class_reports_from_roster(root)
+        elif "Assignments" in texts and "All Progress" in texts:
+            self.device.tap_rect(_unique_visible(root, "Assignments").rect)
         else:
             raise AutomationError(
                 "Open the logged-in Teacher view or Class Reports before running automation"
             )
-        root = self.root("assignments-report")
+        root = self._wait_for_root(
+            lambda candidate: is_assignment_report(candidate),
+            description="assignments report",
+        )
         if not is_assignment_report(root):
             raise AutomationError("Navigation did not reach Class Report: Assignments")
+        self._assignments_at_top = True
         return root
+
+    def _is_profile_chooser(self, texts: set[str]) -> bool:
+        return (
+            "dad" in texts
+            and "Sign Out" in texts
+            and all(student in texts for student in self.roster)
+        )
+
+    def _login_parent(self, root: ET.Element) -> ET.Element:
+        parent = _unique_visible(root, "dad")
+        self.device.tap_rect(parent.rect)
+        password_root = self._wait_for_root(
+            lambda candidate: "Enter Password" in text_set(candidate),
+            description="parent password dialog",
+        )
+        return self._submit_parent_password(password_root)
+
+    def _submit_parent_password(self, root: ET.Element) -> ET.Element:
+        if self.parent_password_provider is None:
+            raise AutomationError("Khan parent password is required to enter Teacher view")
+        texts = text_set(root)
+        if "Enter Password" not in texts or "Enter" not in texts:
+            raise AutomationError("Parent password dialog did not match the expected layout")
+        if "Password" not in texts:
+            clear = _unique_visible(root, "X")
+            self.device.tap_rect(clear.rect)
+        self.device.tap(1280, 322)
+        self.device.enter_alphanumeric_secret(self.parent_password_provider())
+        # Opening the keyboard moves the dialog. Re-read the live bounds so the
+        # submit tap cannot land on the adjacent Forgot Password control.
+        submitted_root = self.live_root()
+        if "Enter Password" not in text_set(submitted_root):
+            raise AutomationError("Parent password dialog changed before submission")
+        self.device.tap_rect(_unique_visible(submitted_root, "Enter").rect)
+        return self._wait_for_root(
+            lambda candidate: (
+                "Enter Password" not in text_set(candidate)
+                and "Students" in text_set(candidate)
+                and all(student in text_set(candidate) for student in self.roster)
+            ),
+            description="teacher roster after login",
+            persist=False,
+            timeout=8,
+        )
+
+    def _open_class_reports_from_roster(self, root: ET.Element) -> None:
+        texts = text_set(root)
+        required = {"Students", "Add Students", *self.roster}
+        if not required.issubset(texts):
+            raise AutomationError("Roster screen did not match safe Class Reports preconditions")
+        # This control is visible but absent from Khan's accessibility hierarchy. The coordinate
+        # is allowed only after exact geometry and roster-screen predicates have been validated.
+        self.device.tap(1280, 459)
+
+    def _wait_for_root(
+        self,
+        predicate: Callable[[ET.Element], bool],
+        *,
+        description: str,
+        timeout: float = 6,
+        persist: bool = True,
+    ) -> ET.Element:
+        deadline = time.monotonic() + timeout
+        last_root: ET.Element | None = None
+        with self.device.timing.span(f"wait.{description}"):
+            while time.monotonic() < deadline:
+                last_root = (
+                    self.root(f"wait-{description.replace(' ', '-')}")
+                    if persist
+                    else self.live_root()
+                )
+                if predicate(last_root):
+                    return last_root
+                time.sleep(0.1)
+        raise AutomationError(f"Timed out waiting for {description}")
 
     def scan_score_histories(self, *, today: date) -> tuple[ScoreHistory, ...]:
         return self.scan_assignments(today=today, include_score_histories=True).histories
 
     def scan_assignments(self, *, today: date, include_score_histories: bool) -> AssignmentSnapshot:
         """Capture active rows once, optionally including every available score history."""
-        self.ensure_assignments_report()
-        self._filter_assignments_to_student()
-        self._scroll_to_top()
+        with self.device.timing.span("workflow.scan_assignments"):
+            return self._scan_assignments(
+                today=today, include_score_histories=include_score_histories
+            )
+
+    def _scan_assignments(
+        self, *, today: date, include_score_histories: bool
+    ) -> AssignmentSnapshot:
+        root = self.ensure_assignments_report()
+        self._filter_assignments_to_student(root)
+        if not self._assignments_at_top:
+            self._scroll_to_top()
         active_rows: dict[tuple[str, str, str], AssignmentRow] = {}
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
@@ -111,8 +220,18 @@ class KhanKidsAutomation:
                     or row.identity in histories
                 ):
                     continue
-                self.device.tap_rect(row.score_rect, settle=1)
-                modal = self.root(f"history-{page:03d}-{len(histories):03d}")
+                cached = self.history_lookup(row) if self.history_lookup else None
+                if cached is not None:
+                    histories[row.identity] = cached
+                    continue
+                self.device.tap_rect(row.score_rect)
+                modal = self._wait_for_root(
+                    lambda candidate: any(
+                        item.text == f"{self.student}'s Lesson Scores"
+                        for item in visible_nodes(candidate)
+                    ),
+                    description="score dialog",
+                )
                 history = parse_score_history(
                     modal,
                     self.student,
@@ -127,13 +246,8 @@ class KhanKidsAutomation:
                 histories[row.identity] = history
                 self._close_score_dialog(modal)
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x,
-                1380,
-                self.layout.safe_scroll_x,
-                680,
-                settle=1,
-            )
+            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self._assignments_at_top = False
         else:
             raise AutomationError("Assignments report did not reach the bottom within 80 pages")
         activities = [(row.title, row.variant) for row in active_rows.values()]
@@ -144,15 +258,16 @@ class KhanKidsAutomation:
     def inspect_active_assignment(self, title: str, variant: str) -> dict[str, str]:
         """Open and validate an active assignment, then close it without saving."""
         row = self._find_assignment(title, variant)
-        self.device.tap(115, row.rect.center[1], settle=1)
-        return self._inspect_open_assignment(title, variant, "probe-active")
+        self.device.tap(115, row.rect.center[1])
+        root = self._wait_for_assignment_dialog()
+        return self._inspect_open_assignment(title, variant, "probe-active", root=root)
 
     def inspect_catalog_assignment(self, grade: str, title: str, variant: str) -> dict[str, str]:
         """Open an All Progress assignment dialog and close it without saving."""
         self._open_all_progress()
         self._select_grade(grade)
-        self._open_report_variant(title, variant)
-        return self._inspect_open_assignment(title, variant, "probe-catalog")
+        root = self._open_report_variant(title, variant)
+        return self._inspect_open_assignment(title, variant, "probe-catalog", root=root)
 
     def unassign(self, title: str, variant: str) -> ActionResult:
         row = self._find_assignment(title, variant)
@@ -166,9 +281,10 @@ class KhanKidsAutomation:
         pending = set(requested)
         if not pending:
             return
-        self.ensure_assignments_report()
-        self._filter_assignments_to_student()
-        self._scroll_to_top()
+        root = self.ensure_assignments_report()
+        self._filter_assignments_to_student(root)
+        if not self._assignments_at_top:
+            self._scroll_to_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
             rows = parse_assignment_rows(
@@ -192,19 +308,14 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x,
-                1380,
-                self.layout.safe_scroll_x,
-                680,
-                settle=1,
-            )
+            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self._assignments_at_top = False
         if pending:
             raise AutomationError(f"Active assignments not found: {sorted(pending)!r}")
 
     def _unassign_row(self, row: AssignmentRow, title: str, variant: str) -> ActionResult:
-        self.device.tap(115, row.rect.center[1], settle=1)
-        root = self.root("unassign-dialog")
+        self.device.tap(115, row.rect.center[1])
+        root = self._wait_for_assignment_dialog()
         self._validate_assignment_dialog(root, title, variant)
         self._change_checkbox(root, desired=CheckboxState.UNCHECKED, prefix="unassign")
         self._save_dialog()
@@ -213,8 +324,7 @@ class KhanKidsAutomation:
     def assign(self, grade: str, title: str, variant: str) -> ActionResult:
         self._open_all_progress()
         self._select_grade(grade)
-        self._open_report_variant(title, variant)
-        root = self.root("assign-dialog")
+        root = self._open_report_variant(title, variant)
         self._validate_assignment_dialog(root, title, variant)
         self._change_checkbox(root, desired=CheckboxState.CHECKED, prefix="assign")
         self._save_dialog()
@@ -224,9 +334,10 @@ class KhanKidsAutomation:
         return ActionResult("checked", title, variant, "saved and verified in Assignments")
 
     def _find_assignment(self, title: str, variant: str) -> AssignmentRow:
-        self.ensure_assignments_report()
-        self._filter_assignments_to_student()
-        self._scroll_to_top()
+        root = self.ensure_assignments_report()
+        self._filter_assignments_to_student(root)
+        if not self._assignments_at_top:
+            self._scroll_to_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
             rows = parse_assignment_rows(
@@ -244,25 +355,31 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680, settle=1
-            )
+            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self._assignments_at_top = False
         raise AutomationError(f"Active assignment not found: {title!r}/{variant!r}")
 
     def _open_all_progress(self) -> None:
         root = self.ensure_assignments_report()
         self._tap_header(root, "All Progress")
-        after = self.root("all-progress")
+        after = self._wait_for_root(
+            lambda candidate: "Class Report: All Progress" in text_set(candidate),
+            description="all progress report",
+        )
         if "Class Report: All Progress" not in text_set(after):
             raise AutomationError("Navigation did not reach Class Report: All Progress")
+        self._assignments_at_top = False
 
-    def _filter_assignments_to_student(self) -> None:
-        root = self.root("before-student-filter")
-        current = _filter_value(root, "Students:")
-        if current.text == self.student:
+    def _filter_assignments_to_student(self, root: ET.Element | None = None) -> None:
+        root = root or self.root("before-student-filter")
+        if self._is_filtered_to_student(root):
             return
-        self.device.tap(current.rect.right + 38, current.rect.center[1], settle=1)
-        modal = self.root("student-filter")
+        current = _filter_value(root, "Students:")
+        self.device.tap(current.rect.right + 38, current.rect.center[1])
+        modal = self._wait_for_root(
+            lambda candidate: "Select Students" in text_set(candidate),
+            description="student filter dialog",
+        )
         if "Select Students" not in text_set(modal):
             raise AutomationError("Student filter dialog did not open")
         labels = _dialog_student_labels(modal, self.roster)
@@ -272,10 +389,8 @@ class KhanKidsAutomation:
         for student, reading in readings.items():
             desired = CheckboxState.CHECKED if student == self.student else CheckboxState.UNCHECKED
             if reading.state is not desired:
-                self.device.tap(*reading.center, settle=0.5)
-        after_path = self.scratch / "student-filter-after.png"
-        self.device.screenshot(after_path)
-        after = {student: read_checkbox(after_path, label) for student, label in labels.items()}
+                self.device.tap(*reading.center)
+        after = self._wait_for_checkbox_states(labels)
         invalid = {
             student: reading.state.value
             for student, reading in after.items()
@@ -284,10 +399,41 @@ class KhanKidsAutomation:
         }
         if invalid:
             raise AutomationError(f"Student filter validation failed: {invalid!r}")
-        self.device.tap_rect(_unique_visible(modal, "Done").rect, settle=4)
-        filtered = self.root("filtered-assignments")
-        if _filter_value(filtered, "Students:").text == "All":
+        current_modal = self.live_root()
+        self.device.tap_rect(_unique_visible(current_modal, "Done").rect)
+        filtered = self._wait_for_root(
+            self._is_filtered_to_student,
+            description="student filter applied",
+        )
+        if not self._is_filtered_to_student(filtered):
             raise AutomationError(f"Assignments report was not filtered to {self.student!r}")
+        self._assignments_at_top = True
+
+    def _is_filtered_to_student(self, root: ET.Element) -> bool:
+        if not is_assignment_report(root):
+            return False
+        texts = text_set(root)
+        return self.student in texts and all(
+            other == self.student or other not in texts for other in self.roster
+        )
+
+    def _wait_for_checkbox_states(
+        self, labels: dict[str, Rect], *, timeout: float = 4
+    ) -> dict[str, CheckboxReading]:
+        deadline = time.monotonic() + timeout
+        path = self.scratch / "student-filter-after.png"
+        readings: dict[str, CheckboxReading] = {}
+        while time.monotonic() < deadline:
+            self.device.screenshot(path)
+            readings = {student: read_checkbox(path, label) for student, label in labels.items()}
+            if all(
+                reading.state
+                is (CheckboxState.CHECKED if student == self.student else CheckboxState.UNCHECKED)
+                for student, reading in readings.items()
+            ):
+                return readings
+            time.sleep(0.1)
+        return readings
 
     def _select_grade(self, grade: str) -> None:
         root = self.root("before-grade")
@@ -295,16 +441,25 @@ class KhanKidsAutomation:
         subject = _filter_value(root, "Subject:")
         if subject.text == expected:
             return
-        self.device.tap(subject.rect.right + 38, subject.rect.center[1], settle=1)
-        modal = self.root("grade-selector")
+        self.device.tap(subject.rect.right + 38, subject.rect.center[1])
+        modal = self._wait_for_root(
+            lambda candidate: grade in text_set(candidate) and "Done" in text_set(candidate),
+            description="grade selector",
+        )
         grade_node = _unique_visible(modal, grade)
         self.device.tap_rect(grade_node.rect)
-        self.device.tap_rect(_unique_visible(modal, "Done").rect, settle=4)
-        after = self.root("selected-grade")
+        self.device.tap_rect(_unique_visible(modal, "Done").rect)
+        after = self._wait_for_root(
+            lambda candidate: (
+                "Class Report: All Progress" in text_set(candidate)
+                and _filter_value(candidate, "Subject:").text == expected
+            ),
+            description="grade applied",
+        )
         if _filter_value(after, "Subject:").text != expected:
             raise AutomationError(f"Grade selection did not produce {expected!r}")
 
-    def _open_report_variant(self, title: str, variant: str) -> None:
+    def _open_report_variant(self, title: str, variant: str) -> ET.Element:
         self._scroll_to_top()
         prior_signature: tuple[tuple[str, Rect], ...] | None = None
         for page in range(200):
@@ -316,12 +471,23 @@ class KhanKidsAutomation:
             if matches:
                 lesson = matches[0]
                 if lesson.rect.top > 1250:
-                    self.device.swipe(1200, 1380, 1200, 900, settle=1)
+                    self.device.swipe(1200, 1380, 1200, 900)
                     continue
                 variants = _variants_below(nodes, lesson)
                 if variant not in {item.text for item in variants}:
-                    self.device.tap_rect(lesson.rect, settle=1)
-                    root = self.root(f"expanded-{page:03d}")
+                    self.device.tap_rect(lesson.rect)
+                    root = self._wait_for_root(
+                        lambda candidate, current_lesson=lesson: (
+                            variant
+                            in {
+                                item.text
+                                for item in _variants_below(
+                                    visible_nodes(candidate), current_lesson
+                                )
+                            }
+                        ),
+                        description="lesson variants",
+                    )
                     nodes = visible_nodes(root)
                     lesson = next(
                         item for item in nodes if item.text == title and near(item.rect.left, 200)
@@ -329,8 +495,8 @@ class KhanKidsAutomation:
                     variants = _variants_below(nodes, lesson)
                 target = [item for item in variants if item.text == variant]
                 if len(target) == 1:
-                    self.device.tap_rect(target[0].rect, settle=1)
-                    return
+                    self.device.tap_rect(target[0].rect)
+                    return self._wait_for_assignment_dialog()
                 if variants:
                     raise AutomationError(
                         f"Variant {variant!r} is unavailable for visible lesson {title!r}"
@@ -343,7 +509,7 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(1200, 1380, 1200, 680, settle=1)
+            self.device.swipe(1200, 1380, 1200, 680)
         raise AutomationError(f"All Progress lesson not found: {title!r}")
 
     def _validate_assignment_dialog(
@@ -383,10 +549,15 @@ class KhanKidsAutomation:
                 f"Refusing checkbox change: {self.student} is {target.state.value}, "
                 f"expected {expected_before.value}"
             )
-        self.device.tap(*target.center, settle=1)
+        self.device.tap(*target.center)
         after_path = self.scratch / f"{prefix}-after.png"
-        self.device.screenshot(after_path)
-        after = {student: read_checkbox(after_path, label) for student, label in labels.items()}
+        deadline = time.monotonic() + 4
+        while True:
+            self.device.screenshot(after_path)
+            after = {student: read_checkbox(after_path, label) for student, label in labels.items()}
+            if after[self.student].state is desired or time.monotonic() >= deadline:
+                break
+            time.sleep(0.1)
         if after[self.student].state is not desired:
             raise AutomationError(f"Checkbox for {self.student} did not become {desired.value}")
         changed_others = [
@@ -397,8 +568,15 @@ class KhanKidsAutomation:
         if changed_others:
             raise AutomationError(f"Non-target checkbox changed: {changed_others!r}")
 
-    def _inspect_open_assignment(self, title: str, variant: str, prefix: str) -> dict[str, str]:
-        root = self.root(f"{prefix}-dialog")
+    def _inspect_open_assignment(
+        self,
+        title: str,
+        variant: str,
+        prefix: str,
+        *,
+        root: ET.Element | None = None,
+    ) -> dict[str, str]:
+        root = root or self.root(f"{prefix}-dialog")
         self._validate_assignment_dialog(root, title, variant)
         labels = _dialog_student_labels(root, self.roster)
         screenshot = self.scratch / f"{prefix}.png"
@@ -408,8 +586,13 @@ class KhanKidsAutomation:
             for student, label in labels.items()
         }
         screen = _screen_rect(root)
-        self.device.tap(int(screen.right * 0.883), int(screen.bottom * 0.065), settle=2)
-        after = self.root(f"{prefix}-closed")
+        self.device.tap(int(screen.right * 0.883), int(screen.bottom * 0.065))
+        after = self._wait_for_root(
+            lambda candidate: (
+                not any(item.text.startswith("Assign\n") for item in visible_nodes(candidate))
+            ),
+            description="assignment dialog closed",
+        )
         if any(item.text.startswith("Assign\n") for item in visible_nodes(after)):
             raise AutomationError("Assignment dialog remained open after read-only probe")
         return states
@@ -419,22 +602,47 @@ class KhanKidsAutomation:
         save = [item for item in find_text(root, "Save") if item.rect.top < 350]
         if len(save) != 1:
             raise AutomationError(f"Expected one assignment Save button, found {len(save)}")
-        self.device.tap_rect(save[0].rect, settle=4)
-        if any(item.text.startswith("Assign\n") for item in visible_nodes(self.root("after-save"))):
+        self.device.tap_rect(save[0].rect)
+        after = self._wait_for_root(
+            lambda candidate: (
+                not any(item.text.startswith("Assign\n") for item in visible_nodes(candidate))
+            ),
+            description="assignment saved",
+        )
+        if any(item.text.startswith("Assign\n") for item in visible_nodes(after)):
             raise AutomationError("Assignment dialog remained open after Save")
 
     def _close_score_dialog(self, root: ET.Element) -> None:
         screen = _screen_rect(root)
-        self.device.tap(int(screen.right * 0.66), int(screen.bottom * 0.30), settle=1)
+        self.device.tap(int(screen.right * 0.66), int(screen.bottom * 0.30))
+        self._wait_for_root(
+            lambda candidate: (
+                is_assignment_report(candidate)
+                and not any(
+                    item.text == f"{self.student}'s Lesson Scores"
+                    for item in visible_nodes(candidate)
+                )
+            ),
+            description="score dialog closed",
+        )
 
     def _scroll_to_top(self) -> None:
         self.device.scroll_to_top(self.layout.safe_scroll_x)
+        self._assignments_at_top = True
+
+    def _wait_for_assignment_dialog(self) -> ET.Element:
+        return self._wait_for_root(
+            lambda candidate: any(
+                item.text.startswith("Assign\n") for item in visible_nodes(candidate)
+            ),
+            description="assignment dialog",
+        )
 
     def _tap_header(self, root: ET.Element, label: str) -> None:
         candidates = [item for item in find_text(root, label) if item.rect.top < 200]
         if len(candidates) != 1:
             raise AutomationError(f"Expected one top {label!r} tab, found {len(candidates)}")
-        self.device.tap_rect(candidates[0].rect, settle=4)
+        self.device.tap_rect(candidates[0].rect)
 
 
 def _unique_visible(root: ET.Element, text: str) -> UiText:

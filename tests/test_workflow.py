@@ -25,7 +25,7 @@ from reading_workflow import _apply_reviewed_plan, create_plan_payload, validate
 
 CATALOG_PATH = Path("data/reading-ela-archive.json")
 CURRICULUM_PATH = Path("data/reading-curriculum.json")
-EXPECTED_QUEUE = {
+EXPECTED_LIVE_QUEUE = {
     ("Blend Sounds 2", "Main"),
     ("Make New Words", "Basic"),
     ("Words: End Sound", "Main"),
@@ -37,6 +37,10 @@ EXPECTED_QUEUE = {
     ("Short Vowel Sound u", "Basic"),
     ("Words with b, c, d", "Main"),
 }
+EXPECTED_DIVERSE_QUEUE = EXPECTED_LIVE_QUEUE - {
+    ("Short Vowel Sound e", "Basic"),
+    ("Short Vowel Sound o", "Basic"),
+}
 
 
 class WorkflowTests(unittest.TestCase):
@@ -45,13 +49,38 @@ class WorkflowTests(unittest.TestCase):
         cls.catalog = CatalogIndex(CATALOG_PATH)
         cls.curriculum = ReadingCurriculum.load(CURRICULUM_PATH, cls.catalog)
 
-    def test_current_records_produce_the_ten_item_queue(self) -> None:
+    def test_current_records_cap_short_vowels_at_three_without_filler(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
 
-        plan = build_queue_plan(self.curriculum, scores, EXPECTED_QUEUE)
+        plan = build_queue_plan(self.curriculum, scores, EXPECTED_LIVE_QUEUE)
 
-        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_QUEUE)
-        self.assertEqual(plan.actions, ())
+        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_DIVERSE_QUEUE)
+        self.assertEqual(
+            [(action.kind, action.key) for action in plan.actions],
+            [
+                ("remove", ("Short Vowel Sound e", "Basic")),
+                ("remove", ("Short Vowel Sound o", "Basic")),
+            ],
+        )
+
+    def test_completed_vowel_track_rotates_in_next_deferred_vowel(self) -> None:
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        short_a = next(
+            track for track in self.curriculum.tracks if track.track_id == "short_a_cvc_middle"
+        )
+        for activity in short_a.activities:
+            scores[activity.key] = (100,)
+
+        plan = build_queue_plan(self.curriculum, scores, EXPECTED_DIVERSE_QUEUE)
+        desired = {activity.key for activity in plan.desired}
+
+        self.assertNotIn(("Short Vowel Sound a", "Basic"), desired)
+        self.assertIn(("Short Vowel Sound e", "Basic"), desired)
+        vowel_titles = {title for title, _variant in desired if title.startswith("Short Vowel")}
+        self.assertEqual(
+            vowel_titles,
+            {"Short Vowel Sound i", "Short Vowel Sound e", "Short Vowel Sound u"},
+        )
 
     def test_curriculum_grade_disambiguates_repeated_live_title(self) -> None:
         history = ScoreHistory(
@@ -72,23 +101,24 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(rows[0]["report_grade"], "Preschool (Age 4)")
 
     def test_mastery_replaces_a_rung_without_growing_the_queue(self) -> None:
-        current = set(EXPECTED_QUEUE)
+        current = set(EXPECTED_DIVERSE_QUEUE)
         current.remove(("Blend Sounds 2", "Main"))
         current.add(("Blend Sounds 2", "Basic"))
-        current.remove(("Blend Syllables", "Practice 2"))
-        current.add(("Blend Syllables", "Main"))
         scores = {
             ("Blend Sounds 2", "Basic"): (85, 92, 90),
             ("Make New Words", "Basic"): (92,),
             ("Words: End Sound", "Basic"): (100,),
             ("Words: End Sound", "Main"): (83,),
             ("Blend Syllables", "Basic"): (100,),
-            ("Blend Syllables", "Main"): (91,),
+            ("Blend Syllables", "Main"): (91, 94),
+            ("Blend Syllables", "Practice 1"): (100,),
+            ("Short Vowel Sound a", "Basic"): (89,),
+            ("Short Vowel Sound u", "Basic"): (89,),
         }
 
         plan = build_queue_plan(self.curriculum, scores, current)
 
-        self.assertEqual(len(plan.desired), 10)
+        self.assertEqual(len(plan.desired), 8)
         self.assertIn(("Blend Sounds 2", "Main"), {activity.key for activity in plan.desired})
         self.assertEqual(
             [(action.kind, action.key) for action in plan.actions],

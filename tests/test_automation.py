@@ -27,12 +27,37 @@ class AutomationTests(unittest.TestCase):
         parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
         for text in ("Students", "Student A", "Student B"):
             ET.SubElement(parent, "node", bounds="[100,100][300,160]", text=text)
-        automation.root = Mock(return_value=root)
+        device.hierarchy.return_value = root
 
-        with self.assertRaisesRegex(AutomationError, "Open Class Reports manually"):
+        with self.assertRaisesRegex(AutomationError, "safe Class Reports preconditions"):
             automation.ensure_assignments_report()
 
         device.tap.assert_not_called()
+
+    def test_exact_roster_screen_opens_class_reports_at_guarded_coordinate(self) -> None:
+        device = Mock()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        root = ET.Element("hierarchy")
+        parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
+        for text in ("Students", "Add Students", "Student A", "Student B"):
+            ET.SubElement(parent, "node", bounds="[100,100][300,160]", text=text)
+        device.hierarchy.return_value = root
+        report = ET.Element("hierarchy")
+        report_parent = ET.SubElement(
+            report, "node", bounds="[0,0][2560,1600]", text="Class Report: Assignments"
+        )
+        for text in ("Assignments", "All Progress", "Students:", "All"):
+            ET.SubElement(report_parent, "node", bounds="[100,100][300,160]", text=text)
+        automation._wait_for_root = Mock(return_value=report)
+
+        automation.ensure_assignments_report()
+
+        device.tap.assert_called_once_with(1280, 459)
 
     def test_portrait_ui_is_rejected_before_navigation(self) -> None:
         device = Mock()
@@ -48,6 +73,38 @@ class AutomationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(AutomationError, "expected landscape"):
             automation.root()
+
+    def test_password_submit_uses_bounds_refreshed_after_keyboard_opens(self) -> None:
+        device = Mock()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+            parent_password_provider=lambda: "example123",
+        )
+        initial = _screen_with_text(
+            ("Enter Password", Rect(900, 300, 1600, 400)),
+            ("Password", Rect(900, 500, 1600, 600)),
+            ("Enter", Rect(1100, 700, 1400, 780)),
+        )
+        shifted_enter = Rect(1100, 440, 1400, 510)
+        shifted = _screen_with_text(
+            ("Enter Password", Rect(900, 100, 1600, 200)),
+            ("Enter", shifted_enter),
+        )
+        roster = _screen_with_text(
+            ("Students", Rect(100, 100, 300, 160)),
+            ("Student A", Rect(100, 200, 300, 260)),
+            ("Student B", Rect(100, 300, 300, 360)),
+        )
+        automation.live_root = Mock(return_value=shifted)
+        automation._wait_for_root = Mock(return_value=roster)
+
+        automation._submit_parent_password(initial)
+
+        device.enter_alphanumeric_secret.assert_called_once_with("example123")
+        device.tap_rect.assert_called_once_with(shifted_enter)
 
     def test_bulk_unassignment_uses_one_traversal_and_bottom_first(self) -> None:
         device = Mock()
@@ -87,6 +144,19 @@ def _row(title: str, top: int) -> AssignmentRow:
         score=None,
         score_rect=None,
     )
+
+
+def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
+    root = ET.Element("hierarchy")
+    parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
+    for text, rect in items:
+        ET.SubElement(
+            parent,
+            "node",
+            bounds=f"[{rect.left},{rect.top}][{rect.right},{rect.bottom}]",
+            text=text,
+        )
+    return root
 
 
 if __name__ == "__main__":

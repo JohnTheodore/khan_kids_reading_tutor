@@ -140,3 +140,56 @@ navigation had already occurred.
 Presence of the roster is not sufficient authorization to navigate. A screen
 that exposes roster-writing controls must never receive a guessed coordinate;
 the automation must identify the intended control semantically or stop.
+
+## KKRT-2026-09-10-003 — Password-reset navigation near-miss
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-10 |
+| Severity | SEV-3 — unintended read-only account navigation; no reset requested |
+| Status | Resolved after recurrence |
+| Detected by | Automation postcondition timeout |
+| Affected component | Parent-password submission |
+
+### Summary and impact
+
+During the first live test of cold-start login, automation entered the correct
+stored parent password but tapped a hard-coded vertical position that opened
+the adjacent Forgot Password flow instead of submitting the form. The
+postcondition wait did not observe the teacher roster and aborted the sync.
+
+The screen displayed the account's password-reset information. Automation did
+not select Next, send a reset request, change a password, or reach assignment
+controls. The flow was backed out safely, and no Khan Kids data was changed.
+
+### Root cause
+
+The password was entered through a semantically validated field, but form
+submission still used a coordinate based on an earlier visual estimate. That
+coordinate overlapped the nearby Forgot Password control.
+
+### Corrective and preventive actions
+
+| Action | Status |
+|---|---|
+| Keep the destination postcondition that stopped the run | Complete |
+| Replace the submit coordinate with the uniquely visible `Enter` node bounds | Complete |
+| Re-read `Enter` bounds after keyboard-induced dialog movement | Complete |
+| Verify cold-start login reaches the teacher roster in a live run | Complete |
+| Remove temporary screenshots containing account information | Complete |
+
+### Operating rule
+
+When a unique semantic node exists, use its current live bounds. Do not retain a
+coordinate fallback for adjacent account-management controls.
+
+### Recurrence and final verification
+
+The event recurred when a fresh password dialog opened with the keyboard
+initially hidden. Although the first correction used the semantic `Enter` node,
+it retained bounds captured before typing; opening the keyboard moved the dialog
+and made those bounds stale. The final correction re-reads and validates the
+dialog after password entry, then taps the current `Enter` bounds. A subsequent
+cold-start sync logged in, removed exactly the two reviewed assignments, and
+verified the complete desired queue. No password reset was requested in either
+event.

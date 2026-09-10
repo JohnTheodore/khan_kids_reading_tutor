@@ -41,6 +41,13 @@ class Track:
 
 
 @dataclass(frozen=True, slots=True)
+class DiversityGroup:
+    group_id: str
+    max_active: int
+    track_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ReadingCurriculum:
     path_id: str
     name: str
@@ -49,6 +56,7 @@ class ReadingCurriculum:
     entry_criteria: tuple[str, ...]
     segment_exit_criteria: tuple[str, ...]
     queue_limit: int
+    diversity_groups: tuple[DiversityGroup, ...]
     tracks: tuple[Track, ...]
 
     @property
@@ -121,6 +129,7 @@ class ReadingCurriculum:
             if track.track_id in track.requires:
                 raise ValueError(f"track {track.track_id!r} cannot require itself")
         _reject_dependency_cycles(tracks)
+        diversity_groups = _load_diversity_groups(payload, known)
         return cls(
             path_id,
             name,
@@ -129,6 +138,7 @@ class ReadingCurriculum:
             entry_criteria,
             segment_exit_criteria,
             queue_limit,
+            diversity_groups,
             tuple(sorted(tracks, key=lambda track: (track.priority, track.track_id))),
         )
 
@@ -169,3 +179,36 @@ def _reject_dependency_cycles(tracks: list[Track]) -> None:
 
     for track in tracks:
         visit(track.track_id)
+
+
+def _load_diversity_groups(
+    payload: dict[str, object], known_tracks: set[str]
+) -> tuple[DiversityGroup, ...]:
+    raw_groups = payload.get("diversity_groups", [])
+    if not isinstance(raw_groups, list):
+        raise ValueError("diversity_groups must be a list")
+    groups: list[DiversityGroup] = []
+    identifiers: set[str] = set()
+    assigned_tracks: set[str] = set()
+    for raw_group in raw_groups:
+        if not isinstance(raw_group, dict):
+            raise ValueError("each diversity group must be an object")
+        group_id = _required_string(raw_group, "id")
+        max_active = raw_group.get("max_active")
+        track_ids = _string_list(raw_group, "track_ids", required=True)
+        if group_id in identifiers:
+            raise ValueError(f"diversity group id is duplicated: {group_id!r}")
+        if not isinstance(max_active, int) or max_active < 1:
+            raise ValueError(f"diversity group {group_id!r} max_active must be positive")
+        if len(track_ids) != len(set(track_ids)):
+            raise ValueError(f"diversity group {group_id!r} contains duplicate tracks")
+        missing = set(track_ids) - known_tracks
+        if missing:
+            raise ValueError(f"diversity group {group_id!r} has unknown tracks: {missing}")
+        overlap = assigned_tracks.intersection(track_ids)
+        if overlap:
+            raise ValueError(f"tracks belong to multiple diversity groups: {overlap}")
+        identifiers.add(group_id)
+        assigned_tracks.update(track_ids)
+        groups.append(DiversityGroup(group_id, max_active, track_ids))
+    return tuple(groups)

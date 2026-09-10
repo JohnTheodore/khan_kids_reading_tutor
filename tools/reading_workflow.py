@@ -15,7 +15,8 @@ from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
-from khan_kids.launcher import ensure_khan_kids_open, pin_provider
+from khan_kids.history_cache import HistoryCache
+from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
 from khan_kids.planner import (
     QueueAction,
     QueuePlan,
@@ -32,7 +33,8 @@ from khan_kids.records import (
     write_json_atomic,
 )
 from khan_kids.reports import AssignmentSnapshot
-from khan_kids.sync_report import append_sync_report
+from khan_kids.sync_report import append_performance_report, append_sync_report
+from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
 
 PLAN_VERSION = 1
@@ -179,11 +181,27 @@ def main() -> None:
     parser.add_argument("--report", type=Path)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--apply-plan", type=Path)
+    parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="review and immediately apply a non-empty plan in one device session",
+    )
+    parser.add_argument(
+        "--ui-backend",
+        choices=("uiautomator2", "legacy-adb"),
+        default="uiautomator2",
+    )
+    parser.add_argument("--history-cache", type=Path)
+    parser.add_argument(
+        "--full-score-scan",
+        action="store_true",
+        help="ignore the same-day score-history cache",
+    )
     parser.add_argument("--max-actions", type=int, default=20)
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
     args = parser.parse_args()
-    if args.plan and args.apply_plan:
-        parser.error("--plan and --apply-plan are mutually exclusive")
+    if sum(bool(value) for value in (args.plan, args.apply_plan, args.sync)) > 1:
+        parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
     if args.max_actions < 1:
         parser.error("--max-actions must be positive")
 
@@ -192,6 +210,7 @@ def main() -> None:
     actions_path = args.actions or Path(f"student-records/{slug}-assignment-actions.csv")
     report_path = args.report or Path(f"student-records/{slug}-reading-sync-log.md")
     plan_path = args.plan or Path(f"private/{slug}-reading-plan.json")
+    cache_path = args.history_cache or Path(f"private/{slug}-score-history-cache.json")
     catalog = CatalogIndex(args.catalog)
     if args.student not in catalog.roster:
         parser.error(f"{args.student!r} is not in catalog roster {catalog.roster!r}")
@@ -206,20 +225,35 @@ def main() -> None:
             curriculum_path=args.curriculum,
         )
 
-    device = AndroidDevice(args.serial)
-    device.assert_connected()
+    timing = TimingRecorder()
+    device = AndroidDevice(args.serial, timing=timing)
+    history_cache = HistoryCache.load(cache_path, student=args.student, today=args.today)
+    output_payload: dict[str, object]
+    output_plan_path = args.apply_plan or plan_path
+    with timing.span("startup.connected"):
+        device.assert_connected()
     with device.awake_session(), tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary:
-        ensure_khan_kids_open(device, pin_provider=pin_provider(args.secrets_file))
+        credentials = local_secrets_provider(args.secrets_file)
+        with timing.span("startup.launch"):
+            ensure_khan_kids_open(
+                device,
+                pin_provider=lambda: credentials().android_pin,
+            )
+        device.enable_ui_backend(args.ui_backend)
         automation = KhanKidsAutomation(
             device,
             student=args.student,
             roster=catalog.roster,
             scratch=Path(temporary),
+            parent_password_provider=lambda: credentials().khan_parent_password,
+            history_lookup=None if args.full_score_scan else history_cache.lookup,
         )
         snapshot = automation.scan_assignments(today=args.today, include_score_histories=True)
+        history_cache.update(snapshot.rows, snapshot.histories)
+        history_cache.save()
         if args.apply_plan:
             assert reviewed_payload is not None
-            _apply_reviewed_plan(
+            output_payload = _apply_reviewed_plan(
                 args=args,
                 payload=reviewed_payload,
                 snapshot=snapshot,
@@ -227,44 +261,101 @@ def main() -> None:
                 actions_path=actions_path,
                 report_path=report_path,
                 curriculum=curriculum,
+                plan_path=args.apply_plan,
             )
-            return
+        else:
+            output_payload = _review_snapshot(
+                args=args,
+                snapshot=snapshot,
+                automation=automation,
+                catalog=catalog,
+                curriculum=curriculum,
+                attempts_path=attempts_path,
+                actions_path=actions_path,
+                report_path=report_path,
+                plan_path=plan_path,
+            )
 
-        preferred_grades = {
-            key: activity.grade for key, activity in curriculum.activities_by_key.items()
-        }
-        attempt_rows = histories_to_attempt_rows(
-            snapshot.histories, catalog, preferred_grades=preferred_grades
-        )
-        appended = append_unique_rows(
-            attempts_path,
-            ATTEMPT_FIELDS,
-            attempt_rows,
-            identity_fields=ATTEMPT_ID_FIELDS,
-        )
-        scores = overlay_live_scores(
-            read_attempt_scores(attempts_path, args.student), snapshot.histories
-        )
-        current = {(row.title, row.variant) for row in snapshot.rows}
-        queue_plan = build_queue_plan(curriculum, scores, current)
-        payload = create_plan_payload(
-            student=args.student,
-            snapshot=snapshot,
-            plan=queue_plan,
-            curriculum=curriculum,
-            catalog_path=args.catalog,
-            curriculum_path=args.curriculum,
-            new_attempt_records=appended,
-            generated_at=datetime.now().astimezone(),
-        )
+    timing_snapshot = timing.snapshot()
+    output_payload["performance"] = {
+        "backend": device.ui_backend_name,
+        "cache_hits": history_cache.hits,
+        "cache_misses": history_cache.misses,
+        **timing_snapshot,
+    }
+    write_json_atomic(output_plan_path, output_payload)
+    append_performance_report(
+        report_path,
+        timing_snapshot,
+        status=str(output_payload["status"]),
+        backend=device.ui_backend_name,
+        cache_hits=history_cache.hits,
+        cache_misses=history_cache.misses,
+    )
+    summary = _summary(output_payload, plan_path=output_plan_path, report_path=report_path)
+    summary["performance"] = output_payload["performance"]
+    print(json.dumps(summary, separators=(",", ":")))
+
+
+def _review_snapshot(
+    *,
+    args: argparse.Namespace,
+    snapshot: AssignmentSnapshot,
+    automation: KhanKidsAutomation,
+    catalog: CatalogIndex,
+    curriculum: ReadingCurriculum,
+    attempts_path: Path,
+    actions_path: Path,
+    report_path: Path,
+    plan_path: Path,
+) -> dict[str, object]:
+    preferred_grades = {
+        key: activity.grade for key, activity in curriculum.activities_by_key.items()
+    }
+    attempt_rows = histories_to_attempt_rows(
+        snapshot.histories, catalog, preferred_grades=preferred_grades
+    )
+    appended = append_unique_rows(
+        attempts_path,
+        ATTEMPT_FIELDS,
+        attempt_rows,
+        identity_fields=ATTEMPT_ID_FIELDS,
+    )
+    scores = overlay_live_scores(
+        read_attempt_scores(attempts_path, args.student), snapshot.histories
+    )
+    current = {(row.title, row.variant) for row in snapshot.rows}
+    queue_plan = build_queue_plan(curriculum, scores, current)
+    payload = create_plan_payload(
+        student=args.student,
+        snapshot=snapshot,
+        plan=queue_plan,
+        curriculum=curriculum,
+        catalog_path=args.catalog,
+        curriculum_path=args.curriculum,
+        new_attempt_records=appended,
+        generated_at=datetime.now().astimezone(),
+    )
+    write_json_atomic(plan_path, payload)
+    if not queue_plan.actions:
+        payload["status"] = "no_op"
+        payload["verified_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
         write_json_atomic(plan_path, payload)
         append_sync_report(report_path, payload)
-        print(
-            json.dumps(
-                _summary(payload, plan_path=plan_path, report_path=report_path),
-                separators=(",", ":"),
-            )
+        return payload
+    if args.sync:
+        return _apply_reviewed_plan(
+            args=args,
+            payload=payload,
+            snapshot=snapshot,
+            automation=automation,
+            actions_path=actions_path,
+            report_path=report_path,
+            curriculum=curriculum,
+            plan_path=plan_path,
         )
+    append_sync_report(report_path, payload)
+    return payload
 
 
 def _apply_reviewed_plan(
@@ -276,7 +367,11 @@ def _apply_reviewed_plan(
     actions_path: Path,
     report_path: Path,
     curriculum: ReadingCurriculum,
-) -> None:
+    plan_path: Path | None = None,
+) -> dict[str, object]:
+    plan_path = plan_path or args.apply_plan
+    if plan_path is None:
+        raise AutomationError("A plan path is required for application")
     desired, actions = validate_reviewed_plan(
         payload,
         student=args.student,
@@ -325,20 +420,15 @@ def _apply_reviewed_plan(
         payload["interrupted_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
         payload["error"] = str(error)
         payload["applied"] = applied
-        write_json_atomic(args.apply_plan, payload)
+        write_json_atomic(plan_path, payload)
         append_sync_report(report_path, payload)
         raise
     payload["status"] = "applied"
     payload["applied_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
     payload["applied"] = applied
-    write_json_atomic(args.apply_plan, payload)
+    write_json_atomic(plan_path, payload)
     append_sync_report(report_path, payload)
-    print(
-        json.dumps(
-            _summary(payload, plan_path=args.apply_plan, report_path=report_path),
-            separators=(",", ":"),
-        )
-    )
+    return payload
 
 
 def _record_applied_action(

@@ -499,10 +499,16 @@ LLM.
 
 ## Run the mastery workflow
 
-Log in to the teacher account manually. The command can wake the tablet,
-unlock Android, and launch Khan Kids, but it does not enter the separate Khan
-parent password. Leave the teacher account on the Students page, Class Reports,
-or either report tab, then run a read-only review first:
+Install the pinned Python environment once. Its persistent UI transport is much
+faster than invoking Android's legacy hierarchy dumper for every screen:
+
+```bash
+uv sync --frozen
+```
+
+The command can wake the tablet, unlock Android, launch Khan Kids, select the
+parent profile, enter the parent password, and safely navigate from the teacher
+roster to Class Reports. Run a read-only review with:
 
 ```bash
 ./khan-reading-sync --serial "$KHAN_SERIAL" --student Student A
@@ -518,7 +524,7 @@ automatically. To select another protected file explicitly:
   --secrets-file /secure/local/khan-secrets.json
 ```
 
-The default dry run:
+The default review:
 
 - filters Assignments to the named child;
 - opens each scored activity's full score history;
@@ -526,6 +532,8 @@ The default dry run:
 - evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
   mastery policy;
 - selects at most ten lessons whose prerequisite tracks are complete;
+- limits configured groups of similar lessons, currently short-vowel/CVC-middle
+  work, to three active choices and permits an underfilled queue rather than filler;
 - computes the exact difference between the live and desired queues; and
 - writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
 - appends a human-readable run report to
@@ -533,10 +541,25 @@ The default dry run:
 
 Screenshots used to distinguish checked from unchecked boxes live only in a
 temporary directory and are deleted when the command exits. The optional
-Android PIN is read only when the lock screen is present and is never stored by
-the script. Khan passwords, pairing codes, and device addresses are not stored.
+Android PIN and Khan parent password may be kept in the owner-private,
+Git-ignored `.secrets.json` described above. They are loaded lazily, never
+written to reports, and never passed as complete command-line arguments.
 The command temporarily prevents sleep and restores the tablet's prior screen
 timeout and plugged-in stay-awake setting on success or failure.
+
+For the usual one-command operation, run:
+
+```bash
+./khan-mastery-sync --serial "$KHAN_SERIAL" --student Student A
+```
+
+This scans and plans once, then applies and verifies any changes in the same
+device session. If the queue already matches the mastery plan, it records a
+verified no-op and stops without a redundant apply scan. Every run writes
+secret-safe per-step timing data. A same-day cache reuses score histories only
+when the visible lesson, variant, assignment date, and score are unchanged;
+use `--full-score-scan` to force every score dialog to be read again. Use
+`--ui-backend legacy-adb` only as a diagnostic fallback.
 
 Review the JSON plan. Apply that exact plan with:
 
@@ -561,9 +584,9 @@ rerun the review command to produce a safe remainder plan.
 
 The default output paths are derived from the student name. Use `--attempts`,
 `--actions`, `--report`, `--plan`, and `--max-actions` to customize the run. The legacy
-`khan-mastery-sync` executable is a compatibility alias for this same workflow;
-it contains no separate implementation. Run `./khan-reading-sync --help` for
-all options. Both wrappers resolve the repository location first, so they can
+`khan-mastery-sync` is the one-session sync alias for the same shared workflow;
+it adds `--sync` and contains no separate implementation. Run
+`./khan-reading-sync --help` for all options. Both wrappers resolve the repository location first, so they can
 be invoked by absolute path from another working directory.
 
 Khan's report provides dates and percentages but no attempt timestamp or
@@ -578,10 +601,10 @@ catalog lookup, duplicate-safe records, workflow planning, and graphical
 checkbox recognition:
 
 ```bash
-python3 -m compileall -q tools tests
-python3 -m unittest discover -s tests -v
-ruff check .
-ruff format --check .
+uv run --frozen python -m compileall -q tools tests
+uv run --frozen python -m unittest discover -s tests -v
+uv run --frozen ruff check .
+uv run --frozen ruff format --check .
 ```
 
 ImageMagick is required for the checkbox test. The GitHub Actions workflow in

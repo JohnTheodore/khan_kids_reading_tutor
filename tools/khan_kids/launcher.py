@@ -14,6 +14,7 @@ from .adb import AndroidDevice, AutomationError
 from .constants import KHAN_KIDS_ACTIVITY, KHAN_KIDS_PACKAGE
 
 PinProvider = Callable[[], str]
+SecretsProvider = Callable[[], "LocalSecrets"]
 DEFAULT_SECRETS_PATH = Path(".secrets.json")
 
 
@@ -51,18 +52,35 @@ def ensure_khan_kids_open(
     return LaunchResult(unlocked=unlocked, launched=launched)
 
 
-def pin_provider(secrets_file: Path | None) -> PinProvider:
-    """Return a lazy PIN reader, so unlocked devices never request a secret."""
+def local_secrets_provider(secrets_file: Path | None) -> SecretsProvider:
+    """Return one lazy, cached credential reader for a complete run."""
     selected = secrets_file or DEFAULT_SECRETS_PATH
-    if selected.exists() or secrets_file is not None:
-        return lambda: read_local_secrets(selected).android_pin
+    cached: LocalSecrets | None = None
 
-    def prompt() -> str:
+    def provide() -> LocalSecrets:
+        nonlocal cached
+        if cached is not None:
+            return cached
+        if selected.exists() or secrets_file is not None:
+            cached = read_local_secrets(selected)
+            return cached
         if not sys.stdin.isatty():
-            raise AutomationError("Tablet is locked; use --pin-file in a non-interactive session")
-        return getpass.getpass("Android PIN: ")
+            raise AutomationError(
+                "Credentials are required; create .secrets.json or use --secrets-file"
+            )
+        cached = LocalSecrets(
+            android_pin=getpass.getpass("Android PIN: "),
+            khan_parent_password=getpass.getpass("Khan parent password: "),
+        )
+        return cached
 
-    return prompt
+    return provide
+
+
+def pin_provider(secrets_file: Path | None) -> PinProvider:
+    """Compatibility helper returning only the lazy Android PIN."""
+    provide = local_secrets_provider(secrets_file)
+    return lambda: provide().android_pin
 
 
 def read_local_secrets(path: Path = DEFAULT_SECRETS_PATH) -> LocalSecrets:

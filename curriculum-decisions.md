@@ -47,3 +47,21 @@ jump.
 **Guardrail:** Harder whole-sequence lessons remain locked until all five
 short-vowel tracks and the selected CVC-ending tracks are mastered. Expanding
 choice therefore does not unlock the previously deferred first-grade tasks.
+
+## 2026-09-10 — Cap simultaneous short-vowel work at three tracks
+
+**Decision:** Treat the five short-vowel/CVC-middle tracks as one instructional
+diversity group with at most three active lessons. Preserve mastery progression
+inside every vowel track, but rotate deferred vowels in only as active vowel
+tracks finish.
+
+**Reason:** Five nearly identical short-vowel activities overconcentrate the
+choice set and introduce unnecessary simultaneous contrasts. A smaller,
+cumulative set better supports attention, retrieval, and the low-inferential-gap
+transition from a vowel sound to that vowel in printed CVC words.
+
+**Current application:** Retain short *a* and short *u* because both have recent
+89% evidence, plus short *i* as the next curriculum-ordered diagnostic. Defer
+short *e* and short *o*. Do not backfill their slots with grammar, read-aloud
+stories, repeated low-yield activities, or prerequisite-locked phonics. Until a
+sound replacement becomes eligible, eight assignments is the correct queue.
