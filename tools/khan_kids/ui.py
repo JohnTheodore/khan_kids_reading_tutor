@@ -7,7 +7,9 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-VARIANT_ORDER = ("Main", "Practice 1", "Practice 2", "Basic")
+from .constants import REPORT_VARIANTS
+
+VARIANT_ORDER = REPORT_VARIANTS
 
 
 @dataclass(frozen=True, slots=True)

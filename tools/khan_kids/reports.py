@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from .adb import AutomationError
+from .constants import LEARNING_SEQUENCE
 from .ui import Rect, near, visible_nodes
 
 SCORE_PATTERN = re.compile(r"(\d{1,3})%")
@@ -59,6 +60,12 @@ class ScoreHistory:
     attempts_newest_first: tuple[ScoreAttempt, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class AssignmentSnapshot:
+    rows: tuple[AssignmentRow, ...]
+    histories: tuple[ScoreHistory, ...]
+
+
 def is_assignment_report(root: ET.Element) -> bool:
     return any(item.text == "Class Report: Assignments" for item in visible_nodes(root))
 
@@ -100,7 +107,7 @@ def parse_assignment_rows(
             for item in nodes
             if near(item.rect.left, layout.variant_left)
             and row_top <= item.rect.center[1] < row_bottom
-            and item.text in {"Basic", "Main", "Practice 1", "Practice 2"}
+            and item.text in LEARNING_SEQUENCE
         ]
         dates = [
             item.text
@@ -142,10 +149,7 @@ def parse_score_history(
         (
             item.text
             for item in nodes
-            if any(
-                item.text.endswith(f": {variant}")
-                for variant in ("Basic", "Main", "Practice 1", "Practice 2")
-            )
+            if any(item.text.endswith(f": {variant}") for variant in LEARNING_SEQUENCE)
             and 900 <= item.rect.left <= 1200
         ),
         None,

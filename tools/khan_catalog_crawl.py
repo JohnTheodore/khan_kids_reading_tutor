@@ -14,17 +14,9 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from khan_kids.adb import AndroidDevice
+from khan_kids.adb import AndroidDevice, prepare_capture_workspace
+from khan_kids.constants import GRADE_NAMES
 from khan_kids.ui import visible_nodes
-
-GRADES = (
-    "Preschool (Age 2)",
-    "Preschool (Age 3)",
-    "Preschool (Age 4)",
-    "Kindergarten",
-    "1st Grade",
-    "2nd Grade",
-)
 
 TAB_POINTS = {"Letters": (1100, 270), "Reading": (1280, 270)}
 GRADE_SELECTOR_POINT = (2050, 438)
@@ -132,16 +124,11 @@ def main() -> None:
     parser.add_argument("--serial", required=True)
     parser.add_argument("--tab", choices=tuple(TAB_POINTS), required=True)
     parser.add_argument("--output", type=Path, default=Path("data/raw"))
-    parser.add_argument("--grade", choices=GRADES, action="append")
+    parser.add_argument("--grade", choices=GRADE_NAMES, action="append")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
-    device = AndroidDevice(args.serial)
-    device.assert_connected()
-    output = args.output.resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    scratch = output / ".scratch"
-    scratch.mkdir(exist_ok=True)
+    device, output, scratch = prepare_capture_workspace(args.serial, args.output)
     if not args.resume:
         select_tab(device, args.tab)
     if args.tab == "Letters":
@@ -151,7 +138,7 @@ def main() -> None:
         if not args.resume:
             device.scroll_to_top(SCROLL_X)
     else:
-        requested_grades = tuple(args.grade) if args.grade else GRADES
+        requested_grades = tuple(args.grade) if args.grade else GRADE_NAMES
 
     summaries = []
     for grade in requested_grades:

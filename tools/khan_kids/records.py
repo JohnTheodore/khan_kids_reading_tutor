@@ -7,7 +7,38 @@ import json
 import os
 import tempfile
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import date
 from pathlib import Path
+
+ATTEMPT_FIELDS = (
+    "student",
+    "attempt_date",
+    "assignment_date",
+    "lesson_title",
+    "activity_variant",
+    "report_grade",
+    "domain",
+    "skill_group",
+    "score_percent",
+    "source",
+    "captured_at",
+)
+ATTEMPT_ID_FIELDS = (
+    "student",
+    "attempt_date",
+    "lesson_title",
+    "activity_variant",
+    "score_percent",
+)
+ACTION_FIELDS = (
+    "action_date",
+    "student",
+    "action",
+    "lesson_title",
+    "activity_variant",
+    "reason",
+    "result",
+)
 
 
 def write_json_atomic(path: Path, payload: object) -> None:
@@ -59,3 +90,57 @@ def append_unique_rows(
         writer.writerows(additions)
     os.replace(temporary, path)
     return len(additions)
+
+
+def record_action(
+    path: Path,
+    *,
+    action_date: date,
+    student: str,
+    action: str,
+    title: str,
+    variant: str,
+    reason: str,
+    result: str,
+) -> None:
+    append_unique_rows(
+        path,
+        ACTION_FIELDS,
+        [
+            {
+                "action_date": action_date.isoformat(),
+                "student": student,
+                "action": action,
+                "lesson_title": title,
+                "activity_variant": variant,
+                "reason": reason,
+                "result": result,
+            }
+        ],
+        identity_fields=("action_date", "student", "action", "lesson_title", "activity_variant"),
+    )
+
+
+def read_attempt_scores(path: Path, student: str) -> dict[tuple[str, str], tuple[int, ...]]:
+    """Load chronological score sequences from the append-only attempt record."""
+    if not path.exists():
+        return {}
+    grouped: dict[tuple[str, str], list[tuple[date, int, int]]] = {}
+    with path.open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames != list(ATTEMPT_FIELDS):
+            raise ValueError(
+                f"Unexpected columns in {path}: {reader.fieldnames!r}; "
+                f"expected {list(ATTEMPT_FIELDS)!r}"
+            )
+        for order, row in enumerate(reader):
+            if row["student"] != student:
+                continue
+            key = (row["lesson_title"], row["activity_variant"])
+            grouped.setdefault(key, []).append(
+                (date.fromisoformat(row["attempt_date"]), order, int(row["score_percent"]))
+            )
+    return {
+        key: tuple(score for _attempt_date, _order, score in sorted(attempts))
+        for key, attempts in grouped.items()
+    }

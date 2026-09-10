@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "queue_limit": 5,
+  "tracks": [
+    {
+      "id": "three_phoneme_blending",
+      "priority": 10,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Blend Sounds 2"
+        }
+      ]
+    },
+    {
+      "id": "phoneme_manipulation",
+      "priority": 20,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Make New Words"
+        }
+      ]
+    },
+    {
+      "id": "oral_final_sound",
+      "priority": 30,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words: End Sound"
+        }
+      ]
+    },
+    {
+      "id": "syllable_blending_maintenance",
+      "priority": 40,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Blend Syllables"
+        }
+      ]
+    },
+    {
+      "id": "short_a_cvc_middle",
+      "priority": 50,
+      "requires": [],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Short Vowel Sound a"
+        },
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with a"
+        }
+      ]
+    },
+    {
+      "id": "short_i_cvc_middle",
+      "priority": 60,
+      "requires": ["short_a_cvc_middle"],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Short Vowel Sound i"
+        },
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with i"
+        }
+      ]
+    },
+    {
+      "id": "cvc_ending_m_n",
+      "priority": 70,
+      "requires": ["short_a_cvc_middle"],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with m & n"
+        }
+      ]
+    },
+    {
+      "id": "cvc_ending_p_s",
+      "priority": 80,
+      "requires": ["cvc_ending_m_n"],
+      "lesson_groups": [
+        {
+          "grade": "Preschool (Age 4)",
+          "title": "Words with p & s"
+        }
+      ]
+    },
+    {
+      "id": "whole_phoneme_sequence",
+      "priority": 90,
+      "requires": ["short_i_cvc_middle", "cvc_ending_p_s"],
+      "lesson_groups": [
+        {
+          "grade": "1st Grade",
+          "title": "Middle Sound"
+        },
+        {
+          "grade": "1st Grade",
+          "title": "Ending Sound"
+        },
+        {
+          "grade": "1st Grade",
+          "title": "First & Last Sound"
+        },
+        {
+          "grade": "1st Grade",
+          "title": "Isolate All Sounds"
+        }
+      ]
+    },
+    {
+      "id": "one_syllable_words",
+      "priority": 100,
+      "requires": ["whole_phoneme_sequence"],
+      "lesson_groups": [
+        {
+          "grade": "1st Grade",
+          "title": "1-Syllable Words"
+        }
+      ]
+    },
+    {
+      "id": "initial_consonant_blends",
+      "priority": 110,
+      "requires": ["one_syllable_words"],
+      "lesson_groups": [
+        {
+          "grade": "1st Grade",
+          "title": "Blends: st"
+        },
+        {
+          "grade": "1st Grade",
+          "title": "Blends: sp"
+        },
+        {
+          "grade": "1st Grade",
+          "title": "st, sp, sk, sm"
+        }
+      ]
+    }
+  ]
+}

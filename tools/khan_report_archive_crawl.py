@@ -15,17 +15,11 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from khan_kids.adb import AndroidDevice, run_command
+from khan_kids.adb import AndroidDevice, prepare_capture_workspace, run_command
+from khan_kids.constants import GRADE_SLUGS
 from khan_kids.ui import VARIANT_ORDER, node_rect, visible_nodes
 
-GRADES = (
-    ("preschool-age-2", 580),
-    ("preschool-age-3", 688),
-    ("preschool-age-4", 796),
-    ("kindergarten", 905),
-    ("1st-grade", 1013),
-    ("2nd-grade", 1112),
-)
+GRADE_SELECTOR_Y = dict(zip(GRADE_SLUGS, (580, 688, 796, 905, 1013, 1112), strict=True))
 VARIANTS = set(VARIANT_ORDER)
 
 
@@ -194,18 +188,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial", required=True)
     parser.add_argument("--output", type=Path, default=Path("data/raw-reports/ela"))
-    parser.add_argument("--grade", choices=[grade[0] for grade in GRADES], action="append")
+    parser.add_argument("--grade", choices=GRADE_SLUGS, action="append")
     args = parser.parse_args()
 
-    device = AndroidDevice(args.serial)
-    device.assert_connected()
-    output = args.output.resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    scratch = output / ".scratch"
-    scratch.mkdir(exist_ok=True)
-    selected = set(args.grade or [grade[0] for grade in GRADES])
+    device, output, scratch = prepare_capture_workspace(args.serial, args.output)
+    selected = set(args.grade or GRADE_SLUGS)
     summaries = []
-    for slug, y in GRADES:
+    for slug, y in GRADE_SELECTOR_Y.items():
         if slug not in selected:
             continue
         label = select_grade(device, y, scratch)

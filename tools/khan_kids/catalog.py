@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .adb import AutomationError
+from .constants import CURRICULUM_PATH_GRADE_TOKENS
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,16 +63,25 @@ class CatalogIndex:
             )
         return next(iter(unique.values()))
 
+    def find_exact(self, grade: str, title: str, variant: str) -> CatalogEntry:
+        entry = self.find_title_exact(grade, title)
+        if variant not in entry.variants:
+            raise AutomationError(
+                f"Catalog placement {grade!r}/{title!r} has no {variant!r} variant"
+            )
+        return entry
+
+    def find_title_exact(self, grade: str, title: str) -> CatalogEntry:
+        matches = [entry for entry in self.entries if entry.grade == grade and entry.title == title]
+        if len(matches) != 1:
+            raise AutomationError(
+                f"Expected one catalog placement for {grade!r}/{title!r}, found {len(matches)}"
+            )
+        return matches[0]
+
 
 def _grade_token(grade: str) -> str:
-    return {
-        "Preschool (Age 2)": "A2:",
-        "Preschool (Age 3)": "A3:",
-        "Preschool (Age 4)": "A4:",
-        "Kindergarten": "K:",
-        "1st Grade": "1:",
-        "2nd Grade": "2:",
-    }.get(grade, grade)
+    return CURRICULUM_PATH_GRADE_TOKENS.get(grade, grade)
 
 
 def _clean_grade(grade: str) -> str:

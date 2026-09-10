@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
 from .adb import AndroidDevice, AutomationError
+from .constants import LEARNING_SEQUENCE, REPORT_GRADE_LABELS
 from .reports import (
     DEFAULT_REPORT_LAYOUT,
     AssignmentRow,
+    AssignmentSnapshot,
     ReportLayout,
     ScoreHistory,
     is_assignment_report,
@@ -74,9 +76,14 @@ class KhanKidsAutomation:
         return root
 
     def scan_score_histories(self, *, today: date) -> tuple[ScoreHistory, ...]:
+        return self.scan_assignments(today=today, include_score_histories=True).histories
+
+    def scan_assignments(self, *, today: date, include_score_histories: bool) -> AssignmentSnapshot:
+        """Capture active rows once, optionally including every available score history."""
         self.ensure_assignments_report()
         self._filter_assignments_to_student()
         self._scroll_to_top()
+        active_rows: dict[tuple[str, str, str], AssignmentRow] = {}
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
@@ -88,7 +95,12 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             for row in rows:
-                if row.score_rect is None or row.identity in histories:
+                active_rows[row.identity] = row
+                if (
+                    not include_score_histories
+                    or row.score_rect is None
+                    or row.identity in histories
+                ):
                     continue
                 self.device.tap_rect(row.score_rect, settle=1)
                 modal = self.root(f"history-{page:03d}-{len(histories):03d}")
@@ -115,7 +127,10 @@ class KhanKidsAutomation:
             )
         else:
             raise AutomationError("Assignments report did not reach the bottom within 80 pages")
-        return tuple(histories.values())
+        activities = [(row.title, row.variant) for row in active_rows.values()]
+        if len(activities) != len(set(activities)):
+            raise AutomationError("Assignments report contains duplicate active lesson variants")
+        return AssignmentSnapshot(tuple(active_rows.values()), tuple(histories.values()))
 
     def inspect_active_assignment(self, title: str, variant: str) -> dict[str, str]:
         """Open and validate an active assignment, then close it without saving."""
@@ -132,6 +147,53 @@ class KhanKidsAutomation:
 
     def unassign(self, title: str, variant: str) -> ActionResult:
         row = self._find_assignment(title, variant)
+        return self._unassign_row(row, title, variant)
+
+    def unassign_many(self, assignments: Iterable[tuple[str, str]]) -> Iterator[ActionResult]:
+        """Remove several active assignments in one report traversal."""
+        requested = tuple(assignments)
+        if len(requested) != len(set(requested)):
+            raise ValueError("bulk unassignment contains duplicate lesson variants")
+        pending = set(requested)
+        if not pending:
+            return
+        self.ensure_assignments_report()
+        self._filter_assignments_to_student()
+        self._scroll_to_top()
+        prior_signature: tuple[tuple[str, str, str], ...] | None = None
+        for page in range(80):
+            rows = parse_assignment_rows(
+                self.root(f"bulk-unassign-{page:03d}"),
+                self.student,
+                roster=(self.student,),
+                layout=self.layout,
+            )
+            visible_matches = [
+                row for row in rows if (row.title, row.variant) in pending and row.rect.top < 1420
+            ]
+            if visible_matches:
+                row = max(visible_matches, key=lambda candidate: candidate.rect.top)
+                pending.remove((row.title, row.variant))
+                yield self._unassign_row(row, row.title, row.variant)
+                if not pending:
+                    return
+                prior_signature = None
+                continue
+            signature = tuple(row.identity for row in rows)
+            if signature == prior_signature:
+                break
+            prior_signature = signature
+            self.device.swipe(
+                self.layout.safe_scroll_x,
+                1380,
+                self.layout.safe_scroll_x,
+                680,
+                settle=1,
+            )
+        if pending:
+            raise AutomationError(f"Active assignments not found: {sorted(pending)!r}")
+
+    def _unassign_row(self, row: AssignmentRow, title: str, variant: str) -> ActionResult:
         self.device.tap(115, row.rect.center[1], settle=1)
         root = self.root("unassign-dialog")
         self._validate_assignment_dialog(root, title, variant)
@@ -188,6 +250,8 @@ class KhanKidsAutomation:
     def _filter_assignments_to_student(self) -> None:
         root = self.root("before-student-filter")
         current = _filter_value(root, "Students:")
+        if current.text == self.student:
+            return
         self.device.tap(current.rect.right + 38, current.rect.center[1], settle=1)
         modal = self.root("student-filter")
         if "Select Students" not in text_set(modal):
@@ -287,9 +351,7 @@ class KhanKidsAutomation:
         variants = [
             item.text
             for item in visible_nodes(root)
-            if item.text in {"Basic", "Main", "Practice 1", "Practice 2"}
-            and item.rect.left < 600
-            and item.rect.top < 400
+            if item.text in LEARNING_SEQUENCE and item.rect.left < 600 and item.rect.top < 400
         ]
         if assign_title != expected_title or variants != [expected_variant]:
             raise AutomationError(
@@ -428,11 +490,4 @@ def _variants_below(nodes: Iterable[UiText], lesson: UiText) -> list[UiText]:
 
 
 def _report_grade_label(grade: str) -> str:
-    return {
-        "Preschool (Age 2)": "Pre-K.Age2 : ELA",
-        "Preschool (Age 3)": "Pre-K.Age3 : ELA",
-        "Preschool (Age 4)": "Pre-K.Age4 : ELA",
-        "Kindergarten": "K : ELA",
-        "1st Grade": "Grade1 : ELA",
-        "2nd Grade": "Grade2 : ELA",
-    }[grade]
+    return REPORT_GRADE_LABELS[grade]

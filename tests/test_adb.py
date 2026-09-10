@@ -27,6 +27,22 @@ class AndroidDeviceTests(unittest.TestCase):
             ("shell", "settings", "put", "global", "stay_on_while_plugged_in", "0"),
         )
 
+    def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(
+                device,
+                "_window_signature",
+                side_effect=[(("middle",),), (("top",),), (("top",),)],
+            ) as signature,
+            patch.object(device, "swipe") as swipe,
+            patch("khan_kids.adb.time.sleep"),
+        ):
+            device.scroll_to_top(1200)
+
+        self.assertEqual(signature.call_count, 3)
+        self.assertEqual(swipe.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,8 +66,10 @@ several variants.
 | [`data/letters-lessons.json`](data/letters-lessons.json) | Structured Letters catalog |
 | [`reading-ela-archive.md`](reading-ela-archive.md) | Complete ELA hierarchy with both children's displayed results |
 | [`data/reading-ela-archive.json`](data/reading-ela-archive.json) | Structured full ELA archive |
+| [`data/reading-curriculum.json`](data/reading-curriculum.json) | Validated mastery-gated Khan-only reading sequence and prerequisites |
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
+| [`student-a-next-reading-lessons-science-of-reading.md`](student-a-next-reading-lessons-science-of-reading.md) | Research-backed, Khan-only next-lesson sequence tailored to Student A's scores |
 | [`ordering-assignments-2026-09-08.md`](ordering-assignments-2026-09-08.md) | Exact 16-activity assignment record |
 | [`mastery-learning-policy.md`](mastery-learning-policy.md) | Evidence-based, family-specific promotion policy |
 | [`student-records/`](student-records/) | Attempt history, mastery state, progress notes, and assignment-action audit log |
@@ -447,12 +449,12 @@ The final list is in
 We verified it in **Class Reports → Assignments**: the 16 rows were dated Today,
 the Student A column was active, and the Student B column was gray.
 
-The repository includes a deliberately narrow, state-checked mastery workflow.
-It is not a general-purpose bulk assigner: it only advances scored active
-assignments that meet the configured mastery rule, verifies the exact lesson
-and variant, reads every student's checkbox before and after a change, and
-checks the saved result in Assignments. Any ambiguous screen or checkbox causes
-an abort before Save.
+The repository includes a state-checked desired-queue workflow. It combines the
+mastery policy with the Khan-only prerequisite graph in
+[`data/reading-curriculum.json`](data/reading-curriculum.json). Routine score
+capture, advancement, corrective selection, assignment cleanup, verification,
+and logging are deterministic and require no screenshot interpretation by an
+LLM.
 
 ## Run the mastery workflow
 
@@ -460,9 +462,7 @@ Log in to the teacher account manually. Leave Khan Kids on the Students page,
 Class Reports, or either report tab, then run a read-only review first:
 
 ```bash
-./khan-mastery-sync \
-  --serial "$KHAN_SERIAL" \
-  --student Student A
+./khan-reading-sync --serial "$KHAN_SERIAL" --student Student A
 ```
 
 The default dry run:
@@ -471,8 +471,10 @@ The default dry run:
 - opens each scored activity's full score history;
 - appends newly observed attempts without duplicating prior rows;
 - evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
-  mastery policy; and
-- writes a compact review plan to `private/mastery-plan.json`.
+  mastery policy;
+- selects at most five lessons whose prerequisite tracks are complete;
+- computes the exact difference between the live and desired queues; and
+- writes a compact reviewed plan to `private/student-a-reading-plan.json`.
 
 Screenshots used to distinguish checked from unchecked boxes live only in a
 temporary directory and are deleted when the command exits. Passwords, pairing
@@ -480,27 +482,29 @@ codes, and device addresses are neither requested nor stored by the script.
 The command temporarily prevents sleep and restores the tablet's prior screen
 timeout and plugged-in stay-awake setting on success or failure.
 
-Review the JSON plan and visible tablet state. To perform only its mastered
-transitions, rerun the same command with `--apply`:
+Review the JSON plan. Apply that exact plan with:
 
 ```bash
-./khan-mastery-sync \
+./khan-reading-sync \
   --serial "$KHAN_SERIAL" \
   --student Student A \
-  --apply
+  --apply-plan private/student-a-reading-plan.json
 ```
 
-For each mastered rung, apply mode unchecks the completed assignment, saves and
-logs that action, then assigns the next available variant and verifies it in
-the Assignments report. A final mastered variant is removed without a
-successor. Each Save is an external operation; if a later step fails, consult
-the append-only action log before rerunning.
+Apply mode first repeats the live scan. It refuses to act if the assignments,
+scores, catalog, or curriculum differ from the reviewed snapshot. It also
+validates that the actions produce the desired queue, that every addition is in
+the approved curriculum, and that the queue remains within its configured
+limit. Each successful Save is logged immediately, and the final live queue is
+verified exactly. If a run is interrupted, generate a new dry-run plan; the
+append-only logs and live-state comparison make the remaining work idempotent.
 
 The default output paths are derived from the student name. Use `--attempts`,
-`--actions`, and `--plan` to direct a test run into `private/` or `/tmp`.
-Run `./khan-mastery-sync --help` for all options.
-The wrapper resolves the repository location first, so it can also be invoked
-by absolute path from another working directory.
+`--actions`, `--plan`, and `--max-actions` to customize the run. The legacy
+`khan-mastery-sync` executable is a compatibility alias for this same workflow;
+it contains no separate implementation. Run `./khan-reading-sync --help` for
+all options. Both wrappers resolve the repository location first, so they can
+be invoked by absolute path from another working directory.
 
 Khan's report provides dates and percentages but no attempt timestamp or
 stable attempt ID. Therefore, two genuinely separate attempts with the same
@@ -554,9 +558,10 @@ rewriting or start a clean repository if personal data has entered history.
 
 - Coordinates and column bounds are device-, orientation-, roster-, and
   app-version-specific.
-- The mastery workflow is intentionally fail-closed, but assignment Saves are
-  not transactional across multiple lessons; use its audit log when recovering
-  from an interrupted apply run.
+- The reading workflow is intentionally fail-closed, but assignment Saves are
+  not transactional across multiple lessons. Generate a fresh dry-run after an
+  interrupted apply; already completed actions appear in the live state and are
+  not proposed again.
 - Android's UI hierarchy omits some graphical text and does not expose reliable
   checkbox state for every React Native control.
 - The library does not provide prose descriptions for most lessons. Some targets

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-
-LEARNING_SEQUENCE = ("Basic", "Main", "Practice 1", "Practice 2")
 
 
 class MasteryStatus(StrEnum):
@@ -49,16 +47,4 @@ def evaluate_mastery(scores: Iterable[int]) -> MasteryDecision:
         MasteryStatus.NOT_MASTERED,
         ordered,
         f"latest attempt is below 90% ({latest}%)",
-    )
-
-
-def next_variant(current: str, available: Sequence[str]) -> str | None:
-    available_set = set(available)
-    try:
-        start = LEARNING_SEQUENCE.index(current) + 1
-    except ValueError as error:
-        raise ValueError(f"Unknown activity variant: {current!r}") from error
-    return next(
-        (variant for variant in LEARNING_SEQUENCE[start:] if variant in available_set),
-        None,
     )

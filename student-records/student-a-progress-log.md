@@ -85,3 +85,39 @@ their next available variants were assigned to Student A only:
 `Blend Syllables — Basic` had already been unchecked and saved on September 8.
 Student B's checkboxes were not changed. The complete machine-readable action log
 is [`student-a-assignment-actions.csv`](student-a-assignment-actions.csv).
+
+### Science-of-reading queue refinement
+
+After comparing Student A's attempt history with the evidence review in
+[`../student-a-next-reading-lessons-science-of-reading.md`](../student-a-next-reading-lessons-science-of-reading.md),
+the assignment queue was reduced to a five-lesson working set:
+
+| Active lesson | Variant | Purpose |
+|---|---|---|
+| Blend Sounds 2 | Basic | Reassess ordered three-phoneme blending after 85% and 92% |
+| Make New Words | Basic | Reassess emerging phoneme manipulation after 92% |
+| Words: End Sound | Main | Continue the next rung after Basic mastery; current score 83% |
+| Blend Syllables | Main | Clear a provisional 91% confidence/maintenance item |
+| Short Vowel Sound a | Basic | First new bridge toward printed CVC middle-position work |
+
+The following assignments were unchecked and saved for Student A because they
+were secondary, depended on an unfinished prerequisite, or introduced too much
+complexity at once:
+
+- Blend Sounds 1 — Basic
+- Word Families — Basic
+- Beginning Sounds 2 — Basic
+- Words with b & d — Main
+- Words with a — Main
+- Middle Sound — Basic
+- Ending Sound — Basic
+- First & Last Sound — Basic
+- Isolate All Sounds — Main
+- 1-Syllable Words — Basic
+- 2-Syllable Words — Basic
+- st, sp, sk, sm — Basic
+
+`Words with a — Main` is planned to return after `Short Vowel Sound a — Basic`
+is mastered. The other deferred lessons have later gates in the science-of-reading
+plan. A read-only live audit confirmed exactly the five intended active rows.
+Student B's assignment checkboxes were not changed.

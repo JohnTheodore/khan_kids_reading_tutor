@@ -11,16 +11,10 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
+from khan_kids.constants import GRADE_SLUGS, normalize_report_grade_label
 from khan_kids.ui import VARIANT_ORDER, node_rect
 
-GRADE_ORDER = (
-    "preschool-age-2",
-    "preschool-age-3",
-    "preschool-age-4",
-    "kindergarten",
-    "1st-grade",
-    "2nd-grade",
-)
+GRADE_ORDER = GRADE_SLUGS
 STUDENTS = ("Student A", "Student B")
 
 
@@ -113,16 +107,7 @@ def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
     global_domain: str | None = None
     global_group: str | None = None
     current_key: tuple[str | None, str | None, str] | None = None
-    grade_label = (
-        manifest["grade"]
-        .replace("Pre-K.Age2", "Preschool (Age 2)")
-        .replace("Pre-K.Age3", "Preschool (Age 3)")
-        .replace("Pre-K.Age4", "Preschool (Age 4)")
-        .replace("Grade1", "1st Grade")
-        .replace("Grade2", "2nd Grade")
-        .replace("K :", "Kindergarten:")
-        .replace(" :", ":")
-    )
+    grade_label = normalize_report_grade_label(manifest["grade"])
     reported_total = None
 
     for page_number in range(page_count):

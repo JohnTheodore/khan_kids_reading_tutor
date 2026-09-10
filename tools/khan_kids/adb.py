@@ -27,6 +27,17 @@ def run_command(args: Sequence[str], *, timeout: int = 60, capture: bool = False
     return result.stdout if capture else b""
 
 
+def prepare_capture_workspace(serial: str, output: Path) -> tuple[AndroidDevice, Path, Path]:
+    """Validate a device and create the standard output and scratch directories."""
+    device = AndroidDevice(serial)
+    device.assert_connected()
+    destination = output.resolve()
+    destination.mkdir(parents=True, exist_ok=True)
+    scratch = destination / ".scratch"
+    scratch.mkdir(exist_ok=True)
+    return device, destination, scratch
+
+
 class AndroidDevice:
     def __init__(self, serial: str, *, settle_seconds: float = 1.0) -> None:
         self.serial = serial
@@ -116,10 +127,47 @@ class AndroidDevice:
         end_y: int = 1450,
         duration_ms: int = 250,
     ) -> None:
+        prior_signature = self._window_signature()
         for _ in range(gestures):
             self.swipe(x, start_y, x, end_y, duration_ms)
-            time.sleep(0.05)
+            time.sleep(0.15)
+            current_signature = self._window_signature()
+            if current_signature == prior_signature:
+                break
+            prior_signature = current_signature
         time.sleep(self.settle_seconds)
+
+    def _window_signature(self, *, attempts: int = 3) -> tuple[tuple[str, ...], ...]:
+        """Return stable, visible UI state for detecting a scroll boundary."""
+        remote = "/sdcard/khan-kids-scroll-probe.xml"
+        last_error: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                self.command("shell", "uiautomator", "dump", remote, timeout=60)
+                raw = self.command("exec-out", "cat", remote, timeout=20, capture=True)
+                root = ET.fromstring(raw)
+                return tuple(
+                    (
+                        node.attrib.get("class", ""),
+                        node.attrib.get("text", ""),
+                        node.attrib.get("content-desc", ""),
+                        node.attrib.get("bounds", ""),
+                        node.attrib.get("checked", ""),
+                        node.attrib.get("selected", ""),
+                    )
+                    for node in root.iter("node")
+                    if node.attrib.get("visible-to-user", "true") == "true"
+                )
+            except (
+                subprocess.TimeoutExpired,
+                subprocess.CalledProcessError,
+                ET.ParseError,
+            ) as error:
+                last_error = error
+                time.sleep(2 + 2 * attempt)
+        raise AutomationError(
+            f"Could not inspect the UI scroll position after {attempts} attempts"
+        ) from last_error
 
     def dump(self, destination: Path, *, attempts: int = 3) -> ET.Element:
         destination.parent.mkdir(parents=True, exist_ok=True)
