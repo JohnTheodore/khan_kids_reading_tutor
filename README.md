@@ -3,6 +3,12 @@
 Tools and research for turning the Khan Academy Kids teacher interface into a
 searchable reading curriculum and child-specific progress record.
 
+The project's primary goal is to help Student A reach independent reading as
+directly as possible while preserving mastery at the prerequisite steps. It is
+not an ELA-completion project. The reusable route is documented in
+[`reading-path.md`](reading-path.md), and every material route change is
+explained in [`curriculum-decisions.md`](curriculum-decisions.md).
+
 This repository documents a family project, not an official Khan Academy
 product. We converted an existing Khan Kids Parent Account to a free Class
 Account, mirrored an Android tablet to Ubuntu, captured the teacher library and
@@ -67,6 +73,8 @@ several variants.
 | [`reading-ela-archive.md`](reading-ela-archive.md) | Complete ELA hierarchy with both children's displayed results |
 | [`data/reading-ela-archive.json`](data/reading-ela-archive.json) | Structured full ELA archive |
 | [`data/reading-curriculum.json`](data/reading-curriculum.json) | Validated mastery-gated Khan-only reading sequence and prerequisites |
+| [`reading-path.md`](reading-path.md) | Human-readable minimum path, entry point, stopping rule, and record model |
+| [`curriculum-decisions.md`](curriculum-decisions.md) | Append-only rationale for selecting, deferring, or reordering lesson families |
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
 | [`student-a-next-reading-lessons-science-of-reading.md`](student-a-next-reading-lessons-science-of-reading.md) | Research-backed, Khan-only next-lesson sequence tailored to Student A's scores |

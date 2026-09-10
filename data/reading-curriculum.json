@@ -1,5 +1,19 @@
 {
   "version": 1,
+  "path_id": "minimum-viable-reading-path-v1",
+  "name": "Minimum viable Khan Kids reading path",
+  "objective": "Move a learner with secure letter-sound knowledge toward independent decoding as directly as Khan Kids permits, while requiring mastery at each selected step.",
+  "scope": "The first validated segment: ordered phoneme work through early one-syllable decoding and initial consonant blends. It is not yet the complete path to independent connected-text reading.",
+  "entry_criteria": [
+    "Recognizes uppercase and lowercase letters reliably",
+    "Produces a letter's common sound from its grapheme",
+    "Selects the matching grapheme after hearing its common sound"
+  ],
+  "segment_exit_criteria": [
+    "Blends and segments ordered one-syllable words at the selected Khan lesson levels",
+    "Identifies middle and ending sounds in CVC words at the selected Khan lesson levels",
+    "Begins decoding words containing initial consonant blends"
+  ],
   "queue_limit": 5,
   "tracks": [
     {

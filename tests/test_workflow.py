@@ -84,11 +84,13 @@ class WorkflowTests(unittest.TestCase):
             student="Student A",
             snapshot=snapshot,
             plan=plan,
+            curriculum=self.curriculum,
             catalog_path=CATALOG_PATH,
             curriculum_path=CURRICULUM_PATH,
             new_attempt_records=0,
             generated_at=datetime(2026, 9, 9),
         )
+        self.assertEqual(payload["path_id"], "minimum-viable-reading-path-v1")
 
         with self.assertRaisesRegex(AutomationError, "stale"):
             validate_reviewed_plan(
@@ -121,6 +123,7 @@ class WorkflowTests(unittest.TestCase):
             student="Student A",
             snapshot=snapshot,
             plan=plan,
+            curriculum=self.curriculum,
             catalog_path=CATALOG_PATH,
             curriculum_path=CURRICULUM_PATH,
             new_attempt_records=0,

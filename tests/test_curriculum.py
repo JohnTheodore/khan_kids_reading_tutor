@@ -20,6 +20,10 @@ class CurriculumTests(unittest.TestCase):
     def test_every_configured_activity_exists_in_the_archive(self) -> None:
         curriculum = ReadingCurriculum.load(Path("data/reading-curriculum.json"), self.catalog)
 
+        self.assertEqual(curriculum.path_id, "minimum-viable-reading-path-v1")
+        self.assertIn("independent decoding", curriculum.objective)
+        self.assertTrue(curriculum.entry_criteria)
+        self.assertTrue(curriculum.segment_exit_criteria)
         self.assertEqual(curriculum.queue_limit, 5)
         self.assertEqual(len(curriculum.tracks), 11)
         self.assertEqual(sum(len(track.activities) for track in curriculum.tracks), 62)
@@ -32,6 +36,16 @@ class CurriculumTests(unittest.TestCase):
             path.write_text(json.dumps(payload))
 
             with self.assertRaisesRegex(ValueError, "cannot require itself"):
+                ReadingCurriculum.load(path, self.catalog)
+
+    def test_path_metadata_is_required(self) -> None:
+        payload = json.loads(Path("data/reading-curriculum.json").read_text())
+        del payload["objective"]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "curriculum.json"
+            path.write_text(json.dumps(payload))
+
+            with self.assertRaisesRegex(ValueError, "objective"):
                 ReadingCurriculum.load(path, self.catalog)
 
     def test_duplicate_activity_configuration_is_rejected(self) -> None:

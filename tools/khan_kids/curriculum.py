@@ -42,6 +42,12 @@ class Track:
 
 @dataclass(frozen=True, slots=True)
 class ReadingCurriculum:
+    path_id: str
+    name: str
+    objective: str
+    scope: str
+    entry_criteria: tuple[str, ...]
+    segment_exit_criteria: tuple[str, ...]
     queue_limit: int
     tracks: tuple[Track, ...]
 
@@ -50,6 +56,12 @@ class ReadingCurriculum:
         payload = json.loads(path.read_text())
         if payload.get("version") != 1:
             raise ValueError(f"Unsupported curriculum version in {path}")
+        path_id = _required_string(payload, "path_id")
+        name = _required_string(payload, "name")
+        objective = _required_string(payload, "objective")
+        scope = _required_string(payload, "scope")
+        entry_criteria = _string_list(payload, "entry_criteria", required=True)
+        segment_exit_criteria = _string_list(payload, "segment_exit_criteria", required=True)
         queue_limit = payload.get("queue_limit")
         if not isinstance(queue_limit, int) or queue_limit < 1:
             raise ValueError("queue_limit must be a positive integer")
@@ -106,7 +118,14 @@ class ReadingCurriculum:
                 raise ValueError(f"track {track.track_id!r} cannot require itself")
         _reject_dependency_cycles(tracks)
         return cls(
-            queue_limit, tuple(sorted(tracks, key=lambda track: (track.priority, track.track_id)))
+            path_id,
+            name,
+            objective,
+            scope,
+            entry_criteria,
+            segment_exit_criteria,
+            queue_limit,
+            tuple(sorted(tracks, key=lambda track: (track.priority, track.track_id))),
         )
 
 
@@ -117,10 +136,14 @@ def _required_string(payload: dict[str, object], key: str) -> str:
     return value
 
 
-def _string_list(payload: dict[str, object], key: str) -> tuple[str, ...]:
+def _string_list(
+    payload: dict[str, object], key: str, *, required: bool = False
+) -> tuple[str, ...]:
     value = payload.get(key, [])
     if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
         raise ValueError(f"{key} must be a list of non-empty strings")
+    if required and not value:
+        raise ValueError(f"{key} must not be empty")
     return tuple(value)
 
 

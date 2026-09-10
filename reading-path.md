@@ -1,0 +1,100 @@
+# Minimum viable Khan Kids reading path
+
+This project's primary outcome is **independent reading**, reached as directly
+as Khan Academy Kids permits without advancing past an unmastered prerequisite.
+Finishing ELA, collecting lessons, and completing every grade are explicitly
+not goals.
+
+The machine-readable source of truth is
+[`data/reading-curriculum.json`](data/reading-curriculum.json). This document
+explains that path for a person. A change to the selected route belongs in the
+JSON and in [`curriculum-decisions.md`](curriculum-decisions.md), so the reason
+for adding, removing, or reordering a lesson is never lost.
+
+## What the path means
+
+This is a mastery-gated spine, not a fixed calendar. The numbered order is the
+default route for a typical learner who already knows letter-sound
+correspondences. A child may have several unlocked tracks at once, but the
+assignment queue stays at five or fewer activities. Each activity follows the
+family's `Basic → Main → Practice 1 → Practice 2` rule, skipping variants Khan
+does not provide.
+
+A rung advances after either one 100% result or two consecutive results of at
+least 90%. Lower results hold the rung or trigger a narrower Khan prerequisite.
+They do not cause automatic promotion.
+
+## Entry point
+
+The current route assumes the learner can:
+
+- recognize uppercase and lowercase letters reliably;
+- say a letter's common sound after seeing its grapheme; and
+- select the corresponding grapheme after hearing its common sound.
+
+Those skills are already established for Student A. A different learner who does
+not meet them needs a letter-sound entry segment before this path.
+
+## Selected progression: foundational segment 1
+
+| Order | Khan lesson family | Purpose | Opens after |
+|---:|---|---|---|
+| 1 | Blend Sounds 2 | Blend an ordered three-phoneme sequence | Entry criteria |
+| 2 | Make New Words | Preserve order while manipulating one phoneme | Entry criteria |
+| 3 | Words: End Sound | Attend to the final position in a three-phoneme word | Entry criteria |
+| 4 | Blend Syllables | Maintain the already-strong larger-unit blending skill | Entry criteria |
+| 5 | Short Vowel Sound a | Establish the first controlled CVC middle sound | Entry criteria |
+| 6 | Words with a | Transfer short *a* into printed CVC words | Prior row in the same track |
+| 7 | Short Vowel Sound i | Add a second controlled middle vowel | Short-*a* track mastered |
+| 8 | Words with i | Transfer short *i* into printed CVC words | Prior row in the same track |
+| 9 | Words with m & n | Decode comparatively easy continuous final consonants | Short-*a* track mastered |
+| 10 | Words with p & s | Generalize CVC endings to a stop and continuous consonant | Words with m & n mastered |
+| 11 | Middle Sound | Reassess middle-position analysis after narrow CVC work | Short-*i* and ending tracks mastered |
+| 12 | Ending Sound | Reassess final-position analysis after narrow CVC work | Prior row in the same track |
+| 13 | First & Last Sound | Coordinate both boundary positions | Prior row in the same track |
+| 14 | Isolate All Sounds | Segment an entire ordered phoneme sequence | Prior row in the same track |
+| 15 | 1-Syllable Words | Apply the component skills to whole-word decoding | Whole-sequence track mastered |
+| 16 | Blends: st | Introduce an adjacent-consonant sequence | One-syllable words mastered |
+| 17 | Blends: sp | Generalize the adjacent-consonant sequence | Prior row in the same track |
+| 18 | st, sp, sk, sm | Check transfer across several initial blends | Prior row in the same track |
+
+This segment contains 18 deliberately selected lesson families and 62
+assignable variants, compared with 2,956 activity placements in the captured
+ELA archive. Within a selected family, the current policy advances through each
+available variant; mastery controls when that advancement occurs.
+
+## The finish line
+
+Completing this first segment does **not** by itself establish independent
+reading. It establishes the foundation needed for the next controlled segment.
+Before the project can claim its primary outcome, the path must also validate:
+
+1. the remaining short-vowel CVC patterns;
+2. common consonant digraphs and broader blends;
+3. silent-*e*, common vowel teams, and r-controlled vowels;
+4. longer-word decoding; and
+5. accurate reading of short connected text inside Khan Kids.
+
+Those later segments should be added narrowly, using actual Student A evidence
+and the archived Khan inventory. They should not become a dump of every phonics
+or ELA lesson. The eventual exit criterion is demonstrated decoding of
+unfamiliar words plus accurate connected-text reading—not reaching the bottom
+of Khan's library.
+
+## How the path is recorded
+
+The project keeps distinct records so plans and evidence are not confused:
+
+| Record | Meaning |
+|---|---|
+| `data/reading-curriculum.json` | Versioned, reusable route and prerequisite graph for a typical learner |
+| `curriculum-decisions.md` | Why lesson families were selected, deferred, removed, or reordered |
+| `student-records/student-a-lesson-attempts.csv` | Immutable observed scores and dates |
+| `student-records/student-a-assignment-actions.csv` | Immutable checked/unchecked actions and their reasons |
+| `student-records/student-a-mastery-state.csv` | Human-readable mastery decisions at specific rungs |
+| `student-records/student-a-progress-log.md` | Narrative session summaries and exceptions |
+| `private/student-a-reading-plan.json` | Temporary reviewed proposal for the next queue; never the historical record |
+
+This separation lets another family reuse the generic path without inheriting
+Student A's data, while Student A's actual route—including repeats, corrections,
+and deliberate skips—remains reconstructable.
