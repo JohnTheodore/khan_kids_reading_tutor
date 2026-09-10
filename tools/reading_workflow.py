@@ -17,6 +17,7 @@ from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.history_cache import HistoryCache
 from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
+from khan_kids.mastery import evaluate_mastery
 from khan_kids.planner import (
     QueueAction,
     QueuePlan,
@@ -27,13 +28,17 @@ from khan_kids.planner import (
 from khan_kids.records import (
     ATTEMPT_FIELDS,
     ATTEMPT_ID_FIELDS,
-    append_unique_rows,
+    append_unique_rows_with_records,
     read_attempt_scores,
     record_action,
     write_json_atomic,
 )
 from khan_kids.reports import AssignmentSnapshot
-from khan_kids.sync_report import append_performance_report, append_sync_report
+from khan_kids.sync_report import (
+    append_performance_report,
+    append_sync_report,
+    render_terminal_summary,
+)
 from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
 
@@ -50,10 +55,16 @@ def create_plan_payload(
     curriculum_path: Path,
     new_attempt_records: int,
     generated_at: datetime,
+    scores: dict[tuple[str, str], tuple[int, ...]] | None = None,
+    new_attempts: list[dict[str, str]] | None = None,
 ) -> dict[str, object]:
     stretch_keys = {
         activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
     }
+    score_map = scores or {}
+    relevant_keys = dict.fromkeys(
+        [action.key for action in plan.actions] + [activity.key for activity in plan.desired]
+    )
     return {
         "version": PLAN_VERSION,
         "status": "review_required",
@@ -66,6 +77,15 @@ def create_plan_payload(
         "curriculum_sha256": _file_digest(curriculum_path),
         "observed_state_sha256": snapshot_fingerprint(snapshot),
         "new_attempt_records": new_attempt_records,
+        "new_attempts": [
+            {
+                "attempt_date": row.get("attempt_date", ""),
+                "title": row.get("lesson_title", ""),
+                "variant": row.get("activity_variant", ""),
+                "score": int(row.get("score_percent", 0)),
+            }
+            for row in (new_attempts or [])
+        ],
         "observed_assignments": [
             {
                 "title": row.title,
@@ -81,6 +101,10 @@ def create_plan_payload(
         ],
         "actions": [action.as_dict() for action in plan.actions],
         "track_states": [_track_payload(state) for state in plan.tracks],
+        "score_evidence": [
+            _score_evidence_payload(title, variant, score_map.get((title, variant), ()))
+            for title, variant in relevant_keys
+        ],
     }
 
 
@@ -203,6 +227,11 @@ def main() -> None:
     )
     parser.add_argument("--max-actions", type=int, default=20)
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit compact machine-readable output instead of the default readable summary",
+    )
     args = parser.parse_args()
     if sum(bool(value) for value in (args.plan, args.apply_plan, args.sync)) > 1:
         parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
@@ -298,7 +327,10 @@ def main() -> None:
     )
     summary = _summary(output_payload, plan_path=output_plan_path, report_path=report_path)
     summary["performance"] = output_payload["performance"]
-    print(json.dumps(summary, separators=(",", ":")))
+    if args.json:
+        print(json.dumps(summary, separators=(",", ":")))
+    else:
+        print(render_terminal_summary(output_payload))
 
 
 def _review_snapshot(
@@ -319,7 +351,7 @@ def _review_snapshot(
     attempt_rows = histories_to_attempt_rows(
         snapshot.histories, catalog, preferred_grades=preferred_grades
     )
-    appended = append_unique_rows(
+    appended_rows = append_unique_rows_with_records(
         attempts_path,
         ATTEMPT_FIELDS,
         attempt_rows,
@@ -337,8 +369,10 @@ def _review_snapshot(
         curriculum=curriculum,
         catalog_path=args.catalog,
         curriculum_path=args.curriculum,
-        new_attempt_records=appended,
+        new_attempt_records=len(appended_rows),
         generated_at=datetime.now().astimezone(),
+        scores=scores,
+        new_attempts=appended_rows,
     )
     write_json_atomic(plan_path, payload)
     if not queue_plan.actions:
@@ -470,6 +504,21 @@ def _track_payload(state: TrackState) -> dict[str, object]:
     }
 
 
+def _score_evidence_payload(
+    title: str,
+    variant: str,
+    scores: tuple[int, ...],
+) -> dict[str, object]:
+    decision = evaluate_mastery(scores)
+    return {
+        "title": title,
+        "variant": variant,
+        "scores": list(decision.scores),
+        "status": decision.status.value,
+        "reason": decision.reason,
+    }
+
+
 def _summary(
     payload: dict[str, object], *, plan_path: Path, report_path: Path
 ) -> dict[str, object]:
@@ -501,7 +550,14 @@ def cli() -> None:
     try:
         main()
     except (AutomationError, FileNotFoundError, json.JSONDecodeError, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        print(
+            "Khan Mastery Sync — FAILED\n"
+            "==========================\n"
+            f"Error: {error}\n\n"
+            "The workflow stopped. Review the sync log for any actions completed "
+            "before the interruption.",
+            file=sys.stderr,
+        )
         raise SystemExit(2) from None
 
 

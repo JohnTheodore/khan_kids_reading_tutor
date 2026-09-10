@@ -121,3 +121,50 @@ complexity at once:
 is mastered. The other deferred lessons have later gates in the science-of-reading
 plan. A read-only live audit confirmed exactly the five intended active rows.
 Student B's assignment checkboxes were not changed.
+
+## September 10, 2026
+
+The mastery sync recorded these new results from Student A's score-history
+dialogs. Multiple same-day rows are retained when Khan displayed different
+percentages; Khan does not expose attempt timestamps.
+
+| Lesson | Variant | Scores recorded September 10 | Resulting state |
+|---|---|---:|---|
+| Blend Syllables | Main | 94% | Mastered after consecutive 91% and 94%; promoted |
+| Blend Syllables | Practice 1 | 100% | Mastered immediately; promoted |
+| Blend Syllables | Practice 2 | 93% | Provisional; remains assigned |
+| Blend Sounds 2 | Basic | 92% | Mastered after consecutive 92% scores; promoted |
+| Blend Sounds 2 | Main | 69% | Not mastered; remains assigned |
+| Make New Words | Basic | 71%, 100%, 85% | Latest displayed attempt was 85%, so the rung remains assigned |
+| Words: End Sound | Main | 56% | Not mastered; remains assigned |
+| Short Vowel Sound a | Basic | 89% | Strong but not mastered; remains assigned |
+| Short Vowel Sound u | Basic | 89% | Strong but not mastered; remains assigned |
+
+### Mastery and queue actions
+
+- Removed `Blend Sounds 2 — Basic` and assigned `Main`.
+- Removed `Blend Syllables — Main`, assigned `Practice 1`, then removed its
+  mastered `Practice 1` and assigned `Practice 2`.
+- Added the initial short-vowel and CVC choices. The diversity rule then kept
+  short *a*, *i*, and *u* active and deferred short *e* and *o*.
+- Added `Words with f, g, h — Main` and `Words with m & n — Main` as persistent
+  diagnostic stretch lessons.
+
+The final live queue was verified at ten assignments:
+
+1. Blend Sounds 2 — Main
+2. Make New Words — Basic
+3. Words: End Sound — Main
+4. Blend Syllables — Practice 2
+5. Short Vowel Sound a — Basic
+6. Short Vowel Sound i — Basic
+7. Short Vowel Sound u — Basic
+8. Words with b, c, d — Main
+9. Words with f, g, h — Main
+10. Words with m & n — Main
+
+The exact attempt rows and checkbox operations remain authoritative in
+[`student-a-lesson-attempts.csv`](student-a-lesson-attempts.csv) and
+[`student-a-assignment-actions.csv`](student-a-assignment-actions.csv). Detailed
+per-run reports and timings are in
+[`student-a-reading-sync-log.md`](student-a-reading-sync-log.md).

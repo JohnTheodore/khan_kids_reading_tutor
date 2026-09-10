@@ -2,6 +2,10 @@
 
 This analysis searched all **653 unique ELA title strings** and all **1,339 grade placements** captured from Class Reports → All Progress. It distinguishes sound/letter ordering for decoding from unrelated narrative or sentence sequencing.
 
+> **Status:** Inventory and sequencing analysis based on the captured archive.
+> It is not the live assignment list. See [`reading-path.md`](reading-path.md)
+> for the current mastery-gated route and queue.
+
 ## Main finding
 
 Khan Kids has no lesson explicitly titled **phoneme segmentation**, **sound order**, or **left-to-right tracking**. Its closest and most useful lessons are organized under blending, phoneme position, phoneme manipulation, CVC words, and consonant blends.

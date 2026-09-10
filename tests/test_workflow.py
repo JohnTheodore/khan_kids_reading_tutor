@@ -241,9 +241,20 @@ class WorkflowTests(unittest.TestCase):
             curriculum=self.curriculum,
             catalog_path=CATALOG_PATH,
             curriculum_path=CURRICULUM_PATH,
-            new_attempt_records=0,
+            new_attempt_records=1,
             generated_at=datetime(2026, 9, 9),
+            scores={("Blend Sounds 2", "Basic"): (85, 92, 94)},
+            new_attempts=[
+                {
+                    "attempt_date": "2026-09-09",
+                    "lesson_title": "Blend Sounds 2",
+                    "activity_variant": "Basic",
+                    "score_percent": "94",
+                }
+            ],
         )
+        self.assertEqual(payload["new_attempts"][0]["score"], 94)
+        self.assertEqual(payload["score_evidence"][0]["scores"], [85, 92, 94])
         final_snapshot = AssignmentSnapshot(
             (
                 AssignmentRow(

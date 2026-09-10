@@ -3,6 +3,14 @@
 **Prepared:** September 9, 2026
 **Scope:** Only lessons found in this repository's Khan Academy Kids archive. This is a pedagogical recommendation, not a record of assignment changes. No tablet settings or assignments were changed for this report.
 
+**Status:** Historical research snapshot. Several recommendations below were
+subsequently assigned, attempted, or promoted. Use
+[`reading-path.md`](reading-path.md) for the current queue and curriculum,
+[`mastery-learning-policy.md`](mastery-learning-policy.md) for current gates,
+and the files under [`student-records/`](student-records/) for actual results
+and assignment changes. The analysis below is retained to preserve the
+pedagogical rationale available on its preparation date.
+
 ## Bottom line
 
 Student A's next instructional problem is not learning more isolated letter names or sounds. She reportedly knows uppercase and lowercase letters in both directions—symbol to sound and sound to symbol—and her Khan history strongly supports that conclusion. Her next bridge is to coordinate those known correspondences **in order across an entire printed consonant-vowel-consonant (CVC) word**.

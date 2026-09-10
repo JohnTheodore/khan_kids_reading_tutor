@@ -3,6 +3,9 @@
 This append-only log records material changes to the reusable Khan Kids reading
 path. The curriculum JSON says *what* the software may assign; this file says
 *why*. Student-specific results and actions remain under `student-records/`.
+Read it chronologically: later decisions supersede earlier operational state.
+The current human-readable path and queue are in
+[`reading-path.md`](reading-path.md).
 
 ## 2026-09-09 — Establish foundational segment 1
 

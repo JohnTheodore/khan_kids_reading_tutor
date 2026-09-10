@@ -1,7 +1,8 @@
-# Khan Kids Reading Tutor Research
+# Khan Kids Reading Tutor
 
-Tools and research for turning the Khan Academy Kids teacher interface into a
-searchable reading curriculum and child-specific progress record.
+Tools, curriculum data, and Android automation for turning the Khan Academy
+Kids teacher interface into a mastery-gated reading path and durable progress
+record.
 
 The project's primary goal is to help Student A reach independent reading as
 directly as possible while preserving mastery at the prerequisite steps. It is
@@ -10,10 +11,10 @@ not an ELA-completion project. The reusable route is documented in
 explained in [`curriculum-decisions.md`](curriculum-decisions.md).
 
 This repository documents a family project, not an official Khan Academy
-product. We converted an existing Khan Kids Parent Account to a free Class
-Account, mirrored an Android tablet to Ubuntu, captured the teacher library and
-Class Reports, indexed the English Language Arts lessons, analyzed reading
-skills, and assigned a small ordering-and-blending sequence to one child.
+product. It converts the visible teacher UI into a reproducible workflow: index
+the lesson library, capture scores, choose a small science-of-reading-aligned
+queue, apply mastery promotions, maintain instructional diversity, and preserve
+an append-only record of every decision.
 
 > [!WARNING]
 > This snapshot contains children's names, performance data, and Android
@@ -58,7 +59,13 @@ The September 8, 2026 capture used Khan Academy Kids Android 9.0.1
 - Identified lessons most directly related to sound order, blending,
   segmentation, sound position, CVC decoding, syllables, and consonant blends
 - Assigned one Basic-or-Main activity from each of 16 selected categories to
-  Student A only
+  Student A only as the initial diagnostic batch
+- Replaced that initial batch with a continuously reconciled ten-item queue:
+  eight mastery-path positions and at least two rotating printed-CVC stretch
+  positions
+- Added automatic wake/unlock/login/navigation, state-checked assignment
+  changes, exact post-write verification, same-day score caching, and
+  secret-safe performance profiling
 
 The 2,956 figure is the number of assignable activity placements in the full
 ELA report, **not** the number of lessons either child completed. The same
@@ -77,6 +84,7 @@ several variants.
 | [`reading-path.md`](reading-path.md) | Human-readable minimum path, entry point, stopping rule, and record model |
 | [`curriculum-decisions.md`](curriculum-decisions.md) | Append-only rationale for selecting, deferring, or reordering lesson families |
 | [`INCIDENTS.md`](INCIDENTS.md) | Append-only operational incident record and corrective actions |
+| [`performance-audit-2026-09-10.md`](performance-audit-2026-09-10.md) | Baseline bottleneck analysis, implemented optimizations, and measured speedups |
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
 | [`student-a-next-reading-lessons-science-of-reading.md`](student-a-next-reading-lessons-science-of-reading.md) | Research-backed, Khan-only next-lesson sequence tailored to Student A's scores |
@@ -89,6 +97,22 @@ several variants.
 | `data/raw-verified/` | Re-captured and verified Letters UI XML evidence |
 | `data/raw-reports/ela/` | All Progress UI XML and per-grade manifests |
 | `tools/` | Shared Android automation package, crawlers, builders, and mastery CLI |
+
+### Sources of truth
+
+To keep current state separate from historical evidence:
+
+- `data/reading-curriculum.json` defines the assignable path, prerequisites,
+  queue limits, diversity groups, and stretch pool.
+- `reading-path.md` is the current human-readable curriculum and queue summary.
+- `mastery-learning-policy.md` defines promotion and reassessment rules.
+- `curriculum-decisions.md` is an append-only rationale log; later entries
+  supersede earlier operational decisions.
+- the attempt and assignment-action CSVs under `student-records/` are the
+  permanent event records; `student-a-reading-sync-log.md` is the generated run
+  history.
+- dated research and assignment documents preserve their original snapshots;
+  they are not instructions for the current queue.
 
 The crawlers create PNG screenshots locally for live validation, but captured
 PNGs are ignored by Git and are not included in the repository. The retained
@@ -110,7 +134,10 @@ Khan Kids Class Account on Android
         └── Students → Class Reports → All Progress → ELA
                 └── screenshots + UI hierarchy XML
                         └── ELA JSON, Markdown, and performance CSV
-                                └── skill-gap analysis and lesson plan
+                                └── mastery and diversity planner
+                                        ├── eight core positions
+                                        ├── rotating CVC stretch pool
+                                        └── checked/unchecked assignment diff
 ```
 
 [`scrcpy`](https://github.com/Genymobile/scrcpy) mirrors the Android display so
@@ -172,7 +199,9 @@ that browser dashboard to provisioned school and district partners. See the
 
 The tested host was Ubuntu/Linux with:
 
-- Python 3.13.7; the scripts use only the Python standard library
+- Python 3.13.7
+- `uv` with the repository's locked Python dependencies
+- `uiautomator2` 3.7.0 for persistent, low-latency hierarchy reads
 - Android Debug Bridge 34.0.5
 - scrcpy 4.1
 - ImageMagick 7.1.2 (`magick`)
@@ -182,6 +211,14 @@ Install ADB and ImageMagick:
 ```bash
 sudo apt update
 sudo apt install adb imagemagick
+```
+
+Install `uv` using its
+[official instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then create the locked environment:
+
+```bash
+uv sync --frozen
 ```
 
 Install a current scrcpy release using its
@@ -200,6 +237,7 @@ adb version
 scrcpy --version
 magick -version
 python3 --version
+uv --version
 ```
 
 Only the Linux control computer needs these tools. Nothing has to be configured
@@ -481,14 +519,15 @@ child for today's assignment, verify every checkbox visually, and only then tap
 **Save**.
 
 Khan labels variants as Main, Practice 1, Practice 2, and Basic. Khan's general
-guidance starts students with Main and uses Basic for extra support. Our
-family-specific request instead chose **Basic when present and Main only when a
-Basic activity did not exist**, exactly one activity per selected category.
+guidance starts students with Main and uses Basic for extra support. This
+project's mastery path instead begins with **Basic when present**, then advances
+through Main, Practice 1, and Practice 2. Only one rung from a lesson family is
+active at a time.
 
-The final list is in
+The original 16-lesson diagnostic batch is preserved in
 [`ordering-assignments-2026-09-08.md`](ordering-assignments-2026-09-08.md).
-We verified it in **Class Reports → Assignments**: the 16 rows were dated Today,
-the Student A column was active, and the Student B column was gray.
+It is historical evidence, not the current desired queue. Current assignments
+and every checked or unchecked activity are recorded under `student-records/`.
 
 The repository includes a state-checked desired-queue workflow. It combines the
 mastery policy with the Khan-only prerequisite graph in
@@ -499,12 +538,9 @@ LLM.
 
 ## Run the mastery workflow
 
-Install the pinned Python environment once. Its persistent UI transport is much
-faster than invoking Android's legacy hierarchy dumper for every screen:
-
-```bash
-uv sync --frozen
-```
+Create the locked Python environment as described above. Its persistent UI
+transport is much faster than invoking Android's legacy hierarchy dumper for
+every screen.
 
 The command can wake the tablet, unlock Android, launch Khan Kids, select the
 parent profile, enter the parent password, and safely navigate from the teacher
@@ -527,17 +563,21 @@ automatically. To select another protected file explicitly:
 The default review:
 
 - filters Assignments to the named child;
-- opens each scored activity's full score history;
+- reads each changed or uncached scored activity's full history and safely
+  reuses an exact same-day cache match;
 - appends newly observed attempts without duplicating prior rows;
 - evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
   mastery policy;
-- selects at most ten lessons whose prerequisite tracks are complete;
+- reserves up to eight positions for mastery-path lessons whose prerequisites
+  are complete;
 - limits configured groups of similar lessons, currently short-vowel/CVC-middle
-  work, to three active choices and permits an underfilled queue rather than filler;
-- fills two reserved stretch slots from a curated printed-CVC pool, pins each
-  lesson until its first attempt, and preserves below-70% lessons for a later
-  evidence-gated retry;
-- computes the exact difference between the live and desired queues; and
+  work, to three active choices;
+- fills the remaining positions from a curated printed-CVC stretch pool,
+  targeting ten available lessons;
+- pins every active stretch family until its first attempt, preserves a
+  below-70% result as deferred, and permits a later retry only after supporting
+  mastery evidence changes;
+- computes the exact difference between the live and desired queues;
 - writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
 - appends a human-readable run report to
   `student-records/student-a-reading-sync-log.md`.
@@ -562,7 +602,22 @@ verified no-op and stops without a redundant apply scan. Every run writes
 secret-safe per-step timing data. A same-day cache reuses score histories only
 when the visible lesson, variant, assignment date, and score are unchanged;
 use `--full-score-scan` to force every score dialog to be read again. Use
-`--ui-backend legacy-adb` only as a diagnostic fallback.
+`--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
+stretch policy are described in [`reading-path.md`](reading-path.md).
+
+Every successful run ends with a readable terminal report containing:
+
+- newly observed scores and the relevant score history;
+- lessons that met the mastery rule;
+- assignments unchecked and the evidence-based reason for each removal;
+- assignments added and why each is the appropriate next rung or stretch item;
+- all lessons in the resulting queue, with core/stretch role and mastery
+  status; and
+- verification outcome and total duration.
+
+Review-only output labels changes as proposed and not yet applied. Sync output
+labels changes as applied only after exact post-write verification. For scripts
+that consume the older compact payload, add `--json`.
 
 Review the JSON plan. Apply that exact plan with:
 
@@ -578,7 +633,7 @@ scores, catalog, or curriculum differ from the reviewed snapshot. It also
 validates that the actions produce the desired queue, that every addition is in
 the approved curriculum, and that the queue remains within its configured
 limit. Each successful Save is logged immediately, and the final live queue is
-verified exactly. If a run is interrupted, generate a new dry-run plan; the
+verified exactly. If a run is interrupted, generate a new review plan; the
 append-only logs and live-state comparison make the remaining work idempotent.
 Every successful review or apply appends a Markdown report naming mastery,
 unchecks, promotions, additions, the desired queue, and held lessons. An
@@ -586,11 +641,12 @@ interrupted apply records only the actions that completed before the error;
 rerun the review command to produce a safe remainder plan.
 
 The default output paths are derived from the student name. Use `--attempts`,
-`--actions`, `--report`, `--plan`, and `--max-actions` to customize the run. The legacy
+`--actions`, `--report`, `--plan`, and `--max-actions` to customize the run.
 `khan-mastery-sync` is the one-session sync alias for the same shared workflow;
 it adds `--sync` and contains no separate implementation. Run
-`./khan-reading-sync --help` for all options. Both wrappers resolve the repository location first, so they can
-be invoked by absolute path from another working directory.
+`./khan-reading-sync --help` for all options. Both wrappers resolve the
+repository location first, so they can be invoked by absolute path from another
+working directory.
 
 Khan's report provides dates and percentages but no attempt timestamp or
 stable attempt ID. Therefore, two genuinely separate attempts with the same
@@ -645,7 +701,7 @@ rewriting or start a clean repository if personal data has entered history.
 - Coordinates and column bounds are device-, orientation-, roster-, and
   app-version-specific.
 - The reading workflow is intentionally fail-closed, but assignment Saves are
-  not transactional across multiple lessons. Generate a fresh dry-run after an
+  not transactional across multiple lessons. Generate a fresh review after an
   interrupted apply; already completed actions appear in the live state and are
   not proposed again.
 - Android's UI hierarchy omits some graphical text and does not expose reliable
@@ -704,9 +760,10 @@ unchanged raw captures.
 
 ## Project status and license
 
-This is a completed, point-in-time family research project. The capture and
-parsing tools are useful as a reference implementation, but they are not a
-stable end-user application.
+This is an active family research and automation project. The captured catalog
+is a point-in-time snapshot, while the mastery workflow and student records are
+updated as new attempts occur. The tools remain a calibrated reference
+implementation rather than a stable general-purpose end-user application.
 
 The original source code and project documentation are available under the
 [MIT License](LICENSE). That license does not grant rights to Khan Academy's

@@ -1,5 +1,10 @@
 # Ordering-focused assignments for Student A
 
+> **Status:** Historical assignment snapshot. This initial diagnostic batch
+> was later narrowed and replaced by the mastery-gated queue documented in
+> [`reading-path.md`](reading-path.md). Actual changes are preserved in
+> [`student-records/student-a-assignment-actions.csv`](student-records/student-a-assignment-actions.csv).
+
 Assigned in Khan Academy Kids on 2026-09-08. Exactly one activity was chosen
 from each requested category. `Basic` was used when available; `Main` was used
 only where that lesson had no `Basic` activity.

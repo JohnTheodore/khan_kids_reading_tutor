@@ -70,6 +70,24 @@ def append_unique_rows(
     identity_fields: Sequence[str],
 ) -> int:
     """Atomically append records whose selected identity is not already present."""
+    return len(
+        append_unique_rows_with_records(
+            path,
+            fieldnames,
+            rows,
+            identity_fields=identity_fields,
+        )
+    )
+
+
+def append_unique_rows_with_records(
+    path: Path,
+    fieldnames: Sequence[str],
+    rows: Iterable[Mapping[str, object]],
+    *,
+    identity_fields: Sequence[str],
+) -> list[dict[str, str]]:
+    """Atomically append unique records and return the normalized additions."""
     path.parent.mkdir(parents=True, exist_ok=True)
     existing: list[dict[str, str]] = []
     if path.exists():
@@ -89,7 +107,7 @@ def append_unique_rows(
             identities.add(identity)
             additions.append(normalized)
     if not additions:
-        return 0
+        return []
     with tempfile.NamedTemporaryFile(
         "w", newline="", dir=path.parent, prefix=f".{path.name}.", delete=False
     ) as handle:
@@ -99,7 +117,7 @@ def append_unique_rows(
         writer.writerows(existing)
         writer.writerows(additions)
     os.replace(temporary, path)
-    return len(additions)
+    return additions
 
 
 def record_action(

@@ -11,8 +11,8 @@ For each skill family, use one rung at a time:
 2. Review the score history, not just the latest summary score.
 3. If mastered, remove the completed assignment to keep Student A's queue clean.
 4. Assign the next available rung: **Main → Practice 1 → Practice 2**.
-5. If not mastered, do not promote. Select a corrective Khan Kids lesson at the
-   same or prerequisite level, then reassess.
+5. If not mastered, do not promote. Hold the rung; when a reviewed curriculum
+   rule provides a narrower Khan Kids corrective, use it before reassessment.
 
 This is a deliberate adaptation of Khan Kids' generic recommendation, which
 normally starts with Main and uses Basic for support. It preserves the family's
@@ -23,7 +23,7 @@ Main to Practice 1 to Practice 2.
 
 | Evidence in Khan Kids | Status | Action |
 |---|---|---|
-| **100% on a completed attempt** | Mastered at this rung | Remove it and assign the next rung |
+| **Latest completed attempt is 100%** | Mastered at this rung | Remove it and assign the next rung |
 | **90–99% once** | Provisional | Reassess the same rung; promote after a second score of at least 90% |
 | **80–89%** | Strong, not yet mastered | Repeat or use a closely matched Khan Kids corrective; do not promote |
 | **50–79%** | Developing | Use a prerequisite or Basic corrective in Khan Kids; do not promote |
@@ -31,9 +31,10 @@ Main to Practice 1 to Practice 2.
 
 The two-score rule for 90–99% is our conservative operating standard, not a
 universal research cutoff. It reduces the chance that one good attempt causes a
-premature promotion. A 100% score counts immediately because that is the
-family's explicit mastery rule. The next rung then acts as a transfer check: it
-tests the same skill in a less-supported or more varied form.
+premature promotion. A latest score of 100% counts immediately because that is
+the family's explicit mastery rule. A later regression supersedes earlier
+mastery evidence until the gate is met again. The next rung then acts as a
+transfer check in a less-supported or more varied form.
 
 Khan Kids colors 80–100% green and calls that range “strong understanding.” We
 use a stricter threshold for promotion because a green score is a broad report
@@ -45,14 +46,41 @@ band, not proof that a prerequisite is stable enough to build on.
   whole reading skill.
 - Promotion changes the difficulty or variety; it does not erase history.
 - Every attempt remains in `student-records/student-a-lesson-attempts.csv`.
-- Every promotion/removal is recorded in
-  `student-records/student-a-mastery-state.csv`.
-- If performance drops below 80% on the next rung, hold that rung and choose a
-  corrective Khan Kids lesson instead of continuing forward.
+- Every checked or unchecked assignment is recorded in
+  `student-records/student-a-assignment-actions.csv` and summarized in the sync
+  log.
+- If performance drops below 80% on the next rung, hold that rung. A reviewed
+  curriculum decision may add a narrower Khan Kids corrective, but the
+  software does not invent one automatically.
 - Correctives should respond to the actual error area. Repeating an identical
   activity without targeted support is not, by itself, mastery learning.
 
-## Current decisions — September 9, 2026
+## Queue composition and stretch lessons
+
+The desired queue contains ten assignments: up to eight mastery-path lessons
+and enough curated printed-CVC stretch lessons to fill the remaining positions.
+No more than three active lessons may come from the combined short-vowel/CVC-
+middle group.
+
+Stretch exposure is diagnostic; it does not waive or mark a core prerequisite
+as mastered:
+
+| Stretch evidence | Queue decision |
+|---|---|
+| No attempt yet | Pin the lesson; do not rotate it |
+| 70–89% | Keep the same rung active |
+| One 90–99% | Keep it active as provisional mastery evidence |
+| Latest score is 100%, or the latest two are both ≥90% | Promote to the next available variant |
+| Below 70% | Defer but retain its history and retry eligibility |
+
+A deferred stretch lesson receives another attempt allowance only after a
+configured supporting track is mastered. A fallback already active remains
+pinned until attempted, preventing immediate remove/re-add oscillation.
+
+## Decision snapshot — September 9, 2026
+
+This table preserves the evidence available on September 9. It is historical;
+the append-only attempt and action CSVs are authoritative for later activity.
 
 | Skill | Result | Decision |
 |---|---:|---|
@@ -65,6 +93,14 @@ band, not proof that a prerequisite is stable enough to build on.
 | Make New Words — Basic | 92% | Provisional; one more score of at least 90% before Main |
 | Middle Sound — Basic | 50% | Do not promote; prerequisite correction within Khan Kids |
 | Ending Sound — Basic | 58% | Do not promote; prerequisite correction within Khan Kids |
+
+## Current queue — September 10, 2026
+
+The live queue was verified at ten assignments: eight core lessons plus
+`Words with f, g, h — Main` and `Words with m & n — Main` in the two initial
+stretch positions. Short *e* and short *o* were deferred, not removed from the
+curriculum, to enforce the three-active-vowel limit. The exact list and stretch
+retry milestones are maintained in [`reading-path.md`](reading-path.md).
 
 ## Why this follows mastery learning
 

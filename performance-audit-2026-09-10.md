@@ -3,7 +3,11 @@
 **Date:** September 10, 2026  
 **Audience:** Maintainer of `khan_kids_reading_tutor`  
 **Scope:** One live, profiled no-change sync for Student A on a Pixel Tablet over
-wireless ADB. This report recommends changes but implements none.
+wireless ADB, followed by implementation and repeat benchmarks.
+
+> **Status:** The initial 157.31-second measurement is the baseline. All eight
+> recommendations were subsequently implemented; the measured results are in
+> [Implementation benchmark](#implementation-benchmark).
 
 ## Executive conclusion
 

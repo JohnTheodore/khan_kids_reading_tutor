@@ -15,14 +15,15 @@ for adding, removing, or reordering a lesson is never lost.
 
 This is a mastery-gated spine, not a fixed calendar. The numbered order is the
 default route for a typical learner who already knows letter-sound
-correspondences. A child may have several unlocked tracks at once, but the
-assignment queue stays at ten or fewer activities. Each activity follows the
-family's `Basic → Main → Practice 1 → Practice 2` rule, skipping variants Khan
-does not provide.
+correspondences. A child may have several unlocked tracks at once. The planner
+targets ten active assignments: up to eight from the mastery spine and the
+remaining positions from the stretch pool. Each activity follows the family's
+`Basic → Main → Practice 1 → Practice 2` rule, skipping variants Khan does not
+provide.
 
-A rung advances after either one 100% result or two consecutive results of at
-least 90%. Lower results hold the rung or trigger a narrower Khan prerequisite.
-They do not cause automatic promotion.
+A rung advances when its latest result is 100% or its latest two results are
+both at least 90%. Lower later results hold the rung or trigger a narrower Khan
+prerequisite. They do not cause automatic promotion.
 
 The queue also enforces instructional diversity. All five short-vowel/CVC-middle
 tracks share a maximum of three active lessons. Within that group, current
@@ -33,11 +34,49 @@ allocation may remain underfilled rather than admit redundant, premature, or
 non-reading filler; curated stretch work fills the remaining queue positions.
 
 For the current segment, up to eight positions are reserved for the mastery
-spine and at least two for a curated stretch pool of printed CVC lessons. Stretch lessons remain
-assigned until attempted. Results of 70% or higher keep the lesson in its slot;
-a lower result defers it while preserving the score, and later mastery in a
-configured supporting track makes it retry-eligible. This diagnostic exposure
-does not mark a prerequisite mastered.
+spine and at least two for a curated stretch pool of printed CVC lessons.
+Stretch lessons remain assigned until attempted. Results of 70% or higher keep
+the lesson in place; a lower result defers it while preserving the score, and
+later mastery in a configured supporting track makes it retry-eligible. This
+diagnostic exposure does not mark a prerequisite mastered.
+
+## Current queue
+
+As verified in Khan Kids on September 10, 2026:
+
+| Role | Lesson |
+|---|---|
+| Core | Blend Sounds 2 — Main |
+| Core | Make New Words — Basic |
+| Core | Words: End Sound — Main |
+| Core | Blend Syllables — Practice 2 |
+| Core | Short Vowel Sound a — Basic |
+| Core | Short Vowel Sound i — Basic |
+| Core | Short Vowel Sound u — Basic |
+| Core | Words with b, c, d — Main |
+| Stretch | Words with f, g, h — Main |
+| Stretch | Words with m & n — Main |
+
+Short *e* and short *o* remain in the curriculum but are deferred by the
+three-active-vowel cap.
+
+## Stretch pool
+
+The pool contains only printed CVC activities. Its order is deterministic:
+
+| Order | Lesson family | Position | Retry evidence after a score below 70% |
+|---:|---|---|---|
+| 1 | Words with f, g, h | Beginning | Three-phoneme blending or Words with b, c, d track mastery |
+| 2 | Words with m & n | Ending | Oral final-sound or short-*a* track mastery |
+| 3 | Words with b & d | Ending | Oral final-sound or three-phoneme blending mastery |
+| 4 | Words with m, n, p | Beginning | Words with b, c, d or three-phoneme blending mastery |
+| 5 | Words with g & k | Ending | Oral final-sound or Words with m & n track mastery |
+
+The first unmastered variant in a selected stretch family is used. An existing
+stretch family is pinned through its first attempt and through ordinary
+promotion, so a newly eligible retry cannot displace an untried lesson. A
+below-70% attempt consumes the current allowance; each newly completed support
+milestone grants one later attempt.
 
 ## Entry point
 
@@ -60,7 +99,7 @@ not meet them needs a letter-sound entry segment before this path.
 | 4 | Blend Syllables | Maintain the already-strong larger-unit blending skill | Entry criteria |
 | 5 | Short Vowel Sound a | Establish the first controlled CVC middle sound | Entry criteria |
 | 6 | Words with a | Transfer short *a* into printed CVC words | Prior row in the same track |
-| 7 | Short Vowel Sound i | Add a second controlled middle vowel | Short-*a* track mastered |
+| 7 | Short Vowel Sound i | Add a second controlled middle vowel | Entry criteria; the diversity cap controls simultaneous exposure |
 | 8 | Words with i | Transfer short *i* into printed CVC words | Prior row in the same track |
 | 9 | Short Vowel Sound e | Add short *e* without increasing positional complexity | Entry criteria |
 | 10 | Words with e | Transfer short *e* into printed CVC words | Prior row in the same track |
@@ -69,7 +108,7 @@ not meet them needs a letter-sound entry segment before this path.
 | 13 | Short Vowel Sound u | Add short *u* without increasing positional complexity | Entry criteria |
 | 14 | Words with u | Transfer short *u* into printed CVC words | Prior row in the same track |
 | 15 | Words with b, c, d | Use Student A's prior 92% CVC-beginning performance as a near-mastery option | Entry criteria |
-| 16 | Words with m & n | Decode comparatively easy continuous final consonants | Short-*a* track mastered |
+| 16 | Words with m & n | Decode comparatively easy continuous final consonants | Core: short-*a* track mastered; may appear earlier in a diagnostic stretch slot |
 | 17 | Words with p & s | Generalize CVC endings to a stop and continuous consonant | Words with m & n mastered |
 | 18 | Middle Sound | Reassess middle-position analysis after narrow CVC work | All short-vowel and ending tracks mastered |
 | 19 | Ending Sound | Reassess final-position analysis after narrow CVC work | Prior row in the same track |
@@ -80,10 +119,11 @@ not meet them needs a letter-sound entry segment before this path.
 | 24 | Blends: sp | Generalize the adjacent-consonant sequence | Prior row in the same track |
 | 25 | st, sp, sk, sm | Check transfer across several initial blends | Prior row in the same track |
 
-This segment contains 25 deliberately selected lesson families and 83
-assignable variants, compared with 2,956 activity placements in the captured
-ELA archive. Within a selected family, the current policy advances through each
-available variant; mastery controls when that advancement occurs.
+The mastery spine contains 25 deliberately selected lesson families and 83
+assignable variants. The stretch pool adds four unique supplemental families
+and brings the approved union to 95 unique activities, compared with 2,956
+activity placements in the captured ELA archive. Within a selected family,
+mastery controls advancement through the available variants.
 
 ## The finish line
 
