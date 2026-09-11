@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 from argparse import Namespace
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 from datetime import date, datetime
 from io import StringIO
 from pathlib import Path
@@ -29,23 +29,21 @@ EXPECTED_LIVE_QUEUE = {
     ("Blend Sounds 2", "Main"),
     ("Make New Words", "Basic"),
     ("Words: End Sound", "Main"),
-    ("Blend Syllables", "Practice 2"),
-    ("Short Vowel Sound a", "Basic"),
+    ("Short Vowel Sound a", "Main"),
     ("Short Vowel Sound i", "Basic"),
-    ("Short Vowel Sound e", "Basic"),
-    ("Short Vowel Sound o", "Basic"),
-    ("Short Vowel Sound u", "Basic"),
+    ("Short Vowel Sound u", "Main"),
     ("Words with b, c, d", "Main"),
-}
-EXPECTED_DIVERSE_QUEUE = EXPECTED_LIVE_QUEUE - {
-    ("Short Vowel Sound e", "Basic"),
-    ("Short Vowel Sound o", "Basic"),
+    ("Words with f, g, h", "Main"),
+    ("Words with m & n", "Main"),
+    ("Words with b & d", "Main"),
 }
 STRETCH_QUEUE = {
     ("Words with f, g, h", "Main"),
     ("Words with m & n", "Main"),
+    ("Words with b & d", "Main"),
 }
-EXPECTED_TEN_QUEUE = EXPECTED_DIVERSE_QUEUE | STRETCH_QUEUE
+EXPECTED_DIVERSE_QUEUE = EXPECTED_LIVE_QUEUE - STRETCH_QUEUE
+EXPECTED_TEN_QUEUE = EXPECTED_LIVE_QUEUE
 
 
 class WorkflowTests(unittest.TestCase):
@@ -54,21 +52,13 @@ class WorkflowTests(unittest.TestCase):
         cls.catalog = CatalogIndex(CATALOG_PATH)
         cls.curriculum = ReadingCurriculum.load(CURRICULUM_PATH, cls.catalog)
 
-    def test_current_records_cap_vowels_and_fill_two_stretch_slots(self) -> None:
+    def test_current_records_preserve_the_diverse_ten_item_queue(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
 
         plan = build_queue_plan(self.curriculum, scores, EXPECTED_LIVE_QUEUE)
 
         self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_TEN_QUEUE)
-        self.assertEqual(
-            [(action.kind, action.key) for action in plan.actions],
-            [
-                ("remove", ("Short Vowel Sound e", "Basic")),
-                ("remove", ("Short Vowel Sound o", "Basic")),
-                ("add", ("Words with f, g, h", "Main")),
-                ("add", ("Words with m & n", "Main")),
-            ],
-        )
+        self.assertEqual(plan.actions, ())
 
     def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
@@ -81,7 +71,7 @@ class WorkflowTests(unittest.TestCase):
         rotated = build_queue_plan(self.curriculum, scores, current)
         desired = {activity.key for activity in rotated.desired}
         self.assertNotIn(("Words with f, g, h", "Main"), desired)
-        self.assertIn(("Words with b & d", "Main"), desired)
+        self.assertIn(("Words with m, n, p", "Main"), desired)
         removal = next(
             action for action in rotated.actions if action.key == ("Words with f, g, h", "Main")
         )
@@ -147,10 +137,11 @@ class WorkflowTests(unittest.TestCase):
             ("Words: End Sound", "Basic"): (100,),
             ("Words: End Sound", "Main"): (83,),
             ("Blend Syllables", "Basic"): (100,),
-            ("Blend Syllables", "Main"): (91, 94),
+            ("Blend Syllables", "Main"): (100,),
             ("Blend Syllables", "Practice 1"): (100,),
-            ("Short Vowel Sound a", "Basic"): (89,),
-            ("Short Vowel Sound u", "Basic"): (89,),
+            ("Blend Syllables", "Practice 2"): (100,),
+            ("Short Vowel Sound a", "Basic"): (100,),
+            ("Short Vowel Sound u", "Basic"): (100,),
         }
 
         plan = build_queue_plan(self.curriculum, scores, current)
@@ -269,11 +260,12 @@ class WorkflowTests(unittest.TestCase):
             (),
         )
         automation = Mock()
+        automation.device.timing.span.return_value = nullcontext()
         automation.unassign_many.return_value = iter(
             (ActionResult("unchecked", "Blend Sounds 2", "Basic", "saved"),)
         )
-        automation.assign.return_value = ActionResult(
-            "checked", "Blend Sounds 2", "Main", "saved and verified"
+        automation.assign_many.return_value = iter(
+            (ActionResult("checked", "Blend Sounds 2", "Main", "saved"),)
         )
         automation.scan_assignments.return_value = final_snapshot
 
@@ -296,6 +288,7 @@ class WorkflowTests(unittest.TestCase):
                     actions_path=temporary_path / "actions.csv",
                     report_path=temporary_path / "sync-log.md",
                     curriculum=self.curriculum,
+                    catalog=self.catalog,
                 )
 
             self.assertEqual(payload["status"], "applied")

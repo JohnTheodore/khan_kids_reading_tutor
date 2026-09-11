@@ -5,7 +5,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from contextlib import nullcontext
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
@@ -230,6 +230,49 @@ class AutomationTests(unittest.TestCase):
         automation.ensure_assignments_report.assert_called_once_with()
         automation._scroll_to_top.assert_called_once_with()
         device.swipe.assert_not_called()
+
+    def test_bulk_assignment_reuses_one_all_progress_pass_for_a_grade(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        progress = ET.Element("progress")
+        top = ET.Element("top")
+        first_dialog = ET.Element("first-dialog")
+        first_saved = ET.Element("first-saved")
+        second_dialog = ET.Element("second-dialog")
+        second_saved = ET.Element("second-saved")
+        automation._open_all_progress = Mock(return_value=progress)
+        automation._select_grade = Mock(return_value=progress)
+        automation._scroll_to_top = Mock(return_value=top)
+        automation._open_report_variant = Mock(side_effect=(first_dialog, second_dialog))
+        automation._validate_assignment_dialog = Mock()
+        automation._change_checkbox = Mock()
+        automation._save_dialog = Mock(side_effect=(first_saved, second_saved))
+
+        results = tuple(
+            automation.assign_many(
+                (
+                    ("Preschool (Age 4)", "First", "Basic"),
+                    ("Preschool (Age 4)", "Second", "Main"),
+                )
+            )
+        )
+
+        self.assertEqual([result.title for result in results], ["First", "Second"])
+        automation._open_all_progress.assert_called_once_with()
+        automation._select_grade.assert_called_once_with("Preschool (Age 4)", root=progress)
+        automation._scroll_to_top.assert_called_once_with()
+        self.assertEqual(
+            automation._open_report_variant.call_args_list,
+            [
+                call("First", "Basic", root=top, reset_to_top=False),
+                call("Second", "Main", root=first_saved, reset_to_top=False),
+            ],
+        )
 
 
 def _row(title: str, top: int) -> AssignmentRow:

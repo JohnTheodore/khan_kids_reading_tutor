@@ -542,9 +542,12 @@ Create the locked Python environment as described above. Its persistent UI
 transport is much faster than invoking Android's legacy hierarchy dumper for
 every screen.
 
-The command can wake the tablet, unlock Android, launch Khan Kids, select the
-parent profile, enter the parent password, and safely navigate from the teacher
-roster to Class Reports.
+The command can wake the tablet, unlock Android, start a fresh Khan Kids app
+session, select the parent profile, enter the parent password, and safely
+navigate from the teacher roster to Class Reports. Mastery sync deliberately
+does not inspect or navigate the child lesson view: its fresh start establishes
+the profile chooser as the only supported entry route to the parent/teacher
+workflow.
 
 Khan Kids can become the foreground app before its React Native accessibility
 tree finishes loading. At workflow entry, startup therefore waits up to ten
@@ -613,6 +616,17 @@ when the visible lesson, variant, assignment date, and score are unchanged;
 use `--full-score-scan` to force every score dialog to be read again. Use
 `--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
 stretch policy are described in [`reading-path.md`](reading-path.md).
+
+When changes are needed, removals use one Assignments traversal and additions
+are sorted into archive order and applied in one forward All Progress traversal
+per grade. The workflow does not re-scan Assignments after every addition. It
+instead retains the stronger invariant that matters: one exact final comparison
+of all live assignment keys against the complete desired ten-lesson queue.
+Scroll gestures are short, and the hierarchy returned by boundary detection is
+reused rather than immediately fetched again. Performance reports include
+separate `phase.*` rows for review, planning, bulk removal, batch addition, and
+final verification; lower-level rows overlap those phase totals and explain
+their internal cost.
 
 Every successful run ends with a readable terminal report containing:
 

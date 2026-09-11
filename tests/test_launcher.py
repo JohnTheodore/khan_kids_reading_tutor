@@ -38,6 +38,10 @@ class FakeDevice:
         self.calls.append(("start", component))
         self.foreground = KHAN_KIDS_PACKAGE
 
+    def force_stop(self, package: str) -> None:
+        self.calls.append(("force_stop", package))
+        self.foreground = None
+
 
 class LauncherTests(unittest.TestCase):
     def test_already_open_device_is_not_unlocked_or_relaunched(self) -> None:
@@ -66,6 +70,15 @@ class LauncherTests(unittest.TestCase):
             ensure_khan_kids_open(device)
 
         self.assertNotIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
+
+    def test_fresh_start_restarts_even_when_khan_kids_is_foreground(self) -> None:
+        device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
+
+        result = ensure_khan_kids_open(device, fresh_start=True)
+
+        self.assertTrue(result.launched)
+        self.assertIn(("force_stop", KHAN_KIDS_PACKAGE), device.calls)
+        self.assertIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
 
     def test_secrets_file_must_be_owner_private(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

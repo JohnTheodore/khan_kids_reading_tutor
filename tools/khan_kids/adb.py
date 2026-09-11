@@ -158,6 +158,12 @@ class AndroidDevice:
         self.command("shell", "am", "start", "-n", component)
         time.sleep(self.settle_seconds)
 
+    def force_stop(self, package: str) -> None:
+        """Stop one explicitly named application package."""
+        if not package or any(character.isspace() for character in package):
+            raise ValueError("package must be a non-empty Android package name")
+        self.command("shell", "am", "force-stop", package)
+
     @contextmanager
     def awake_session(self) -> Iterator[None]:
         """Keep the screen awake in landscape, then restore all prior settings."""
@@ -196,18 +202,24 @@ class AndroidDevice:
         start_y: int = 520,
         end_y: int = 1450,
         duration_ms: int = 250,
-    ) -> None:
-        prior_signature = self._window_signature()
+    ) -> ET.Element:
+        root = self.hierarchy()
+        prior_signature = self._window_signature(root)
         for _ in range(gestures):
             self.swipe(x, start_y, x, end_y, duration_ms)
-            current_signature = self._window_signature()
+            root = self.hierarchy()
+            current_signature = self._window_signature(root)
             if current_signature == prior_signature:
                 break
             prior_signature = current_signature
+        return root
 
-    def _window_signature(self, *, attempts: int = 3) -> tuple[tuple[str, ...], ...]:
+    def _window_signature(
+        self, root: ET.Element | None = None, *, attempts: int = 3
+    ) -> tuple[tuple[str, ...], ...]:
         """Return stable, visible UI state for detecting a scroll boundary."""
-        root = self._hierarchy_root(attempts=attempts)
+        if root is None:
+            root = self._hierarchy_root(attempts=attempts)
         return tuple(
             (
                 node.attrib.get("class", ""),

@@ -738,3 +738,198 @@ None.
 | wait.parent password dialog | 1 | 0.672 | 0.672 | 0.672 |
 | wait.assignments report | 1 | 0.605 | 0.605 | 0.605 |
 | startup.connected | 1 | 0.004 | 0.004 | 0.004 |
+
+## 2026-09-11T09:44:48-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 4
+- Desired queue size: 10
+- Assignment changes: 6
+
+### New scores
+
+- Blend Sounds 2 — Main: 75% on 2026-09-10 (history: 69% → 75%)
+- Short Vowel Sound u — Basic: 100% on 2026-09-10 (history: 89% → 100%)
+- Blend Syllables — Practice 2: 100% on 2026-09-10 (history: 93% → 100%)
+- Short Vowel Sound a — Basic: 100% on 2026-09-10 (history: 89% → 100% → 100%)
+
+### Mastered
+
+- Blend Syllables — Practice 2
+  - Scores: 93% → 100%
+  - Why: Mastered: latest attempt is 100%; selected lesson family complete
+- Short Vowel Sound a — Basic
+  - Scores: 89% → 100% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound a — Main
+- Short Vowel Sound u — Basic
+  - Scores: 89% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound u — Main
+
+### Applied unchecks
+
+- Blend Syllables — Practice 2
+  - Scores: 93% → 100%
+  - Why: Mastered: latest attempt is 100%; selected lesson family complete
+- Short Vowel Sound a — Basic
+  - Scores: 89% → 100% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound a — Main
+- Short Vowel Sound u — Basic
+  - Scores: 89% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound u — Main
+
+### Applied promotions
+
+- Short Vowel Sound a — Basic → Short Vowel Sound a — Main
+- Short Vowel Sound u — Basic → Short Vowel Sound u — Main
+
+### Applied additions
+
+- Short Vowel Sound a — Main: Next difficulty after Short Vowel Sound a — Basic met the mastery rule.
+- Short Vowel Sound u — Main: Next difficulty after Short Vowel Sound u — Basic met the mastery rule.
+- Words with b & d — Main: Next mastery rung in a rotating stretch slot
+
+### Desired queue
+
+- Blend Sounds 2 — Main
+- Make New Words — Basic
+- Words: End Sound — Main
+- Short Vowel Sound a — Main
+- Short Vowel Sound i — Basic
+- Short Vowel Sound u — Main
+- Words with b, c, d — Main
+- Words with f, g, h — Main
+- Words with m & n — Main
+- Words with b & d — Main
+
+### Stretch slots
+
+- Words with f, g, h — Main
+- Words with m & n — Main
+- Words with b & d — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Main: not_mastered (69%, 75%)
+- Make New Words — Basic: not_mastered (92%, 71%, 100%, 85%)
+- Words: End Sound — Main: not_mastered (83%, 56%)
+- Short Vowel Sound a — Main: not_mastered (not attempted)
+- Short Vowel Sound i — Basic: not_mastered (not attempted)
+- Short Vowel Sound u — Main: not_mastered (not attempted)
+- Words with b, c, d — Main: not_mastered (not attempted)
+- Words with m & n — Main: not_mastered (not attempted)
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 222.074 seconds
+- Score-history cache: 0 hits, 6 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 133 | 145.794 | 1.096 | 2.473 |
+| adb.swipe | 41 | 42.181 | 1.029 | 1.212 |
+| workflow.scan_assignments | 2 | 32.738 | 16.369 | 27.62 |
+| wait.stable Khan navigation state | 9 | 16.005 | 1.778 | 6.09 |
+| adb.tap | 43 | 8.197 | 0.191 | 0.342 |
+| wait.score dialog | 6 | 7.915 | 1.319 | 1.595 |
+| adb.screenshot | 12 | 6.644 | 0.554 | 0.62 |
+| wait.assignments report | 4 | 6.087 | 1.522 | 1.976 |
+| startup.launch | 1 | 5.507 | 5.507 | 5.507 |
+| wait.lesson variants | 3 | 4.415 | 1.472 | 1.838 |
+| adb.keyevent | 19 | 3.614 | 0.19 | 0.297 |
+| wait.all progress report | 3 | 3.573 | 1.191 | 1.728 |
+| wait.score dialog closed | 6 | 3.276 | 0.546 | 0.695 |
+| wait.assignment dialog | 6 | 3.068 | 0.511 | 0.778 |
+| adb.other | 7 | 2.321 | 0.332 | 1.407 |
+| adb.settings | 11 | 2.29 | 0.208 | 0.627 |
+| wait.assignment saved | 6 | 1.486 | 0.248 | 0.354 |
+| startup.ui_backend | 1 | 1.217 | 1.217 | 1.217 |
+| wait.teacher roster after login | 1 | 1.122 | 1.122 | 1.122 |
+| wait.parent password dialog | 1 | 0.221 | 0.221 | 0.221 |
+| startup.connected | 1 | 0.009 | 0.009 | 0.009 |
+
+## 2026-09-11T10:07:47-04:00 — no_op
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 10
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Mastered
+
+None this run.
+
+### Verified unchecks
+
+None.
+
+### Verified promotions
+
+None.
+
+### Verified additions
+
+None.
+
+### Desired queue
+
+- Blend Sounds 2 — Main
+- Make New Words — Basic
+- Words: End Sound — Main
+- Short Vowel Sound a — Main
+- Short Vowel Sound i — Basic
+- Short Vowel Sound u — Main
+- Words with b, c, d — Main
+- Words with f, g, h — Main
+- Words with m & n — Main
+- Words with b & d — Main
+
+### Stretch slots
+
+- Words with f, g, h — Main
+- Words with m & n — Main
+- Words with b & d — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Main: not_mastered (69%, 75%)
+- Make New Words — Basic: not_mastered (92%, 71%, 100%, 85%)
+- Words: End Sound — Main: not_mastered (83%, 56%)
+- Short Vowel Sound a — Main: not_mastered (not attempted)
+- Short Vowel Sound i — Basic: not_mastered (not attempted)
+- Short Vowel Sound u — Main: not_mastered (not attempted)
+- Words with b, c, d — Main: not_mastered (not attempted)
+- Words with m & n — Main: not_mastered (not attempted)
+
+### Performance
+
+- Outcome: no_op
+- UI backend: uiautomator2
+- Wall time: 28.995 seconds
+- Score-history cache: 3 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| phase.review_assignments | 1 | 15.49 | 15.49 | 15.49 |
+| workflow.scan_assignments | 1 | 15.49 | 15.49 | 15.49 |
+| ui.hierarchy | 29 | 9.358 | 0.323 | 1.282 |
+| startup.launch | 1 | 6.617 | 6.617 | 6.617 |
+| wait.stable Khan navigation state | 1 | 6.604 | 6.604 | 6.604 |
+| adb.keyevent | 19 | 3.815 | 0.201 | 0.248 |
+| adb.other | 8 | 2.416 | 0.302 | 1.287 |
+| adb.settings | 11 | 1.995 | 0.181 | 0.32 |
+| wait.parent password dialog | 1 | 1.455 | 1.455 | 1.455 |
+| wait.assignments report | 1 | 1.283 | 1.283 | 1.283 |
+| startup.ui_backend | 1 | 1.169 | 1.169 | 1.169 |
+| wait.teacher roster after login | 1 | 1.088 | 1.088 | 1.088 |
+| adb.swipe | 2 | 1.027 | 0.514 | 0.568 |
+| adb.tap | 4 | 0.778 | 0.194 | 0.249 |
+| startup.connected | 1 | 0.01 | 0.01 | 0.01 |
+| phase.plan_queue | 1 | 0.007 | 0.007 | 0.007 |

@@ -9,6 +9,48 @@ wireless ADB, followed by implementation and repeat benchmarks.
 > recommendations were subsequently implemented; the measured results are in
 > [Implementation benchmark](#implementation-benchmark).
 
+## September 11 follow-up optimization pass
+
+A later change-bearing sync took **222.074 seconds**. It read six uncached score
+histories, removed three assignments, added three assignments, and exactly
+verified the final ten-item queue. Its dominant costs were 133 hierarchy reads
+(145.794 seconds) and 41 swipes (42.181 seconds). In particular, the old add
+path restarted All Progress navigation and independently searched Assignments
+to verify each saved lesson, even though the workflow also performed an exact
+final verification.
+
+The follow-up implementation keeps all write-safety checks while removing that
+duplicated work:
+
+- mastery sync force-stops and freshly launches Khan Kids before reading UI,
+  so it enters through the parent/profile route and never attempts to recover
+  through a child lesson view;
+- additions are catalog-ordered and share one All Progress traversal per grade;
+- per-addition full Assignments searches are replaced by one exact final queue
+  comparison after all writes;
+- scroll gestures use 300 ms rather than the former 850 ms, while retaining
+  hierarchy-based boundary detection;
+- a hierarchy already obtained to prove the top boundary becomes the first
+  page input instead of being discarded;
+- workflow-level `phase.*` timings isolate review, planning, bulk removal,
+  batch addition, and final verification; and
+- score-history behavior remains conservative: changed or first-daily rows are
+  read live, with cache reuse only for an exact same-day visible fingerprint.
+
+A five-sample read-only experiment compared uiautomator2 compressed and
+uncompressed hierarchy output. On the tested screen both produced the same
+7,917-byte, 18-node tree; average calls were 0.227 and 0.234 seconds. Compression
+was therefore not enabled: it showed no meaningful benefit and removing nodes
+could weaken semantic validation on richer report screens.
+
+The first live verification after this pass began from a fresh app session,
+entered the teacher reports, confirmed the exact ten-item queue, and completed
+as a no-op in **28.995 seconds**. That is **32.935 seconds (53.2%) faster** than
+the original 61.93-second read-only/no-op phase. This result validates the
+startup and read path, but not the change-bearing batch-add speedup; that path
+is covered by deterministic unit tests and should be measured on the next real
+promotion instead of manufacturing assignment changes.
+
 ## Executive conclusion
 
 The successful two-phase sync took **157.31 seconds**:

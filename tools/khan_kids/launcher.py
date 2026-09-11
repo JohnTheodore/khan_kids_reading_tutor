@@ -31,9 +31,12 @@ class LaunchResult:
 
 
 def ensure_khan_kids_open(
-    device: AndroidDevice, *, pin_provider: PinProvider | None = None
+    device: AndroidDevice,
+    *,
+    pin_provider: PinProvider | None = None,
+    fresh_start: bool = False,
 ) -> LaunchResult:
-    """Wake, unlock once if necessary, and verify Khan Kids is foreground."""
+    """Wake, unlock once, and optionally restart Khan Kids at its entry route."""
     device.wake()
     unlocked = False
     if device.is_locked():
@@ -44,7 +47,9 @@ def ensure_khan_kids_open(
             raise AutomationError("Tablet remained locked after one PIN attempt; refusing to retry")
         unlocked = True
 
-    launched = device.foreground_package() != KHAN_KIDS_PACKAGE
+    if fresh_start:
+        device.force_stop(KHAN_KIDS_PACKAGE)
+    launched = fresh_start or device.foreground_package() != KHAN_KIDS_PACKAGE
     if launched:
         device.start_activity(KHAN_KIDS_ACTIVITY)
     if device.foreground_package() != KHAN_KIDS_PACKAGE:

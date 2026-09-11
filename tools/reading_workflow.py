@@ -278,6 +278,7 @@ def main() -> None:
             ensure_khan_kids_open(
                 device,
                 pin_provider=lambda: credentials().android_pin,
+                fresh_start=True,
             )
         device.enable_ui_backend(args.ui_backend)
         automation = KhanKidsAutomation(
@@ -288,7 +289,8 @@ def main() -> None:
             parent_password_provider=lambda: credentials().khan_parent_password,
             history_lookup=None if args.full_score_scan else history_cache.lookup,
         )
-        snapshot = automation.scan_assignments(today=args.today, include_score_histories=True)
+        with timing.span("phase.review_assignments"):
+            snapshot = automation.scan_assignments(today=args.today, include_score_histories=True)
         history_cache.update(snapshot.rows, snapshot.histories)
         history_cache.save()
         if args.apply_plan:
@@ -301,6 +303,7 @@ def main() -> None:
                 actions_path=actions_path,
                 report_path=report_path,
                 curriculum=curriculum,
+                catalog=catalog,
                 plan_path=args.apply_plan,
             )
         else:
@@ -357,36 +360,37 @@ def _review_snapshot(
     report_path: Path,
     plan_path: Path,
 ) -> dict[str, object]:
-    preferred_grades = {
-        key: activity.grade for key, activity in curriculum.activities_by_key.items()
-    }
-    attempt_rows = histories_to_attempt_rows(
-        snapshot.histories, catalog, preferred_grades=preferred_grades
-    )
-    appended_rows = append_unique_rows_with_records(
-        attempts_path,
-        ATTEMPT_FIELDS,
-        attempt_rows,
-        identity_fields=ATTEMPT_ID_FIELDS,
-    )
-    scores = overlay_live_scores(
-        read_attempt_scores(attempts_path, args.student), snapshot.histories
-    )
-    current = {(row.title, row.variant) for row in snapshot.rows}
-    queue_plan = build_queue_plan(curriculum, scores, current)
-    payload = create_plan_payload(
-        student=args.student,
-        snapshot=snapshot,
-        plan=queue_plan,
-        curriculum=curriculum,
-        catalog_path=args.catalog,
-        curriculum_path=args.curriculum,
-        new_attempt_records=len(appended_rows),
-        generated_at=datetime.now().astimezone(),
-        scores=scores,
-        new_attempts=appended_rows,
-    )
-    write_json_atomic(plan_path, payload)
+    with automation.device.timing.span("phase.plan_queue"):
+        preferred_grades = {
+            key: activity.grade for key, activity in curriculum.activities_by_key.items()
+        }
+        attempt_rows = histories_to_attempt_rows(
+            snapshot.histories, catalog, preferred_grades=preferred_grades
+        )
+        appended_rows = append_unique_rows_with_records(
+            attempts_path,
+            ATTEMPT_FIELDS,
+            attempt_rows,
+            identity_fields=ATTEMPT_ID_FIELDS,
+        )
+        scores = overlay_live_scores(
+            read_attempt_scores(attempts_path, args.student), snapshot.histories
+        )
+        current = {(row.title, row.variant) for row in snapshot.rows}
+        queue_plan = build_queue_plan(curriculum, scores, current)
+        payload = create_plan_payload(
+            student=args.student,
+            snapshot=snapshot,
+            plan=queue_plan,
+            curriculum=curriculum,
+            catalog_path=args.catalog,
+            curriculum_path=args.curriculum,
+            new_attempt_records=len(appended_rows),
+            generated_at=datetime.now().astimezone(),
+            scores=scores,
+            new_attempts=appended_rows,
+        )
+        write_json_atomic(plan_path, payload)
     if not queue_plan.actions:
         payload["status"] = "no_op"
         payload["verified_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -402,6 +406,7 @@ def _review_snapshot(
             actions_path=actions_path,
             report_path=report_path,
             curriculum=curriculum,
+            catalog=catalog,
             plan_path=plan_path,
         )
     append_sync_report(report_path, payload)
@@ -417,6 +422,7 @@ def _apply_reviewed_plan(
     actions_path: Path,
     report_path: Path,
     curriculum: ReadingCurriculum,
+    catalog: CatalogIndex,
     plan_path: Path | None = None,
 ) -> dict[str, object]:
     plan_path = plan_path or args.apply_plan
@@ -437,30 +443,41 @@ def _apply_reviewed_plan(
     applied: list[dict[str, str]] = []
     try:
         removals = {action.key: action for action in actions if action.kind == "remove"}
-        for result in automation.unassign_many(removals):
-            action = removals[(result.title, result.variant)]
-            _record_applied_action(
-                result=result,
-                action=action,
-                actions_path=actions_path,
-                student=args.student,
-                action_date=args.today,
-                applied=applied,
-            )
-        for action in (item for item in actions if item.kind == "add"):
-            result = automation.assign(action.grade, action.title, action.variant)
-            _record_applied_action(
-                result=result,
-                action=action,
-                actions_path=actions_path,
-                student=args.student,
-                action_date=args.today,
-                applied=applied,
-            )
-
-        final_snapshot = automation.scan_assignments(
-            today=args.today, include_score_histories=False
+        with automation.device.timing.span("phase.bulk_remove"):
+            for result in automation.unassign_many(removals):
+                action = removals[(result.title, result.variant)]
+                _record_applied_action(
+                    result=result,
+                    action=action,
+                    actions_path=actions_path,
+                    student=args.student,
+                    action_date=args.today,
+                    applied=applied,
+                )
+        additions = sorted(
+            (action for action in actions if action.kind == "add"),
+            key=lambda action: catalog.order_key(action.grade, action.title),
         )
+        additions_by_key = {action.key: action for action in additions}
+        assignment_specs = tuple(
+            (action.grade, action.title, action.variant) for action in additions
+        )
+        with automation.device.timing.span("phase.batch_add"):
+            for result in automation.assign_many(assignment_specs):
+                action = additions_by_key[(result.title, result.variant)]
+                _record_applied_action(
+                    result=result,
+                    action=action,
+                    actions_path=actions_path,
+                    student=args.student,
+                    action_date=args.today,
+                    applied=applied,
+                )
+
+        with automation.device.timing.span("phase.final_verify"):
+            final_snapshot = automation.scan_assignments(
+                today=args.today, include_score_histories=False
+            )
         final_keys = {(row.title, row.variant) for row in final_snapshot.rows}
         desired_keys = {activity.key for activity in desired}
         if final_keys != desired_keys:

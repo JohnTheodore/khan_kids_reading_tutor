@@ -24,6 +24,8 @@ from .reports import (
 from .ui import Rect, UiText, find_text, near, node_rect, text_set, visible_nodes
 from .vision import CheckboxReading, CheckboxState, read_checkbox
 
+SCROLL_DURATION_MS = 300
+
 
 @dataclass(frozen=True, slots=True)
 class ActionResult:
@@ -251,14 +253,13 @@ class KhanKidsAutomation:
         self, *, today: date, include_score_histories: bool
     ) -> AssignmentSnapshot:
         root = self.ensure_assignments_report()
-        self._filter_assignments_to_student(root)
+        root = self._filter_assignments_to_student(root)
         if not self._assignments_at_top:
-            self._scroll_to_top()
+            root = self._scroll_to_top()
         active_rows: dict[tuple[str, str, str], AssignmentRow] = {}
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
-            root = self.root(f"assignments-{page:03d}")
             rows = parse_assignment_rows(
                 root, self.student, roster=(self.student,), layout=self.layout
             )
@@ -299,8 +300,15 @@ class KhanKidsAutomation:
                 histories[row.identity] = history
                 self._close_score_dialog(modal)
             prior_signature = signature
-            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self.device.swipe(
+                self.layout.safe_scroll_x,
+                1380,
+                self.layout.safe_scroll_x,
+                680,
+                SCROLL_DURATION_MS,
+            )
             self._assignments_at_top = False
+            root = self.root(f"assignments-{page + 1:03d}")
         else:
             raise AutomationError("Assignments report did not reach the bottom within 80 pages")
         activities = [(row.title, row.variant) for row in active_rows.values()]
@@ -335,13 +343,13 @@ class KhanKidsAutomation:
         if not pending:
             return
         root = self.ensure_assignments_report()
-        self._filter_assignments_to_student(root)
+        root = self._filter_assignments_to_student(root)
         if not self._assignments_at_top:
-            self._scroll_to_top()
+            root = self._scroll_to_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
             rows = parse_assignment_rows(
-                self.root(f"bulk-unassign-{page:03d}"),
+                root,
                 self.student,
                 roster=(self.student,),
                 layout=self.layout,
@@ -356,13 +364,21 @@ class KhanKidsAutomation:
                 if not pending:
                     return
                 prior_signature = None
+                root = self.root(f"bulk-unassign-{page:03d}-saved")
                 continue
             signature = tuple(row.identity for row in rows)
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self.device.swipe(
+                self.layout.safe_scroll_x,
+                1380,
+                self.layout.safe_scroll_x,
+                680,
+                SCROLL_DURATION_MS,
+            )
             self._assignments_at_top = False
+            root = self.root(f"bulk-unassign-{page + 1:03d}")
         if pending:
             raise AutomationError(f"Active assignments not found: {sorted(pending)!r}")
 
@@ -371,30 +387,42 @@ class KhanKidsAutomation:
         root = self._wait_for_assignment_dialog()
         self._validate_assignment_dialog(root, title, variant)
         self._change_checkbox(root, desired=CheckboxState.UNCHECKED, prefix="unassign")
-        self._save_dialog()
+        self._save_dialog(expected_report="assignments")
         return ActionResult("unchecked", title, variant, "saved")
 
     def assign(self, grade: str, title: str, variant: str) -> ActionResult:
-        self._open_all_progress()
-        self._select_grade(grade)
-        root = self._open_report_variant(title, variant)
-        self._validate_assignment_dialog(root, title, variant)
-        self._change_checkbox(root, desired=CheckboxState.CHECKED, prefix="assign")
-        self._save_dialog()
-        verified = self._find_assignment(title, variant)
-        if verified.title != title or verified.variant != variant:
-            raise AutomationError(f"Post-save verification failed for {title!r}/{variant!r}")
-        return ActionResult("checked", title, variant, "saved and verified in Assignments")
+        """Assign one lesson; callers must perform final queue verification."""
+        return next(self.assign_many(((grade, title, variant),)))
+
+    def assign_many(self, assignments: Iterable[tuple[str, str, str]]) -> Iterator[ActionResult]:
+        """Assign catalog-ordered lessons in one All Progress traversal per grade."""
+        requested = tuple(assignments)
+        if len(requested) != len(set(requested)):
+            raise ValueError("bulk assignment contains duplicate lesson variants")
+        if not requested:
+            return
+        root = self._open_all_progress()
+        active_grade: str | None = None
+        for grade, title, variant in requested:
+            if grade != active_grade:
+                root = self._select_grade(grade, root=root)
+                root = self._scroll_to_top()
+                active_grade = grade
+            root = self._open_report_variant(title, variant, root=root, reset_to_top=False)
+            self._validate_assignment_dialog(root, title, variant)
+            self._change_checkbox(root, desired=CheckboxState.CHECKED, prefix="assign")
+            root = self._save_dialog(expected_report="all_progress")
+            yield ActionResult("checked", title, variant, "saved; final verification pending")
 
     def _find_assignment(self, title: str, variant: str) -> AssignmentRow:
         root = self.ensure_assignments_report()
-        self._filter_assignments_to_student(root)
+        root = self._filter_assignments_to_student(root)
         if not self._assignments_at_top:
-            self._scroll_to_top()
+            root = self._scroll_to_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
             rows = parse_assignment_rows(
-                self.root(f"find-assignment-{page:03d}"),
+                root,
                 self.student,
                 roster=(self.student,),
                 layout=self.layout,
@@ -408,11 +436,18 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(self.layout.safe_scroll_x, 1380, self.layout.safe_scroll_x, 680)
+            self.device.swipe(
+                self.layout.safe_scroll_x,
+                1380,
+                self.layout.safe_scroll_x,
+                680,
+                SCROLL_DURATION_MS,
+            )
             self._assignments_at_top = False
+            root = self.root(f"find-assignment-{page + 1:03d}")
         raise AutomationError(f"Active assignment not found: {title!r}/{variant!r}")
 
-    def _open_all_progress(self) -> None:
+    def _open_all_progress(self) -> ET.Element:
         root = self.ensure_assignments_report()
         self._tap_header(root, "All Progress")
         after = self._wait_for_root(
@@ -422,11 +457,12 @@ class KhanKidsAutomation:
         if "Class Report: All Progress" not in text_set(after):
             raise AutomationError("Navigation did not reach Class Report: All Progress")
         self._assignments_at_top = False
+        return after
 
-    def _filter_assignments_to_student(self, root: ET.Element | None = None) -> None:
-        root = root or self.root("before-student-filter")
+    def _filter_assignments_to_student(self, root: ET.Element | None = None) -> ET.Element:
+        root = root if root is not None else self.root("before-student-filter")
         if self._is_filtered_to_student(root):
-            return
+            return root
         current = _filter_value(root, "Students:")
         self.device.tap(current.rect.right + 38, current.rect.center[1])
         modal = self._wait_for_root(
@@ -461,6 +497,7 @@ class KhanKidsAutomation:
         if not self._is_filtered_to_student(filtered):
             raise AutomationError(f"Assignments report was not filtered to {self.student!r}")
         self._assignments_at_top = True
+        return filtered
 
     def _is_filtered_to_student(self, root: ET.Element) -> bool:
         if not is_assignment_report(root):
@@ -488,12 +525,12 @@ class KhanKidsAutomation:
             time.sleep(0.1)
         return readings
 
-    def _select_grade(self, grade: str) -> None:
-        root = self.root("before-grade")
+    def _select_grade(self, grade: str, *, root: ET.Element | None = None) -> ET.Element:
+        root = root if root is not None else self.root("before-grade")
         expected = _report_grade_label(grade)
         subject = _filter_value(root, "Subject:")
         if subject.text == expected:
-            return
+            return root
         self.device.tap(subject.rect.right + 38, subject.rect.center[1])
         modal = self._wait_for_root(
             lambda candidate: grade in text_set(candidate) and "Done" in text_set(candidate),
@@ -511,12 +548,23 @@ class KhanKidsAutomation:
         )
         if _filter_value(after, "Subject:").text != expected:
             raise AutomationError(f"Grade selection did not produce {expected!r}")
+        return after
 
-    def _open_report_variant(self, title: str, variant: str) -> ET.Element:
-        self._scroll_to_top()
+    def _open_report_variant(
+        self,
+        title: str,
+        variant: str,
+        *,
+        root: ET.Element | None = None,
+        reset_to_top: bool = True,
+    ) -> ET.Element:
+        if reset_to_top:
+            root = self._scroll_to_top()
+        elif root is None:
+            root = self.root("before-find-lesson")
         prior_signature: tuple[tuple[str, Rect], ...] | None = None
         for page in range(200):
-            root = self.root(f"find-lesson-{page:03d}")
+            assert root is not None
             nodes = visible_nodes(root)
             matches = [item for item in nodes if item.text == title and near(item.rect.left, 200)]
             if len(matches) > 1:
@@ -524,7 +572,8 @@ class KhanKidsAutomation:
             if matches:
                 lesson = matches[0]
                 if lesson.rect.top > 1250:
-                    self.device.swipe(1200, 1380, 1200, 900)
+                    self.device.swipe(1200, 1380, 1200, 900, SCROLL_DURATION_MS)
+                    root = self.root(f"find-lesson-{page:03d}-repositioned")
                     continue
                 variants = _variants_below(nodes, lesson)
                 if variant not in {item.text for item in variants}:
@@ -562,7 +611,8 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(1200, 1380, 1200, 680)
+            self.device.swipe(1200, 1380, 1200, 680, SCROLL_DURATION_MS)
+            root = self.root(f"find-lesson-{page + 1:03d}")
         raise AutomationError(f"All Progress lesson not found: {title!r}")
 
     def _validate_assignment_dialog(
@@ -650,20 +700,29 @@ class KhanKidsAutomation:
             raise AutomationError("Assignment dialog remained open after read-only probe")
         return states
 
-    def _save_dialog(self) -> None:
+    def _save_dialog(self, *, expected_report: str) -> ET.Element:
         root = self.root("before-save")
         save = [item for item in find_text(root, "Save") if item.rect.top < 350]
         if len(save) != 1:
             raise AutomationError(f"Expected one assignment Save button, found {len(save)}")
         self.device.tap_rect(save[0].rect)
+
+        def returned_to_report(candidate: ET.Element) -> bool:
+            if any(item.text.startswith("Assign\n") for item in visible_nodes(candidate)):
+                return False
+            if expected_report == "assignments":
+                return is_assignment_report(candidate)
+            if expected_report == "all_progress":
+                return "Class Report: All Progress" in text_set(candidate)
+            raise ValueError(f"unknown report type: {expected_report}")
+
         after = self._wait_for_root(
-            lambda candidate: (
-                not any(item.text.startswith("Assign\n") for item in visible_nodes(candidate))
-            ),
+            returned_to_report,
             description="assignment saved",
         )
-        if any(item.text.startswith("Assign\n") for item in visible_nodes(after)):
-            raise AutomationError("Assignment dialog remained open after Save")
+        if not returned_to_report(after):
+            raise AutomationError("Assignment dialog did not return to the expected report")
+        return after
 
     def _close_score_dialog(self, root: ET.Element) -> None:
         screen = _screen_rect(root)
@@ -679,9 +738,11 @@ class KhanKidsAutomation:
             description="score dialog closed",
         )
 
-    def _scroll_to_top(self) -> None:
-        self.device.scroll_to_top(self.layout.safe_scroll_x)
+    def _scroll_to_top(self) -> ET.Element:
+        root = self.device.scroll_to_top(self.layout.safe_scroll_x)
+        self._validate_screen(root)
         self._assignments_at_top = True
+        return root
 
     def _wait_for_assignment_dialog(self) -> ET.Element:
         return self._wait_for_root(

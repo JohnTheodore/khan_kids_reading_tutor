@@ -31,3 +31,9 @@ action_date,student,action,lesson_title,activity_variant,reason,result
 2026-09-10,Student A,unchecked,Short Vowel Sound e,Basic,deferred: active instructional group is limited to 3 lessons,saved
 2026-09-10,Student A,checked,"Words with f, g, h",Main,next mastery rung in a rotating stretch slot,saved and verified in Assignments
 2026-09-10,Student A,checked,Words with m & n,Main,next mastery rung in a rotating stretch slot,saved and verified in Assignments
+2026-09-11,Student A,unchecked,Short Vowel Sound a,Basic,mastered: latest attempt is 100%; promote to Short Vowel Sound a — Main,saved
+2026-09-11,Student A,unchecked,Blend Syllables,Practice 2,mastered: latest attempt is 100%; selected lesson family complete,saved
+2026-09-11,Student A,unchecked,Short Vowel Sound u,Basic,mastered: latest attempt is 100%; promote to Short Vowel Sound u — Main,saved
+2026-09-11,Student A,checked,Short Vowel Sound a,Main,first unmastered activity in short_a_cvc_middle,saved and verified in Assignments
+2026-09-11,Student A,checked,Short Vowel Sound u,Main,first unmastered activity in short_u_cvc_middle,saved and verified in Assignments
+2026-09-11,Student A,checked,Words with b & d,Main,next mastery rung in a rotating stretch slot,saved and verified in Assignments

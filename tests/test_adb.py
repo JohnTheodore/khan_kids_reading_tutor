@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
@@ -60,19 +61,22 @@ class AndroidDeviceTests(unittest.TestCase):
 
     def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)
+        middle = ET.Element("hierarchy")
+        top = ET.Element("hierarchy")
         with (
+            patch.object(device, "hierarchy", side_effect=[middle, top, top]) as hierarchy,
             patch.object(
-                device,
-                "_window_signature",
-                side_effect=[(("middle",),), (("top",),), (("top",),)],
+                device, "_window_signature", side_effect=[(("middle",),), (("top",),), (("top",),)]
             ) as signature,
             patch.object(device, "swipe") as swipe,
             patch("khan_kids.adb.time.sleep"),
         ):
-            device.scroll_to_top(1200)
+            result = device.scroll_to_top(1200)
 
         self.assertEqual(signature.call_count, 3)
+        self.assertEqual(hierarchy.call_count, 3)
         self.assertEqual(swipe.call_count, 2)
+        self.assertIs(result, top)
 
     def test_unlock_sends_pin_as_individual_key_events(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)

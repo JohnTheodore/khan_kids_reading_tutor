@@ -39,6 +39,9 @@ class CatalogIndex:
                     )
                 )
         self.entries = tuple(entries)
+        self._order = {
+            (entry.grade, entry.title): position for position, entry in enumerate(self.entries)
+        }
 
     def find(self, title: str, variant: str, curriculum_path: str = "") -> CatalogEntry:
         matches = [
@@ -78,6 +81,11 @@ class CatalogIndex:
                 f"Expected one catalog placement for {grade!r}/{title!r}, found {len(matches)}"
             )
         return matches[0]
+
+    def order_key(self, grade: str, title: str) -> int:
+        """Return the archived All Progress position for an exact lesson placement."""
+        self.find_title_exact(grade, title)
+        return self._order[(grade, title)]
 
 
 def _grade_token(grade: str) -> str:
