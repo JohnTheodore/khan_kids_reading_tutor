@@ -68,6 +68,7 @@ def render_sync_report(payload: dict[str, object]) -> str:
     desired = _object_list(payload.get("desired_assignments"))
     stretches = _object_list(payload.get("stretch_assignments"))
     tracks = _object_list(payload.get("track_states"))
+    quarantines = _object_list(payload.get("active_quarantines"))
     evidence = _evidence_index(payload)
 
     lines = [
@@ -82,6 +83,10 @@ def render_sync_report(payload: dict[str, object]) -> str:
         "### New scores",
         "",
         *_new_score_lines(payload),
+        "",
+        "### Score controls read",
+        "",
+        *_score_control_lines(payload),
         "",
         "### Mastered",
         "",
@@ -98,6 +103,10 @@ def render_sync_report(payload: dict[str, object]) -> str:
         f"### {verb} additions",
         "",
         *_addition_lines(additions, mastered, empty="None."),
+        "",
+        "### Active quarantines",
+        "",
+        *_quarantine_lines(quarantines),
         "",
         "### Desired queue",
         "",
@@ -135,6 +144,7 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
     ]
     desired = _object_list(payload.get("desired_assignments"))
     observed = _object_list(payload.get("observed_assignments"))
+    quarantines = _object_list(payload.get("active_quarantines"))
     evidence = _evidence_index(payload)
     performance = payload.get("performance")
     duration = performance.get("wall_seconds") if isinstance(performance, dict) else None
@@ -163,6 +173,9 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
             _paint("NEW SCORES", "yellow", color),
             *_terminal_new_scores(payload, color=color),
             "",
+            _paint(_score_control_heading(payload), "bold", color),
+            *_terminal_score_controls(payload, color=color),
+            "",
             _paint("MASTERY FOUND", "green", color),
             *_terminal_actions(mastered, evidence, style="green", color=color),
         ]
@@ -177,6 +190,9 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
             "",
             _paint(addition_heading, "blue", color),
             *_terminal_additions(additions, mastered, color=color),
+            "",
+            _paint("ACTIVE QUARANTINES", "magenta", color),
+            *_terminal_quarantines(quarantines, color=color),
             "",
             _paint(f"ASSIGNED NOW ({len(desired)})", "bold", color),
         ]
@@ -281,6 +297,34 @@ def _addition_lines(
     return [f"- {_lesson(action)}: {_addition_reason(action, mastered)}" for action in actions]
 
 
+def _quarantine_lines(quarantines: list[dict[str, object]]) -> list[str]:
+    if not quarantines:
+        return ["None."]
+    return [
+        f"- {item.get('title', 'unknown')}: excluded through "
+        f"{item.get('active_through', 'unknown')}; eligible again "
+        f"{item.get('eligible_date', 'unknown')}. Why: {item.get('reason', 'not recorded')}"
+        for item in quarantines
+    ]
+
+
+def _terminal_quarantines(quarantines: list[dict[str, object]], *, color: bool) -> list[str]:
+    if not quarantines:
+        return ["  None."]
+    lines: list[str] = []
+    for item in quarantines:
+        lines.extend(
+            _paint(line, "magenta", color)
+            for line in (
+                f"  ⏸ {item.get('title', 'unknown')}",
+                f"    Excluded through {item.get('active_through', 'unknown')}; "
+                f"eligible again {item.get('eligible_date', 'unknown')}",
+                f"    Why: {item.get('reason', 'not recorded')}",
+            )
+        )
+    return lines
+
+
 def _promotion_lines(actions: list[dict[str, object]]) -> list[str]:
     if not actions:
         return ["None."]
@@ -334,6 +378,43 @@ def _terminal_new_scores(payload: dict[str, object], *, color: bool) -> list[str
         _paint(f"  ◆ {line[2:] if line.startswith('- ') else line}", "yellow", color)
         for line in _new_score_lines(payload)
     ]
+
+
+def _score_control_lines(payload: dict[str, object]) -> list[str]:
+    controls = _object_list(payload.get("score_controls_read"))
+    if not controls:
+        return ["None were available."]
+    return [f"- {_lesson(control)}: {_attempt_history_text(control)}" for control in controls]
+
+
+def _score_control_heading(payload: dict[str, object]) -> str:
+    controls = _object_list(payload.get("score_controls_read"))
+    source = (
+        "LIVE SCORE CONTROLS OPENED"
+        if payload.get("score_scan_mode") == "live_all_available"
+        else "SCORE HISTORIES READ"
+    )
+    return f"{source} ({len(controls)})"
+
+
+def _terminal_score_controls(payload: dict[str, object], *, color: bool) -> list[str]:
+    controls = _object_list(payload.get("score_controls_read"))
+    if not controls:
+        return [_paint("  ○ None were available.", "dim", color)]
+    return [
+        _paint(f"  • {_lesson(control)}: {_attempt_history_text(control)}", "dim", color)
+        for control in controls
+    ]
+
+
+def _attempt_history_text(control: dict[str, object]) -> str:
+    attempts = _object_list(control.get("attempts_newest_first"))
+    if not attempts:
+        return "no attempts shown"
+    return ", ".join(
+        f"{attempt.get('score', 'unknown')}% on {attempt.get('attempt_date', 'unknown')}"
+        for attempt in attempts
+    )
 
 
 def _terminal_actions(

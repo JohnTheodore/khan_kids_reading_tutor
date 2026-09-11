@@ -34,31 +34,42 @@ allocation may remain underfilled rather than admit redundant, premature, or
 non-reading filler; curated stretch work fills the remaining queue positions.
 
 For the current segment, up to eight positions are reserved for the mastery
-spine and at least two for a curated stretch pool of printed CVC lessons.
+spine and at least two for a curated stretch pool of printed CVC lessons and
+closely related oral-phoneme support.
 Stretch lessons remain assigned until attempted. Results of 70% or higher keep
 the lesson in place; a lower result defers it while preserving the score, and
 later mastery in a configured supporting track makes it retry-eligible. This
 diagnostic exposure does not mark a prerequisite mastered.
 
+A dated, student-specific quarantine overrides both core and stretch selection.
+While active, every variant sharing the exact lesson-family title is excluded,
+and the planner fills the open position from the next eligible lesson in this
+same reading path. The family becomes eligible for normal planning again on the
+recorded `eligible_date`; it is not automatically assigned on that date.
+
 ## Current queue
 
-As verified in Khan Kids on September 10, 2026:
+As verified in Khan Kids on September 11, 2026:
 
 | Role | Lesson |
 |---|---|
-| Core | Blend Sounds 2 — Main |
-| Core | Make New Words — Basic |
+| Core | Blend Sounds 2 — Practice 1 |
+| Core | Make New Words — Main |
 | Core | Words: End Sound — Main |
-| Core | Blend Syllables — Practice 2 |
-| Core | Short Vowel Sound a — Basic |
+| Core | Short Vowel Sound a — Main |
 | Core | Short Vowel Sound i — Basic |
-| Core | Short Vowel Sound u — Basic |
-| Core | Words with b, c, d — Main |
-| Stretch | Words with f, g, h — Main |
+| Core | Short Vowel Sound u — Main |
 | Stretch | Words with m & n — Main |
+| Stretch | Words with b & d — Main |
+| Stretch | Beginning Sounds 2 — Basic |
+| Stretch | Blend Sounds 1 — Basic |
 
 Short *e* and short *o* remain in the curriculum but are deferred by the
-three-active-vowel cap.
+three-active-vowel cap. All five CVC beginning-sound families—`Words with b, c,
+d`, `Words with f, g, h`, `Words with j, k, l`, `Words with m, n, p`, and
+`Other Words`—are quarantined through October 10 after the latest `Words with b,
+c, d — Main` score was 39%. They may be reconsidered, but are not automatically
+restored, beginning October 11.
 
 ## Stretch pool
 
@@ -70,7 +81,8 @@ The pool contains only printed CVC activities. Its order is deterministic:
 | 2 | Words with m & n | Ending | Oral final-sound or short-*a* track mastery |
 | 3 | Words with b & d | Ending | Oral final-sound or three-phoneme blending mastery |
 | 4 | Words with m, n, p | Beginning | Words with b, c, d or three-phoneme blending mastery |
-| 5 | Words with g & k | Ending | Oral final-sound or Words with m & n track mastery |
+| 5 | Blend Sounds 1 | Oral onset-and-rime blending | Three-phoneme blending mastery after a result below 70% |
+| 6 | Beginning Sounds 2 | Oral initial-sound isolation | Three-phoneme blending mastery after a result below 70% |
 
 The first unmastered variant in a selected stretch family is used. An existing
 stretch family is pinned through its first attempt and through ordinary
@@ -107,7 +119,7 @@ not meet them needs a letter-sound entry segment before this path.
 | 12 | Words with o | Transfer short *o* into printed CVC words | Prior row in the same track |
 | 13 | Short Vowel Sound u | Add short *u* without increasing positional complexity | Entry criteria |
 | 14 | Words with u | Transfer short *u* into printed CVC words | Prior row in the same track |
-| 15 | Words with b, c, d | Use Student A's prior 92% CVC-beginning performance as a near-mastery option | Entry criteria |
+| 15 | Words with b, c, d | Practice printed CVC beginning sounds when current evidence supports retry | Entry criteria; temporarily quarantined for Student A through 2026-10-10 |
 | 16 | Words with m & n | Decode comparatively easy continuous final consonants | Core: short-*a* track mastered; may appear earlier in a diagnostic stretch slot |
 | 17 | Words with p & s | Generalize CVC endings to a stop and continuous consonant | Words with m & n mastered |
 | 18 | Middle Sound | Reassess middle-position analysis after narrow CVC work | All short-vowel and ending tracks mastered |
@@ -120,8 +132,8 @@ not meet them needs a letter-sound entry segment before this path.
 | 25 | st, sp, sk, sm | Check transfer across several initial blends | Prior row in the same track |
 
 The mastery spine contains 25 deliberately selected lesson families and 83
-assignable variants. The stretch pool adds four unique supplemental families
-and brings the approved union to 95 unique activities, compared with 2,956
+assignable variants. The stretch pool adds five unique supplemental families
+and brings the approved union to 100 unique activities, compared with 2,956
 activity placements in the captured ELA archive. Within a selected family,
 mastery controls advancement through the available variants.
 
@@ -156,6 +168,7 @@ The project keeps distinct records so plans and evidence are not confused:
 | `student-records/student-a-mastery-state.csv` | Human-readable mastery decisions at specific rungs |
 | `student-records/student-a-progress-log.md` | Narrative session summaries and exceptions |
 | `student-records/student-a-reading-sync-log.md` | Report from every successful review and apply command |
+| `student-records/student-a-lesson-quarantines.csv` | Dated family exclusions and their later reconsideration dates |
 | `private/student-a-reading-plan.json` | Temporary reviewed proposal for the next queue; never the historical record |
 
 This separation lets another family reuse the generic path without inheriting

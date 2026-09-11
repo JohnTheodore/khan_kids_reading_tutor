@@ -55,10 +55,16 @@
       "retry_milestones": ["cvc_beginning_bcd", "three_phoneme_blending"]
     },
     {
-      "id": "cvc_ending_gk",
+      "id": "onset_rime_blending_support",
       "grade": "Preschool (Age 4)",
-      "title": "Words with g & k",
-      "retry_milestones": ["oral_final_sound", "cvc_ending_m_n"]
+      "title": "Blend Sounds 1",
+      "retry_milestones": ["three_phoneme_blending"]
+    },
+    {
+      "id": "oral_beginning_sounds_2",
+      "grade": "Preschool (Age 4)",
+      "title": "Beginning Sounds 2",
+      "retry_milestones": ["three_phoneme_blending"]
     }
   ],
   "tracks": [

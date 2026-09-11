@@ -31,6 +31,17 @@ class SyncReportTests(unittest.TestCase):
                     "score": 94,
                 }
             ],
+            "score_scan_mode": "live_all_available",
+            "score_controls_read": [
+                {
+                    "title": "Blend Sounds 2",
+                    "variant": "Basic",
+                    "attempts_newest_first": [
+                        {"attempt_date": "2026-09-10", "score": 94},
+                        {"attempt_date": "2026-09-09", "score": 92},
+                    ],
+                }
+            ],
             "actions": [
                 {
                     "kind": "remove",
@@ -68,6 +79,14 @@ class SyncReportTests(unittest.TestCase):
                 },
             ],
             "track_states": [],
+            "active_quarantines": [
+                {
+                    "title": "Words with b, c, d",
+                    "active_through": "2026-10-10",
+                    "eligible_date": "2026-10-11",
+                    "reason": "latest score was 39%",
+                }
+            ],
             "performance": {"wall_seconds": 18.4},
         }
 
@@ -78,6 +97,10 @@ class SyncReportTests(unittest.TestCase):
         self.assertIn("### Applied promotions", report)
         self.assertIn("Blend Sounds 2 — Basic → Blend Sounds 2 — Main", report)
         self.assertIn("Scores: 85% → 92% → 94%", report)
+        self.assertIn("### Active quarantines", report)
+        self.assertIn("eligible again 2026-10-11", report)
+        self.assertIn("### Score controls read", report)
+        self.assertIn("94% on 2026-09-10, 92% on 2026-09-09", report)
 
         terminal = render_terminal_summary(payload)
         self.assertIn("Outcome: changes applied and final queue verified", terminal)
@@ -92,6 +115,9 @@ class SyncReportTests(unittest.TestCase):
         )
         self.assertIn("ASSIGNED NOW (1)", terminal)
         self.assertIn("Duration: 18.4 seconds", terminal)
+        self.assertIn("ACTIVE QUARANTINES", terminal)
+        self.assertIn("Words with b, c, d", terminal)
+        self.assertIn("LIVE SCORE CONTROLS OPENED (1)", terminal)
 
         colored = render_terminal_summary(payload, color=True)
         self.assertIn("\033[32mMASTERY FOUND\033[0m", colored)

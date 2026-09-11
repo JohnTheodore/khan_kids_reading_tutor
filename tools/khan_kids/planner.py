@@ -64,7 +64,10 @@ def build_queue_plan(
     curriculum: ReadingCurriculum,
     scores: dict[tuple[str, str], tuple[int, ...]],
     current: set[tuple[str, str]],
+    *,
+    quarantined_titles: dict[str, str] | None = None,
 ) -> QueuePlan:
+    quarantined_titles = quarantined_titles or {}
     preliminary = {track.track_id: _evaluate_track(track, scores) for track in curriculum.tracks}
     complete = {track_id for track_id, state in preliminary.items() if state.complete}
     states: list[TrackState] = []
@@ -81,7 +84,12 @@ def build_queue_plan(
             state.decision,
         )
         states.append(state)
-        if unlocked and not state.complete and state.next_activity is not None:
+        if (
+            unlocked
+            and not state.complete
+            and state.next_activity is not None
+            and state.next_activity.title not in quarantined_titles
+        ):
             candidates.append((track, state))
             reasons[state.next_activity.key] = _target_reason(track, state)
 
@@ -104,6 +112,7 @@ def build_queue_plan(
         current,
         complete,
         excluded={activity.key for activity in core_desired},
+        quarantined_titles=set(quarantined_titles),
         limit=curriculum.queue_limit - len(core_desired),
     )
     for activity in stretch_desired:
@@ -134,6 +143,7 @@ def build_queue_plan(
                 scores,
                 desired_keys,
                 diversity_holds,
+                quarantined_titles,
             ),
         )
         for title, variant in sorted(current - desired_keys)
@@ -159,6 +169,7 @@ def _select_stretch_activities(
     complete_tracks: set[str],
     *,
     excluded: set[tuple[str, str]],
+    quarantined_titles: set[str],
     limit: int,
 ) -> tuple[Activity, ...]:
     candidates = [
@@ -166,7 +177,7 @@ def _select_stretch_activities(
         for stretch in curriculum.stretch_pool
         if (evaluated := _evaluate_stretch(stretch, scores)) is not None
         for activity, decision in (evaluated,)
-        if activity.key not in excluded
+        if activity.key not in excluded and activity.title not in quarantined_titles
     ]
     selected: list[Activity] = []
     # Once exposed, an unattempted or adequately placed stretch lesson is pinned.
@@ -264,7 +275,10 @@ def _removal_reason(
     scores: dict[tuple[str, str], tuple[int, ...]],
     desired_keys: set[tuple[str, str]],
     diversity_holds: dict[tuple[str, str], int],
+    quarantined_titles: dict[str, str],
 ) -> str:
+    if key[0] in quarantined_titles:
+        return f"quarantined: {quarantined_titles[key[0]]}"
     if key in diversity_holds:
         limit = diversity_holds[key]
         return f"deferred: active instructional group is limited to {limit} lessons"

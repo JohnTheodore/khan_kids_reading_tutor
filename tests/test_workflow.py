@@ -17,17 +17,23 @@ from khan_kids.automation import ActionResult
 from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.planner import QueueAction, QueuePlan, build_queue_plan
+from khan_kids.quarantine import LessonQuarantine
 from khan_kids.records import read_attempt_scores
 from khan_kids.reports import AssignmentRow, AssignmentSnapshot, ScoreAttempt, ScoreHistory
 from khan_kids.ui import Rect
 from khan_kids.workflow import histories_to_attempt_rows
-from reading_workflow import _apply_reviewed_plan, create_plan_payload, validate_reviewed_plan
+from reading_workflow import (
+    _apply_reviewed_plan,
+    _history_lookup_for_run,
+    create_plan_payload,
+    validate_reviewed_plan,
+)
 
 CATALOG_PATH = Path("data/reading-ela-archive.json")
 CURRICULUM_PATH = Path("data/reading-curriculum.json")
-EXPECTED_LIVE_QUEUE = {
-    ("Blend Sounds 2", "Main"),
-    ("Make New Words", "Basic"),
+PRE_QUARANTINE_QUEUE = {
+    ("Blend Sounds 2", "Practice 1"),
+    ("Make New Words", "Main"),
     ("Words: End Sound", "Main"),
     ("Short Vowel Sound a", "Main"),
     ("Short Vowel Sound i", "Basic"),
@@ -37,13 +43,29 @@ EXPECTED_LIVE_QUEUE = {
     ("Words with m & n", "Main"),
     ("Words with b & d", "Main"),
 }
-STRETCH_QUEUE = {
+BASELINE_STRETCH_QUEUE = {
     ("Words with f, g, h", "Main"),
     ("Words with m & n", "Main"),
     ("Words with b & d", "Main"),
 }
-EXPECTED_DIVERSE_QUEUE = EXPECTED_LIVE_QUEUE - STRETCH_QUEUE
-EXPECTED_TEN_QUEUE = EXPECTED_LIVE_QUEUE
+EXPECTED_DIVERSE_QUEUE = PRE_QUARANTINE_QUEUE - BASELINE_STRETCH_QUEUE
+FIRST_QUARANTINE_QUEUE = PRE_QUARANTINE_QUEUE - {("Words with b, c, d", "Main")} | {
+    ("Words with m, n, p", "Main")
+}
+EXPECTED_LIVE_QUEUE = PRE_QUARANTINE_QUEUE - {
+    ("Words with b, c, d", "Main"),
+    ("Words with f, g, h", "Main"),
+} | {
+    ("Blend Sounds 1", "Basic"),
+    ("Beginning Sounds 2", "Basic"),
+}
+QUARANTINED_BEGINNING_TITLES = {
+    "Words with b, c, d",
+    "Words with f, g, h",
+    "Words with j, k, l",
+    "Words with m, n, p",
+    "Other Words",
+}
 
 
 class WorkflowTests(unittest.TestCase):
@@ -55,14 +77,63 @@ class WorkflowTests(unittest.TestCase):
     def test_current_records_preserve_the_diverse_ten_item_queue(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
 
-        plan = build_queue_plan(self.curriculum, scores, EXPECTED_LIVE_QUEUE)
+        plan = build_queue_plan(
+            self.curriculum,
+            scores,
+            EXPECTED_LIVE_QUEUE,
+            quarantined_titles={
+                title: "active through 2026-10-10" for title in QUARANTINED_BEGINNING_TITLES
+            },
+        )
 
-        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_TEN_QUEUE)
+        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_LIVE_QUEUE)
         self.assertEqual(plan.actions, ())
+
+    def test_mastery_sync_disables_score_history_cache(self) -> None:
+        cache = Mock()
+
+        self.assertIsNone(
+            _history_lookup_for_run(
+                Namespace(sync=True, full_score_scan=False),
+                cache,
+            )
+        )
+        self.assertIs(
+            _history_lookup_for_run(
+                Namespace(sync=False, full_score_scan=False),
+                cache,
+            ),
+            cache.lookup,
+        )
+
+    def test_quarantine_removes_every_variant_of_a_family_and_refills_queue(self) -> None:
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+
+        plan = build_queue_plan(
+            self.curriculum,
+            scores,
+            FIRST_QUARANTINE_QUEUE,
+            quarantined_titles={
+                title: "active through 2026-10-10" for title in QUARANTINED_BEGINNING_TITLES
+            },
+        )
+        desired = {activity.key for activity in plan.desired}
+
+        self.assertEqual(len(desired), 10)
+        self.assertEqual(desired, EXPECTED_LIVE_QUEUE)
+        self.assertFalse(any(title in QUARANTINED_BEGINNING_TITLES for title, _ in desired))
+        self.assertIn(("Blend Sounds 1", "Basic"), desired)
+        self.assertIn(("Beginning Sounds 2", "Basic"), desired)
+        removals = [action for action in plan.actions if action.kind == "remove"]
+        self.assertEqual(
+            {action.title for action in removals},
+            {"Words with f, g, h", "Words with m, n, p"},
+        )
+        self.assertTrue(all("quarantined" in action.reason for action in removals))
 
     def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        current = set(EXPECTED_TEN_QUEUE)
+        current = set(PRE_QUARANTINE_QUEUE)
 
         untouched = build_queue_plan(self.curriculum, scores, current)
         self.assertEqual({activity.key for activity in untouched.desired}, current)
@@ -128,12 +199,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(rows[0]["report_grade"], "Preschool (Age 4)")
 
     def test_mastery_replaces_a_rung_without_growing_the_queue(self) -> None:
-        current = set(EXPECTED_TEN_QUEUE)
-        current.remove(("Blend Sounds 2", "Main"))
+        current = set(PRE_QUARANTINE_QUEUE)
+        current.remove(("Blend Sounds 2", "Practice 1"))
         current.add(("Blend Sounds 2", "Basic"))
         scores = {
             ("Blend Sounds 2", "Basic"): (85, 92, 90),
-            ("Make New Words", "Basic"): (92,),
+            ("Make New Words", "Basic"): (100,),
             ("Words: End Sound", "Basic"): (100,),
             ("Words: End Sound", "Main"): (83,),
             ("Blend Syllables", "Basic"): (100,),
@@ -207,6 +278,38 @@ class WorkflowTests(unittest.TestCase):
         )
 
         self.assertIn(("Words with f, g, h", "Main"), {activity.key for activity in desired})
+
+    def test_reviewed_plan_is_rejected_when_quarantine_state_changes(self) -> None:
+        snapshot = AssignmentSnapshot((), ())
+        plan = build_queue_plan(self.curriculum, {}, set())
+        payload = create_plan_payload(
+            student="Student A",
+            snapshot=snapshot,
+            plan=plan,
+            curriculum=self.curriculum,
+            catalog_path=CATALOG_PATH,
+            curriculum_path=CURRICULUM_PATH,
+            new_attempt_records=0,
+            generated_at=datetime(2026, 9, 11),
+        )
+        quarantine = LessonQuarantine(
+            "Student A",
+            "Words with b, c, d",
+            date(2026, 9, 11),
+            date(2026, 10, 11),
+            "low score",
+        )
+
+        with self.assertRaisesRegex(AutomationError, "quarantine_state_sha256"):
+            validate_reviewed_plan(
+                payload,
+                student="Student A",
+                snapshot=snapshot,
+                catalog_path=CATALOG_PATH,
+                curriculum_path=CURRICULUM_PATH,
+                curriculum=self.curriculum,
+                active_quarantines=(quarantine,),
+            )
 
     def test_apply_records_each_action_and_verifies_the_final_queue(self) -> None:
         snapshot = _snapshot(score=92)

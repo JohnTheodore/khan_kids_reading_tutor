@@ -584,15 +584,26 @@ The default review:
   are complete;
 - limits configured groups of similar lessons, currently short-vowel/CVC-middle
   work, to three active choices;
-- fills the remaining positions from a curated printed-CVC stretch pool,
+- fills the remaining positions from a curated foundational-reading stretch pool,
   targeting ten available lessons;
 - pins every active stretch family until its first attempt, preserves a
   below-70% result as deferred, and permits a later retry only after supporting
   mastery evidence changes;
+- excludes any student-specific lesson family with an active dated quarantine,
+  then refills the queue from the same approved reading curriculum;
 - computes the exact difference between the live and desired queues;
 - writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
 - appends a human-readable run report to
   `student-records/student-a-reading-sync-log.md`.
+
+Temporary family quarantines live in
+`student-records/<student>-lesson-quarantines.csv`. Each row records a start
+date, the first date the family may be considered again, and the evidence-based
+reason. The end date is exclusive: a row with `eligible_date` 2026-10-11 is
+excluded through 2026-10-10. Matching is by exact lesson-family title, so all
+available variants of that family are withheld without affecting similarly
+named families. Expired rows remain as history and stop affecting plans
+automatically.
 
 Screenshots used to distinguish checked from unchecked boxes live only in a
 temporary directory and are deleted when the command exits. The optional
@@ -611,11 +622,19 @@ For the usual one-command operation, run:
 This scans and plans once, then applies and verifies any changes in the same
 device session. If the queue already matches the mastery plan, it records a
 verified no-op and stops without a redundant apply scan. Every run writes
-secret-safe per-step timing data. A same-day cache reuses score histories only
-when the visible lesson, variant, assignment date, and score are unchanged;
-use `--full-score-scan` to force every score dialog to be read again. Use
-`--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
+secret-safe per-step timing data. A mastery sync always opens every available
+colored score control in Student A's Assignments column and records the complete
+displayed history; it never trusts the same-day cache. Review-only runs may
+reuse score histories when the visible lesson, variant, assignment date, and
+score are unchanged; use `--full-score-scan` to disable that review cache too.
+Use `--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
 stretch policy are described in [`reading-path.md`](reading-path.md).
+
+Every workflow failure from `khan-mastery-sync` also appends a distinct,
+secret-safe entry to [`INCIDENTS.md`](INCIDENTS.md) before returning a nonzero
+status. Automatic diagnostics redact common device-address, pairing-code, and
+local-home-path forms. A failure remains fail-closed: the incident is a record
+for diagnosis, not permission to continue from an unrecognized screen.
 
 When changes are needed, removals use one Assignments traversal and additions
 are sorted into archive order and applied in one forward All Progress traversal
@@ -632,12 +651,16 @@ Every successful run ends with a readable terminal report containing:
 
 - a visually dominant “Changes Since Last Sync” summary;
 - newly observed scores and the relevant score history;
+- every score control opened and its complete displayed attempt history;
 - lessons that met the mastery rule;
 - assignments unchecked and the evidence-based reason for each removal;
 - assignments added and why each is the appropriate next rung or stretch item;
 - all lessons in the resulting queue, with core/stretch role and mastery
   status; and
 - verification outcome and total duration.
+
+The report also names every active quarantine, its last excluded date, its
+reconsideration date, and its reason.
 
 Review-only output labels changes as proposed and not yet applied. Sync output
 labels changes as applied only after exact post-write verification. For scripts

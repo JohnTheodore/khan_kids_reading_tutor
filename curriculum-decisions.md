@@ -91,3 +91,23 @@ newly re-eligible lesson cannot displace an untried one.
 `Words with g & k`. These retain the printed CVC structure and vary beginning
 and ending position without introducing blends, multisyllable words, grammar,
 or connected-text demands prematurely.
+
+## 2026-09-11 — Quarantine CVC beginning-sound families temporarily
+
+**Decision:** For Student A, quarantine every family in Khan's `CVC Words -
+Beginning Sounds` group through October 10, 2026, after `Words with b, c, d —
+Main` regressed from an older 92% record to 39%. The affected titles are
+`Words with b, c, d`, `Words with f, g, h`, `Words with j, k, l`, `Words with
+m, n, p`, and `Other Words`.
+
+**Replacement:** Use `Beginning Sounds 2 — Basic` as lower-inference oral
+initial-sound support. Student A's existing history of 83%, 70%, and 75% places it
+in the intended practice band without claiming mastery. Use `Blend Sounds 1 —
+Basic` as onset-and-rime blending support; its 90% then 80% history likewise
+needs reinforcement rather than promotion. An initial attempt to use `Words
+with g & k — Main` failed because that archived placement was not reachable in
+the live All Progress page, so it was removed from the active pool.
+
+**Guardrail:** Quarantine expiration makes these families eligible for planning
+again on October 11; it does not force reassignment. Keep no more than three
+active families from any one narrow instructional group in this queue.

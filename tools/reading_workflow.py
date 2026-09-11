@@ -16,6 +16,7 @@ from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.history_cache import HistoryCache
+from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
 from khan_kids.mastery import evaluate_mastery
 from khan_kids.planner import (
@@ -25,6 +26,7 @@ from khan_kids.planner import (
     build_queue_plan,
     snapshot_fingerprint,
 )
+from khan_kids.quarantine import LessonQuarantine, read_active_quarantines
 from khan_kids.records import (
     ATTEMPT_FIELDS,
     ATTEMPT_ID_FIELDS,
@@ -43,7 +45,8 @@ from khan_kids.sync_report import (
 from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
 
-PLAN_VERSION = 1
+PLAN_VERSION = 2
+INCIDENT_LOG_PATH = Path("INCIDENTS.md")
 
 
 def create_plan_payload(
@@ -58,6 +61,8 @@ def create_plan_payload(
     generated_at: datetime,
     scores: dict[tuple[str, str], tuple[int, ...]] | None = None,
     new_attempts: list[dict[str, str]] | None = None,
+    active_quarantines: tuple[LessonQuarantine, ...] = (),
+    score_scan_mode: str = "cache_eligible",
 ) -> dict[str, object]:
     stretch_keys = {
         activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
@@ -87,6 +92,23 @@ def create_plan_payload(
             }
             for row in (new_attempts or [])
         ],
+        "score_scan_mode": score_scan_mode,
+        "score_controls_read": [
+            {
+                "title": history.title,
+                "variant": history.variant,
+                "attempts_newest_first": [
+                    {
+                        "attempt_date": attempt.attempt_date.isoformat(),
+                        "score": attempt.score,
+                    }
+                    for attempt in history.attempts_newest_first
+                ],
+            }
+            for history in snapshot.histories
+        ],
+        "active_quarantines": [record.as_dict() for record in active_quarantines],
+        "quarantine_state_sha256": _quarantine_digest(active_quarantines),
         "observed_assignments": [
             {
                 "title": row.title,
@@ -117,6 +139,7 @@ def validate_reviewed_plan(
     catalog_path: Path,
     curriculum_path: Path,
     curriculum: ReadingCurriculum,
+    active_quarantines: tuple[LessonQuarantine, ...] = (),
 ) -> tuple[tuple[Activity, ...], tuple[QueueAction, ...]]:
     _validate_plan_metadata(
         payload,
@@ -127,6 +150,8 @@ def validate_reviewed_plan(
     expected_state = snapshot_fingerprint(snapshot)
     if payload.get("observed_state_sha256") != expected_state:
         raise AutomationError("Reviewed plan is stale; changed inputs: observed_state_sha256")
+    if payload.get("quarantine_state_sha256") != _quarantine_digest(active_quarantines):
+        raise AutomationError("Reviewed plan is stale; changed inputs: quarantine_state_sha256")
 
     raw_desired = payload.get("desired_assignments")
     raw_actions = payload.get("actions")
@@ -221,6 +246,7 @@ def main() -> None:
         default="uiautomator2",
     )
     parser.add_argument("--history-cache", type=Path)
+    parser.add_argument("--quarantines", type=Path)
     parser.add_argument(
         "--full-score-scan",
         action="store_true",
@@ -251,10 +277,14 @@ def main() -> None:
     report_path = args.report or Path(f"student-records/{slug}-reading-sync-log.md")
     plan_path = args.plan or Path(f"private/{slug}-reading-plan.json")
     cache_path = args.history_cache or Path(f"private/{slug}-score-history-cache.json")
+    quarantine_path = args.quarantines or Path(f"student-records/{slug}-lesson-quarantines.csv")
     catalog = CatalogIndex(args.catalog)
     if args.student not in catalog.roster:
         parser.error(f"{args.student!r} is not in catalog roster {catalog.roster!r}")
     curriculum = ReadingCurriculum.load(args.curriculum, catalog)
+    active_quarantines = read_active_quarantines(
+        quarantine_path, student=args.student, today=args.today
+    )
     reviewed_payload = None
     if args.apply_plan:
         reviewed_payload = _read_object(args.apply_plan)
@@ -287,7 +317,7 @@ def main() -> None:
             roster=catalog.roster,
             scratch=Path(temporary),
             parent_password_provider=lambda: credentials().khan_parent_password,
-            history_lookup=None if args.full_score_scan else history_cache.lookup,
+            history_lookup=_history_lookup_for_run(args, history_cache),
         )
         with timing.span("phase.review_assignments"):
             snapshot = automation.scan_assignments(today=args.today, include_score_histories=True)
@@ -304,6 +334,7 @@ def main() -> None:
                 report_path=report_path,
                 curriculum=curriculum,
                 catalog=catalog,
+                active_quarantines=active_quarantines,
                 plan_path=args.apply_plan,
             )
         else:
@@ -317,6 +348,7 @@ def main() -> None:
                 actions_path=actions_path,
                 report_path=report_path,
                 plan_path=plan_path,
+                active_quarantines=active_quarantines,
             )
 
     timing_snapshot = timing.snapshot()
@@ -359,6 +391,7 @@ def _review_snapshot(
     actions_path: Path,
     report_path: Path,
     plan_path: Path,
+    active_quarantines: tuple[LessonQuarantine, ...],
 ) -> dict[str, object]:
     with automation.device.timing.span("phase.plan_queue"):
         preferred_grades = {
@@ -377,7 +410,19 @@ def _review_snapshot(
             read_attempt_scores(attempts_path, args.student), snapshot.histories
         )
         current = {(row.title, row.variant) for row in snapshot.rows}
-        queue_plan = build_queue_plan(curriculum, scores, current)
+        quarantine_reasons = {
+            record.title: (
+                f"through {record.active_through.isoformat()} (eligible again "
+                f"{record.eligible_date.isoformat()}): {record.reason}"
+            )
+            for record in active_quarantines
+        }
+        queue_plan = build_queue_plan(
+            curriculum,
+            scores,
+            current,
+            quarantined_titles=quarantine_reasons,
+        )
         payload = create_plan_payload(
             student=args.student,
             snapshot=snapshot,
@@ -389,6 +434,10 @@ def _review_snapshot(
             generated_at=datetime.now().astimezone(),
             scores=scores,
             new_attempts=appended_rows,
+            active_quarantines=active_quarantines,
+            score_scan_mode=(
+                "live_all_available" if args.sync or args.full_score_scan else "cache_eligible"
+            ),
         )
         write_json_atomic(plan_path, payload)
     if not queue_plan.actions:
@@ -407,6 +456,7 @@ def _review_snapshot(
             report_path=report_path,
             curriculum=curriculum,
             catalog=catalog,
+            active_quarantines=active_quarantines,
             plan_path=plan_path,
         )
     append_sync_report(report_path, payload)
@@ -423,6 +473,7 @@ def _apply_reviewed_plan(
     report_path: Path,
     curriculum: ReadingCurriculum,
     catalog: CatalogIndex,
+    active_quarantines: tuple[LessonQuarantine, ...] = (),
     plan_path: Path | None = None,
 ) -> dict[str, object]:
     plan_path = plan_path or args.apply_plan
@@ -435,6 +486,7 @@ def _apply_reviewed_plan(
         catalog_path=args.catalog,
         curriculum_path=args.curriculum,
         curriculum=curriculum,
+        active_quarantines=active_quarantines,
     )
     if len(actions) > args.max_actions:
         raise AutomationError(
@@ -575,19 +627,55 @@ def _file_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _quarantine_digest(records: tuple[LessonQuarantine, ...]) -> str:
+    canonical = json.dumps(
+        [record.as_dict() for record in records], sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _history_lookup_for_run(args: argparse.Namespace, history_cache: HistoryCache):
+    """Mastery syncs must open every available live score control."""
+    if args.sync or args.full_score_scan:
+        return None
+    return history_cache.lookup
+
+
 def cli() -> None:
     try:
         main()
-    except (AutomationError, FileNotFoundError, json.JSONDecodeError, ValueError) as error:
+    except Exception as error:
+        incident_line = ""
+        if "--sync" in sys.argv:
+            try:
+                incident_id = append_failed_sync_incident(
+                    INCIDENT_LOG_PATH,
+                    student=_argument_value("--student") or "unknown",
+                    error=error,
+                )
+                incident_line = f"\nIncident recorded: {incident_id}\n"
+            except Exception as incident_error:
+                incident_line = (
+                    "\nWARNING: automatic incident recording also failed: "
+                    f"{type(incident_error).__name__}\n"
+                )
         print(
             "Khan Mastery Sync — FAILED\n"
             "==========================\n"
             f"Error: {error}\n\n"
             "The workflow stopped. Review the sync log for any actions completed "
-            "before the interruption.",
+            f"before the interruption.{incident_line}",
             file=sys.stderr,
         )
         raise SystemExit(2) from None
+
+
+def _argument_value(option: str) -> str | None:
+    try:
+        index = sys.argv.index(option)
+    except ValueError:
+        return None
+    return sys.argv[index + 1] if index + 1 < len(sys.argv) else None
 
 
 if __name__ == "__main__":

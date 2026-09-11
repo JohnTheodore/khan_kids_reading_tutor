@@ -37,3 +37,13 @@ action_date,student,action,lesson_title,activity_variant,reason,result
 2026-09-11,Student A,checked,Short Vowel Sound a,Main,first unmastered activity in short_a_cvc_middle,saved and verified in Assignments
 2026-09-11,Student A,checked,Short Vowel Sound u,Main,first unmastered activity in short_u_cvc_middle,saved and verified in Assignments
 2026-09-11,Student A,checked,Words with b & d,Main,next mastery rung in a rotating stretch slot,saved and verified in Assignments
+2026-09-11,Student A,unchecked,Make New Words,Basic,mastered: latest attempt is 100%; promote to Make New Words — Main,saved
+2026-09-11,Student A,unchecked,Blend Sounds 2,Main,mastered: latest attempt is 100%; promote to Blend Sounds 2 — Practice 1,saved
+2026-09-11,Student A,checked,Blend Sounds 2,Practice 1,first unmastered activity in three_phoneme_blending,saved; final verification pending
+2026-09-11,Student A,checked,Make New Words,Main,first unmastered activity in phoneme_manipulation,saved; final verification pending
+2026-09-11,Student A,unchecked,"Words with b, c, d",Main,quarantined: through 2026-10-10 (eligible again 2026-10-11): 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry,saved
+2026-09-11,Student A,checked,"Words with m, n, p",Main,next mastery rung in a rotating stretch slot,saved; final verification pending
+2026-09-11,Student A,unchecked,"Words with f, g, h",Main,"quarantined: through 2026-10-10 (eligible again 2026-10-11): 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d",saved
+2026-09-11,Student A,unchecked,"Words with m, n, p",Main,"quarantined: through 2026-10-10 (eligible again 2026-10-11): 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d",saved
+2026-09-11,Student A,checked,Beginning Sounds 2,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending
+2026-09-11,Student A,checked,Blend Sounds 1,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending

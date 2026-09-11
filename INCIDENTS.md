@@ -5,6 +5,71 @@ affected—the tablet, student data, or confidence in a run. Each incident state
 observed facts separately from hypotheses. Corrective actions remain open until
 implemented and verified by tests and a live run.
 
+## KKRT-2026-09-11-001 — Khan Kids unstable navigation during mastery sync
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-11 |
+| Severity | SEV-3 — repeated automation interruption; no unintended data write observed |
+| Status | Resolved / monitoring |
+| Detected by | User and automation postcondition failures |
+| Affected component | Cold start, parent-view navigation, and score-dialog recovery |
+
+### Summary and impact
+
+Several mastery-sync attempts encountered an inconsistent Khan Kids UI state.
+Observed failures included a foreground-launch race, a score dialog that did not
+close as expected, and repeated timeouts while navigating to the Assignments
+report. One Back action from a score dialog exited Khan Kids instead of returning
+to the report. The sync therefore required multiple safe restarts and took much
+longer than a normal run.
+
+No child lesson was opened, no roster or account setting was changed, and no
+unreviewed assignment write was made during the failed attempts. A later run
+completed, recorded the new scores, applied only the reviewed changes, and
+verified the exact ten-lesson queue. Temporary pointer-location diagnostics were
+disabled afterward, normal screen timeout behavior was restored, and Khan Kids
+was left at its profile/login screen.
+
+### Observed facts
+
+1. Some launches did not make Khan Kids the foreground application before the
+   launch deadline.
+2. One score-detail modal remained present beyond its close postcondition.
+3. Multiple parent-view transitions failed to expose the expected Assignments
+   report before timeout.
+4. Fail-closed checks stopped each attempt instead of continuing with an
+   unrecognized screen.
+5. During diagnosis, the inspection viewer displayed a scaled preview. Treating
+   preview positions as native tablet coordinates briefly led to incorrect
+   navigation within the parent interface; the experimental coordinate change
+   was reverted before the successful run.
+
+### Root-cause assessment
+
+The direct causes were app/startup settling races and inconsistent Back/modal
+behavior in Khan Kids. The exact internal Khan Kids cause is not observable from
+ADB. A separate diagnostic error—reasoning from scaled preview coordinates—made
+recovery noisier but did not persist into the automation.
+
+### Corrective and preventive actions
+
+| Action | Status |
+|---|---|
+| Keep all navigation and write postconditions fail-closed | Complete |
+| Restore the previously verified native Class Reports coordinate | Complete |
+| Verify the final queue exactly after the successful retry | Complete |
+| Automatically append an incident for every future failed `khan-mastery-sync` invocation | Complete |
+| Redact common device addresses, numeric pairing codes, and local usernames from automatic incident diagnostics | Complete |
+| Continue monitoring startup, modal-close, and report-navigation timing for a reproducible failure pattern | Monitoring |
+
+### Operating rule
+
+Every `khan-mastery-sync` invocation that exits through a workflow failure must
+append a secret-safe incident record. A failed postcondition is not permission
+to guess at the next tap; diagnose the live state and retry from a known parent
+entry state.
+
 ## KKRT-2026-09-10-001 — Tablet orientation/auto-rotation disruption
 
 | Field | Value |
@@ -193,3 +258,79 @@ dialog after password entry, then taps the current `Enter` bounds. A subsequent
 cold-start sync logged in, removed exactly the two reviewed assignments, and
 verified the complete desired queue. No password reset was requested in either
 event.
+
+## KKRT-2026-09-11-AUTO-161723-038675 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-11 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: All Progress lesson not found: 'Words with g & k'`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+### Resolution — 2026-09-11
+
+The interrupted run had safely removed the two newly quarantined assignments
+and added `Beginning Sounds 2 — Basic`, leaving nine live assignments. The
+unreachable `Words with g & k — Main` proposal was removed from the curated
+pool and replaced with `Blend Sounds 1 — Basic`, whose 90% then 80% history
+supports additional onset-and-rime practice. A recovery sync added that single
+lesson and verified the exact ten-lesson queue. Incident status: **Resolved**.
+
+## KKRT-2026-09-11-002 — Same-day cache concealed new lesson attempts
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-11 |
+| Severity | SEV-2 — incomplete score record could affect mastery decisions |
+| Status | Resolved |
+| Detected by | User observation |
+| Affected component | Mastery-sync score-history collection |
+
+### Summary and impact
+
+A mastery sync reused same-day cached score histories when the visible
+Assignments-row summary appeared unchanged. It therefore did not open every
+colored result control and missed at least one newly displayed attempt. The
+user observed that `Words: End Sound — Main` had been completed but was absent
+from the saved records.
+
+A subsequent forced live scan recovered two records: `Words: End Sound — Main`
+at 68% and `Beginning Sounds 2 — Basic` at 79%. Neither score met the mastery
+rule, so no incorrect promotion or assignment removal occurred.
+
+### Root cause
+
+The cache key treated an unchanged lesson title, variant, assignment date, and
+visible summary score as proof that the underlying score-dialog history was
+unchanged. Khan can add an attempt without changing those visible fields, so
+that inference is invalid for mastery decisions.
+
+### Corrective and preventive actions
+
+| Action | Status |
+|---|---|
+| Disable score-history cache lookup unconditionally for `khan-mastery-sync` | Complete |
+| Open every available colored result control in Student A's Assignments column | Complete |
+| Record every opened control and its complete displayed history in the run report | Complete |
+| Preserve cache use only for review-only workflows, with `--full-score-scan` override | Complete |
+| Add regression tests for mastery-sync cache bypass and score-control reporting | Complete |
+| Verify behavior live and recover the missing attempt records | Complete |
+
+### Operating rule
+
+Visible assignment-row summaries are discovery controls, not cache validators,
+during mastery sync. Every available score control must be opened before
+mastery, quarantine, or queue decisions are evaluated.

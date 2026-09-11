@@ -168,3 +168,55 @@ The exact attempt rows and checkbox operations remain authoritative in
 [`student-a-assignment-actions.csv`](student-a-assignment-actions.csv). Detailed
 per-run reports and timings are in
 [`student-a-reading-sync-log.md`](student-a-reading-sync-log.md).
+
+## September 11, 2026
+
+The score review found two new 100% results that advanced `Blend Sounds 2 —
+Main` to `Practice 1` and `Make New Words — Basic` to `Main`. The latest
+`Words with b, c, d — Main` result was 39%, following an older 92% record. The
+regression does not establish mastery and indicates that this family is not a
+good active fit right now.
+
+After clarification, every family in Khan's `CVC Words - Beginning Sounds`
+group—all variants of `Words with b, c, d`, `Words with f, g, h`, `Words with
+j, k, l`, `Words with m, n, p`, and `Other Words`—was placed in a 30-day
+instructional quarantine beginning September 11. They are excluded through
+October 10 and become eligible for reconsideration on October 11; they will not
+be automatically restored merely because that date arrives. The exclusions are recorded in
+[`student-a-lesson-quarantines.csv`](student-a-lesson-quarantines.csv).
+
+The first live sync unchecked `Words with b, c, d — Main`, but initially
+replaced it too narrowly with another member of the same type. The corrected
+sync unchecked `Words with f, g, h — Main` and `Words with m, n, p — Main`, and
+added `Beginning Sounds 2 — Basic`. A proposed `Words with g & k — Main` could
+not be found on the live All Progress page, so the run failed closed and
+automatically created an incident. A recovery sync added `Blend Sounds 1 —
+Basic` instead and verified the final queue exactly. No Student B assignment was
+changed.
+
+1. Blend Sounds 2 — Practice 1
+2. Make New Words — Main
+3. Words: End Sound — Main
+4. Short Vowel Sound a — Main
+5. Short Vowel Sound i — Basic
+6. Short Vowel Sound u — Main
+7. Words with m & n — Main
+8. Words with b & d — Main
+9. Beginning Sounds 2 — Basic
+10. Blend Sounds 1 — Basic
+
+### Score-history completeness correction
+
+The user observed that a later `Words: End Sound — Main` attempt was missing
+from the local record. The same-day cache had reused prior dialog histories
+when the visible assignment summary appeared unchanged. A corrected mastery
+sync opened all four available colored score controls and recovered:
+
+- `Words: End Sound — Main`: 68% on September 11, producing a recorded history
+  of 83%, 56%, 68%; and
+- `Beginning Sounds 2 — Basic`: 79% on September 11, producing a recorded
+  history of 83%, 70%, 75%, 79%.
+
+Neither result met mastery, and the verified ten-lesson queue remained
+unchanged. Future mastery syncs bypass the score cache and document the complete
+history from every colored result control opened live.
