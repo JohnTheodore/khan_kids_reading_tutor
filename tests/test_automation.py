@@ -10,7 +10,12 @@ from unittest.mock import Mock, call, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from khan_kids.adb import AutomationError
-from khan_kids.automation import ActionResult, KhanKidsAutomation
+from khan_kids.automation import (
+    REPORT_BACK_RECT,
+    SWITCH_USER_RECT,
+    ActionResult,
+    KhanKidsAutomation,
+)
 from khan_kids.reports import AssignmentRow
 from khan_kids.ui import Rect
 
@@ -203,6 +208,88 @@ class AutomationTests(unittest.TestCase):
         device.enter_alphanumeric_secret.assert_called_once_with("example123")
         device.tap_rect.assert_called_once_with(shifted_enter)
 
+    def test_return_to_profile_chooser_uses_in_app_back_and_switch_user(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        report = _screen_with_text(
+            ("Class Report: Assignments", Rect(600, 20, 1900, 120)),
+            ("Assignments", Rect(900, 130, 1200, 190)),
+            ("All Progress", Rect(1250, 130, 1550, 190)),
+        )
+        _add_control(report, REPORT_BACK_RECT)
+        roster = _screen_with_text(
+            ("Students", Rect(300, 300, 700, 400)),
+            ("Add Students", Rect(1900, 400, 2300, 500)),
+            ("Student A", Rect(300, 500, 600, 600)),
+            ("Student B", Rect(1000, 500, 1300, 600)),
+        )
+        _add_control(roster, SWITCH_USER_RECT)
+        chooser = _screen_with_text(
+            ("dad", Rect(400, 500, 700, 800)),
+            ("Student A", Rect(900, 500, 1200, 800)),
+            ("Student B", Rect(1400, 500, 1700, 800)),
+            ("Sign Out", Rect(2200, 1400, 2500, 1550)),
+        )
+        automation._wait_for_navigation_state = Mock(
+            return_value=(report, "assignments_report")
+        )
+        automation._wait_for_root = Mock(side_effect=(roster, chooser))
+
+        result = automation.return_to_profile_chooser()
+
+        self.assertIs(result, chooser)
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [call(REPORT_BACK_RECT), call(SWITCH_USER_RECT)],
+        )
+
+    def test_return_to_profile_chooser_is_no_op_when_already_there(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        chooser = _screen_with_text()
+        automation._wait_for_navigation_state = Mock(
+            return_value=(chooser, "profile_chooser")
+        )
+
+        self.assertIs(automation.return_to_profile_chooser(), chooser)
+        device.tap_rect.assert_not_called()
+
+    def test_return_to_profile_chooser_rejects_missing_switch_user_control(self) -> None:
+        device = _device()
+        automation = KhanKidsAutomation(
+            device,
+            student="Student A",
+            roster=("Student A", "Student B"),
+            scratch=Path("/tmp/not-used"),
+        )
+        report = _screen_with_text()
+        _add_control(report, REPORT_BACK_RECT)
+        roster = _screen_with_text(
+            ("Students", Rect(300, 300, 700, 400)),
+            ("Add Students", Rect(1900, 400, 2300, 500)),
+            ("Student A", Rect(300, 500, 600, 600)),
+            ("Student B", Rect(1000, 500, 1300, 600)),
+        )
+        automation._wait_for_navigation_state = Mock(
+            return_value=(report, "assignments_report")
+        )
+        automation._wait_for_root = Mock(return_value=roster)
+
+        with self.assertRaisesRegex(AutomationError, "Switch User"):
+            automation.return_to_profile_chooser()
+
+        device.tap_rect.assert_called_once_with(REPORT_BACK_RECT)
+
     def test_bulk_unassignment_uses_one_traversal_and_bottom_first(self) -> None:
         device = _device()
         automation = KhanKidsAutomation(
@@ -303,6 +390,17 @@ def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
             text=text,
         )
     return root
+
+
+def _add_control(root: ET.Element, rect: Rect) -> None:
+    parent = next(iter(root))
+    ET.SubElement(
+        parent,
+        "node",
+        bounds=f"[{rect.left},{rect.top}][{rect.right},{rect.bottom}]",
+        text="",
+        **{"class": "android.view.ViewGroup"},
+    )
 
 
 if __name__ == "__main__":

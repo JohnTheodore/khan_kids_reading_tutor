@@ -350,6 +350,8 @@ def main() -> None:
                 plan_path=plan_path,
                 active_quarantines=active_quarantines,
             )
+        with timing.span("teardown.switch_user"):
+            automation.return_to_profile_chooser()
 
     timing_snapshot = timing.snapshot()
     output_payload["performance"] = {

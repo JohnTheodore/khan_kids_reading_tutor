@@ -25,6 +25,8 @@ from .ui import Rect, UiText, find_text, near, node_rect, text_set, visible_node
 from .vision import CheckboxReading, CheckboxState, read_checkbox
 
 SCROLL_DURATION_MS = 300
+REPORT_BACK_RECT = Rect(38, 38, 171, 171)
+SWITCH_USER_RECT = Rect(2259, 12, 2529, 74)
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +110,36 @@ class KhanKidsAutomation:
         self._assignments_at_top = True
         return root
 
+    def return_to_profile_chooser(self) -> ET.Element:
+        """Leave Teacher view through Khan's UI without restarting the app."""
+        root, state = self._wait_for_navigation_state()
+        if state == "profile_chooser":
+            return root
+        if state not in {"assignments_report", "all_progress_report", "report_tabs"}:
+            raise AutomationError(
+                f"Cannot safely leave Teacher view from navigation state {state!r}"
+            )
+
+        self.device.tap_rect(
+            _guarded_unlabeled_control(root, REPORT_BACK_RECT, "Class Report back")
+        )
+        roster = self._wait_for_root(
+            self._is_teacher_roster,
+            description="teacher roster before switch user",
+            persist=False,
+        )
+        self.device.tap_rect(
+            _guarded_unlabeled_control(roster, SWITCH_USER_RECT, "Switch User")
+        )
+        chooser = self._wait_for_root(
+            lambda candidate: self._is_profile_chooser(text_set(candidate)),
+            description="profile chooser after switch user",
+            persist=False,
+        )
+        if not self._is_profile_chooser(text_set(chooser)):
+            raise AutomationError("Switch User did not reach the profile chooser")
+        return chooser
+
     def _wait_for_navigation_state(
         self,
         *,
@@ -163,6 +195,10 @@ class KhanKidsAutomation:
         if "Assignments" in texts and "All Progress" in texts:
             return "report_tabs"
         return None
+
+    def _is_teacher_roster(self, root: ET.Element) -> bool:
+        texts = text_set(root)
+        return {"Students", "Add Students", *self.roster}.issubset(texts)
 
     def _is_profile_chooser(self, texts: set[str]) -> bool:
         return (
@@ -764,6 +800,20 @@ def _unique_visible(root: ET.Element, text: str) -> UiText:
     if len(matches) != 1:
         raise AutomationError(f"Expected one visible {text!r} node, found {len(matches)}")
     return matches[0]
+
+
+def _guarded_unlabeled_control(root: ET.Element, bounds: Rect, description: str) -> Rect:
+    """Resolve one image-backed control only after its screen has been identified."""
+    matches = [
+        node
+        for node in root.iter()
+        if node.attrib.get("class") == "android.view.ViewGroup" and node_rect(node) == bounds
+    ]
+    if len(matches) != 1:
+        raise AutomationError(
+            f"Expected one {description} control at {bounds}, found {len(matches)}"
+        )
+    return bounds
 
 
 def _dialog_student_labels(root: ET.Element, roster: Iterable[str]) -> dict[str, Rect]:

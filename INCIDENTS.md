@@ -334,3 +334,43 @@ that inference is invalid for mastery decisions.
 Visible assignment-row summaries are discovery controls, not cache validators,
 during mastery sync. Every available score control must be opened before
 mastery, quarantine, or queue decisions are evaluated.
+
+## KKRT-2026-09-11-003 — Assignment summary contradicted score history
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-11 |
+| Severity | SEV-2 — contradictory assessment data could cause an unsupported promotion |
+| Status | Open; contained by detailed-history authority rule |
+| Detected by | Post-sync visual verification |
+| Affected component | Khan Kids Assignments report / mastery-sync result interpretation |
+
+### Summary and impact
+
+After a successful mastery sync, the visible assignment row for
+`Blend Sounds 1 — Basic` displayed 100%. The exhaustive scan of its colored
+score control returned only two detailed attempts, 80% and 90%, both dated
+September 8. A second complete sync reproduced the discrepancy. Direct manual
+inspection of that exact control also showed only the 80% and 90% attempts.
+
+The sync treated the detailed attempt history as authoritative, recorded no
+new attempt, and did not uncheck or promote the lesson. No assignment was
+changed. The tablet was returned to the profile chooser with normal display
+settings restored.
+
+### Containment and follow-up
+
+| Action | Status |
+|---|---|
+| Re-run the exhaustive live score-control scan from a settled profile chooser | Complete |
+| Open the exact `Blend Sounds 1 — Basic` control manually and compare its dialog with the row | Complete |
+| Refuse to infer a 100% attempt from the row when the detailed dialog does not contain one | Complete |
+| Investigate whether Khan's row is stale, aggregated, or uses a different scoring rule | Open |
+| Add an explicit row-versus-dialog discrepancy warning to future sync reports | Open |
+
+### Operating rule
+
+Mastery requires a concrete attempt in the detailed lesson-score dialog and
+the durable attempt ledger. A row-level percentage alone must not create an
+attempt record or trigger an assignment change when the detailed history
+contradicts it.

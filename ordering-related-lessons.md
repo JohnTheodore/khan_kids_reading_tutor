@@ -5,6 +5,8 @@ This analysis searched all **653 unique ELA title strings** and all **1,339 grad
 > **Status:** Inventory and sequencing analysis based on the captured archive.
 > It is not the live assignment list. See [`reading-path.md`](reading-path.md)
 > for the current mastery-gated route and queue.
+> For the current exhaustive tried/untried reconciliation, see
+> [`untried-ordering-and-blending-lessons.md`](untried-ordering-and-blending-lessons.md).
 
 ## Main finding
 

@@ -556,6 +556,12 @@ classifications before its first navigation. A fully loaded Assignments report
 returns after one read, preserving the common no-op fast path. Unknown states
 still time out without tapping.
 
+On successful completion, mastery sync stays inside the running Khan Kids app:
+it uses the app's own **Back** control to return from Class Reports to Teacher
+Tools, selects **Switch User**, and verifies the profile chooser. It does not
+stop or relaunch Khan Kids during teardown. Both image-backed controls are used
+only after their surrounding screen and exact bounds have been validated.
+
 Run a read-only review with:
 
 ```bash
