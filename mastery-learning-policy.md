@@ -29,6 +29,12 @@ Main to Practice 1 to Practice 2.
 | **50–79%** | Developing | Use a prerequisite or Basic corrective in Khan Kids; do not promote |
 | **Below 50%** | Significant gap | Step back to a prerequisite Khan Kids lesson; do not promote |
 
+After at least four recorded attempts at the same lesson variant, a newly
+observed latest score below 70% starts a 14-day quarantine for that lesson
+family. All variants are withheld during the quarantine. It becomes eligible
+again 14 days after the triggering attempt; the old evidence alone does not
+restart or extend the quarantine.
+
 The two-score rule for 90–99% is our conservative operating standard, not a
 universal research cutoff. It reduces the chance that one good attempt causes a
 premature promotion. A latest score of 100% counts immediately because that is
@@ -59,8 +65,10 @@ band, not proof that a prerequisite is stable enough to build on.
 
 The desired queue contains ten assignments: up to eight mastery-path lessons
 and enough curated printed-CVC stretch lessons to fill the remaining positions.
-No more than three active lessons may come from the combined short-vowel/CVC-
-middle group.
+Normally no more than three active lessons come from the combined short-vowel/
+CVC-middle group. If quarantines or an exhausted stretch pool would otherwise
+leave fewer than ten assignments, the next approved mastery-path lesson may
+temporarily exceed that diversity cap so the queue still reaches ten.
 
 Stretch exposure is diagnostic; it does not waive or mark a core prerequisite
 as mastered:

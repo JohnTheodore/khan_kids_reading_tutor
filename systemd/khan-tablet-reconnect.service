@@ -1,0 +1,11 @@
+[Unit]
+Description=Discover and verify the Khan Kids tablet over wireless ADB
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/khan_kids_reading_tutor
+ExecStart=%h/khan_kids_reading_tutor/khan-tablet-connect
+StandardOutput=null
+NoNewPrivileges=true

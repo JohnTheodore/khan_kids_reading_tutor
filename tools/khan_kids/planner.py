@@ -93,19 +93,15 @@ def build_queue_plan(
             candidates.append((track, state))
             reasons[state.next_activity.key] = _target_reason(track, state)
 
-    selected_track_ids = _select_diverse_tracks(curriculum, candidates)
+    diverse_track_ids = _select_diverse_tracks(curriculum, candidates)
     group_by_track = _group_by_track(curriculum)
-    diversity_holds = {
-        state.next_activity.key: group_by_track[track.track_id].max_active
-        for track, state in candidates
-        if track.track_id not in selected_track_ids and state.next_activity is not None
-    }
     core_limit = curriculum.queue_limit - curriculum.stretch_slots
-    core_desired = tuple(
-        state.next_activity
+    core_pairs = [
+        (track, state)
         for track, state in candidates
-        if track.track_id in selected_track_ids and state.next_activity is not None
-    )[:core_limit]
+        if track.track_id in diverse_track_ids and state.next_activity is not None
+    ][:core_limit]
+    core_desired = tuple(state.next_activity for _track, state in core_pairs)
     stretch_desired = _select_stretch_activities(
         curriculum,
         scores,
@@ -117,6 +113,36 @@ def build_queue_plan(
     )
     for activity in stretch_desired:
         reasons[activity.key] = "next mastery rung in a rotating stretch slot"
+
+    # Diversity caps express a preference, but the ten-assignment queue target
+    # takes precedence when quarantines or exhausted stretch choices leave room.
+    open_slots = curriculum.queue_limit - len(core_desired) - len(stretch_desired)
+    open_core_slots = core_limit - len(core_desired)
+    selected_core_ids = {track.track_id for track, _state in core_pairs}
+    stretch_keys = {activity.key for activity in stretch_desired}
+    fallback_pairs = [
+        (track, state)
+        for track, state in candidates
+        if track.track_id not in selected_core_ids
+        and state.next_activity is not None
+        and state.next_activity.key not in stretch_keys
+    ][: min(open_slots, open_core_slots)]
+    for track, state in fallback_pairs:
+        assert state.next_activity is not None
+        reasons[state.next_activity.key] = (
+            "queue-target fallback beyond the normal diversity cap: "
+            f"{_target_reason(track, state)}"
+        )
+    core_pairs.extend(fallback_pairs)
+    core_desired = tuple(state.next_activity for _track, state in core_pairs)
+    selected_core_ids = {track.track_id for track, _state in core_pairs}
+    diversity_holds = {
+        state.next_activity.key: group_by_track[track.track_id].max_active
+        for track, state in candidates
+        if track.track_id in group_by_track
+        and track.track_id not in selected_core_ids
+        and state.next_activity is not None
+    }
     desired = core_desired + stretch_desired
     desired_by_key = {activity.key: activity for activity in desired}
     desired_keys = set(desired_by_key)

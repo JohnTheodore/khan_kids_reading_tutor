@@ -26,7 +26,11 @@ from khan_kids.planner import (
     build_queue_plan,
     snapshot_fingerprint,
 )
-from khan_kids.quarantine import LessonQuarantine, read_active_quarantines
+from khan_kids.quarantine import (
+    LessonQuarantine,
+    append_low_score_quarantines,
+    read_active_quarantines,
+)
 from khan_kids.records import (
     ATTEMPT_FIELDS,
     ATTEMPT_ID_FIELDS,
@@ -410,6 +414,16 @@ def _review_snapshot(
         )
         scores = overlay_live_scores(
             read_attempt_scores(attempts_path, args.student), snapshot.histories
+        )
+        active_quarantines = append_low_score_quarantines(
+            args.quarantines or Path(
+                f"student-records/{args.student.casefold().replace(' ', '-')}-lesson-quarantines.csv"
+            ),
+            student=args.student,
+            today=args.today,
+            scores=scores,
+            new_attempts=appended_rows,
+            active_quarantines=active_quarantines,
         )
         current = {(row.title, row.variant) for row in snapshot.rows}
         quarantine_reasons = {

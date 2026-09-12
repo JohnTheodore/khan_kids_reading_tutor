@@ -3,4 +3,26 @@ set -euo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_dir"
-exec "$repo_dir/tools/run-python" tools/open_khan_kids.py "$@"
+
+platform_tools="$repo_dir/private/android-sdk/platform-tools"
+if [[ -x "$platform_tools/adb" ]]; then
+  PATH="$platform_tools:$PATH"
+  export PATH
+fi
+
+has_serial=false
+show_help=false
+for argument in "$@"; do
+  case "$argument" in
+    --serial|--serial=*) has_serial=true ;;
+    -h|--help) show_help=true ;;
+  esac
+done
+
+arguments=("$@")
+if [[ "$show_help" == false && "$has_serial" == false ]]; then
+  resolved_serial="$("$repo_dir/tools/run-python" tools/resolve_khan_device.py)"
+  arguments+=(--serial "$resolved_serial")
+fi
+
+exec "$repo_dir/tools/run-python" tools/open_khan_kids.py "${arguments[@]}"

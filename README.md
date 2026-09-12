@@ -279,6 +279,70 @@ The pairing port and connection port are normally different, and both can
 change. Use the values currently displayed on the tablet rather than copying
 the examples above.
 
+### Restart-safe automatic connection
+
+This repository can discover its configured Pixel Tablet after the router,
+Mac, OrbStack VM, or ADB server restarts. It asks the macOS host to resolve the
+tablet's changing mDNS endpoint, connects from Linux with TLS, and verifies the
+stable hardware serial and model before any UI automation.
+
+The owner-private, Git-ignored configuration is:
+
+```json
+{
+  "student": "Student A",
+  "hardware_serial": "DEVICE_SERIAL_FROM_ADB",
+  "model": "Pixel Tablet"
+}
+```
+
+Save it as `private/tablet-device.local.json` with mode `0600`. Install current
+SDK Platform Tools under `private/android-sdk/platform-tools`; ADB 37.0.0 or
+newer is required for Android 17 Wi-Fi 2.0. The wrappers prefer that private
+copy without replacing the operating system's ADB package.
+
+On the tablet, enable **Wireless debugging** and select **Always allow on this
+network** only for the trusted home Wi-Fi. Pair the Linux account once. The
+pairing survives ordinary restarts unless the paired workstation is forgotten,
+ADB authorizations are revoked, the private ADB key is lost, or the tablet is
+reset.
+
+On this Pixel Tablet build, a cold tablet boot turns the Wireless debugging
+master switch off even though the paired-host and trusted-network records
+survive. Recovery therefore requires a physical PIN unlock and manually turning
+Wireless debugging on again. A tested Direct Boot helper could not override the
+platform behavior and was removed. Do not remove the lock screen to bypass that
+security boundary. If unattended recovery from a tablet reboot or total power
+loss is mandatory, use a powered USB-C data connection to an always-on host and
+test pre-unlock USB ADB on the exact tablet build.
+
+Connect and verify without supplying an address:
+
+```bash
+./khan-tablet-connect
+./khan-kids-open
+./khan-mastery-sync
+```
+
+An explicit `--serial IP:PORT` remains available as a diagnostic override. The
+automatic resolver ignores offline transports and refuses zero, multiple, or
+identity-mismatched results.
+
+The optional user timer warms the connection after VM startup and every five
+minutes. The command wrappers still verify independently at the start of every
+run:
+
+```bash
+mkdir -p ~/.config/systemd/user
+ln -s "$PWD/systemd/khan-tablet-reconnect.service" ~/.config/systemd/user/
+ln -s "$PWD/systemd/khan-tablet-reconnect.timer" ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now khan-tablet-reconnect.timer
+```
+
+The timer does not wake the screen or open Khan Kids. It only ensures the
+encrypted ADB transport is discoverable and identity-verified.
+
 Mirror the tablet:
 
 ```bash
@@ -289,7 +353,7 @@ The tablet UI remains visible locally and in the scrcpy window. A person can
 watch the crawler scroll and stop it with `Ctrl+C` if it leaves the expected
 screen.
 
-For the commands below, set the current connected serial once:
+For manual diagnostics, set the current connected serial once:
 
 ```bash
 KHAN_SERIAL='192.168.1.50:42817'
@@ -588,8 +652,9 @@ The default review:
   mastery policy;
 - reserves up to eight positions for mastery-path lessons whose prerequisites
   are complete;
-- limits configured groups of similar lessons, currently short-vowel/CVC-middle
-  work, to three active choices;
+- normally limits configured groups of similar lessons, currently short-vowel/
+  CVC-middle work, to three active choices, but admits the next approved choice
+  when needed to reach the ten-assignment target;
 - fills the remaining positions from a curated foundational-reading stretch pool,
   targeting ten available lessons;
 - pins every active stretch family until its first attempt, preserves a
@@ -597,6 +662,9 @@ The default review:
   mastery evidence changes;
 - excludes any student-specific lesson family with an active dated quarantine,
   then refills the queue from the same approved reading curriculum;
+- automatically starts a 14-day family quarantine when a newly captured fourth
+  or later attempt leaves that lesson variant below 70%; an expired quarantine
+  is not restarted without another new attempt;
 - computes the exact difference between the live and desired queues;
 - writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
 - appends a human-readable run report to
@@ -619,10 +687,11 @@ written to reports, and never passed as complete command-line arguments.
 The command temporarily prevents sleep and restores the tablet's prior screen
 timeout and plugged-in stay-awake setting on success or failure.
 
-For the usual one-command operation, run:
+For the usual one-command operation, run without an address or student; the
+private device configuration supplies both:
 
 ```bash
-./khan-mastery-sync --serial "$KHAN_SERIAL" --student Student A
+./khan-mastery-sync
 ```
 
 This scans and plans once, then applies and verifies any changes in the same
@@ -737,7 +806,9 @@ unit tests cannot guarantee compatibility with a future Khan Kids redesign.
 - Keep `private/`, raw screenshots, XML dumps, reports, email addresses,
   passwords, device addresses, and pairing codes out of public commits.
 - Never put a Khan Kids password or wireless-debugging pairing code in a script.
-- Pair only on a trusted local network and disable Wireless debugging afterward.
+- Pair only on a trusted local network. For persistent access, approve only the
+  dedicated home network and never expose the tablet's ADB port or the host ADB
+  server port through router forwarding.
 - Review screenshots as well as text files; images can expose names and scores.
 - Obtain any consent required before processing data for children other than
   your own.

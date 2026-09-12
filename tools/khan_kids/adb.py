@@ -172,8 +172,20 @@ class AndroidDevice:
         accelerometer = self._setting("system", "accelerometer_rotation")
         rotation = self._setting("system", "user_rotation")
         with ExitStack() as restore:
-            restore.callback(self._set_setting, "system", "accelerometer_rotation", accelerometer)
-            restore.callback(self._set_setting, "system", "user_rotation", rotation)
+            if accelerometer == "0":
+                # ExitStack runs callbacks in reverse order. Restore the fixed angle
+                # before leaving rotation locked.
+                restore.callback(
+                    self._set_setting, "system", "accelerometer_rotation", accelerometer
+                )
+                restore.callback(self._set_setting, "system", "user_rotation", rotation)
+            else:
+                # Re-enable sensor rotation before restoring its stale fallback angle;
+                # otherwise an auto-rotated landscape device briefly turns portrait.
+                restore.callback(self._set_setting, "system", "user_rotation", rotation)
+                restore.callback(
+                    self._set_setting, "system", "accelerometer_rotation", accelerometer
+                )
             restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
             restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
             self.keep_awake()

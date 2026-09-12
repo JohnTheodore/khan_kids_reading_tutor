@@ -47,3 +47,13 @@ action_date,student,action,lesson_title,activity_variant,reason,result
 2026-09-11,Student A,unchecked,"Words with m, n, p",Main,"quarantined: through 2026-10-10 (eligible again 2026-10-11): 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d",saved
 2026-09-11,Student A,checked,Beginning Sounds 2,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending
 2026-09-11,Student A,checked,Blend Sounds 1,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending
+2026-09-12,Student A,unchecked,Short Vowel Sound i,Basic,mastered: latest attempt is 100%; promote to Short Vowel Sound i — Main,saved
+2026-09-12,Student A,unchecked,Blend Sounds 1,Basic,mastered: latest attempt is 100%; promote to Blend Sounds 1 — Main,saved
+2026-09-12,Student A,checked,Blend Sounds 1,Main,next mastery rung in a rotating stretch slot,saved; final verification pending
+2026-09-12,Student A,checked,Short Vowel Sound i,Main,first unmastered activity in short_i_cvc_middle,saved; final verification pending
+2026-09-12,Student A,unchecked,Words: End Sound,Main,quarantined: through 2026-09-25 (eligible again 2026-09-26): 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%,saved
+2026-09-12,Student A,checked,Short Vowel Sound e,Basic,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_e_cvc_middle,saved; final verification pending
+2026-09-12,Student A,unchecked,Short Vowel Sound u,Main,deferred: active instructional group is limited to 3 lessons,saved
+2026-09-12,Student A,unchecked,Short Vowel Sound e,Basic,mastered: latest attempt is 100%; promote to Short Vowel Sound e — Main,saved
+2026-09-12,Student A,checked,Short Vowel Sound e,Main,first unmastered activity in short_e_cvc_middle,saved; final verification pending
+2026-09-12,Student A,checked,Short Vowel Sound o,Basic,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_o_cvc_middle,saved; final verification pending

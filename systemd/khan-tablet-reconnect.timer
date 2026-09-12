@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep the Khan Kids tablet discoverable after restarts
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=5min
+Persistent=true
+Unit=khan-tablet-reconnect.service
+
+[Install]
+WantedBy=timers.target

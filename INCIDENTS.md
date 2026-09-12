@@ -374,3 +374,45 @@ Mastery requires a concrete attempt in the detailed lesson-score dialog and
 the durable attempt ledger. A row-level percentage alone must not create an
 attempt record or trigger an assignment change when the detailed history
 contradicts it.
+
+## KKRT-2026-09-12-AUTO-091635-416033 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-12 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for assignments report`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-12-AUTO-165111-890956 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-12 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Khan Kids did not become the foreground app`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.

@@ -36,7 +36,7 @@ PRE_QUARANTINE_QUEUE = {
     ("Make New Words", "Main"),
     ("Words: End Sound", "Main"),
     ("Short Vowel Sound a", "Main"),
-    ("Short Vowel Sound i", "Basic"),
+    ("Short Vowel Sound i", "Main"),
     ("Short Vowel Sound u", "Main"),
     ("Words with b, c, d", "Main"),
     ("Words with f, g, h", "Main"),
@@ -52,12 +52,19 @@ EXPECTED_DIVERSE_QUEUE = PRE_QUARANTINE_QUEUE - BASELINE_STRETCH_QUEUE
 FIRST_QUARANTINE_QUEUE = PRE_QUARANTINE_QUEUE - {("Words with b, c, d", "Main")} | {
     ("Words with m, n, p", "Main")
 }
-EXPECTED_LIVE_QUEUE = PRE_QUARANTINE_QUEUE - {
+EXPECTED_BEGINNING_QUARANTINE_QUEUE = PRE_QUARANTINE_QUEUE - {
     ("Words with b, c, d", "Main"),
     ("Words with f, g, h", "Main"),
 } | {
-    ("Blend Sounds 1", "Basic"),
+    ("Blend Sounds 1", "Main"),
     ("Beginning Sounds 2", "Basic"),
+}
+EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
+    ("Words: End Sound", "Main"),
+    ("Short Vowel Sound u", "Main"),
+} | {
+    ("Short Vowel Sound e", "Main"),
+    ("Short Vowel Sound o", "Basic"),
 }
 QUARANTINED_BEGINNING_TITLES = {
     "Words with b, c, d",
@@ -82,7 +89,8 @@ class WorkflowTests(unittest.TestCase):
             scores,
             EXPECTED_LIVE_QUEUE,
             quarantined_titles={
-                title: "active through 2026-10-10" for title in QUARANTINED_BEGINNING_TITLES
+                title: "active quarantine"
+                for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
             },
         )
 
@@ -108,6 +116,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_quarantine_removes_every_variant_of_a_family_and_refills_queue(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores.pop(("Short Vowel Sound e", "Basic"), None)
 
         plan = build_queue_plan(
             self.curriculum,
@@ -120,9 +129,9 @@ class WorkflowTests(unittest.TestCase):
         desired = {activity.key for activity in plan.desired}
 
         self.assertEqual(len(desired), 10)
-        self.assertEqual(desired, EXPECTED_LIVE_QUEUE)
+        self.assertEqual(desired, EXPECTED_BEGINNING_QUARANTINE_QUEUE)
         self.assertFalse(any(title in QUARANTINED_BEGINNING_TITLES for title, _ in desired))
-        self.assertIn(("Blend Sounds 1", "Basic"), desired)
+        self.assertIn(("Blend Sounds 1", "Main"), desired)
         self.assertIn(("Beginning Sounds 2", "Basic"), desired)
         removals = [action for action in plan.actions if action.kind == "remove"]
         self.assertEqual(
@@ -131,8 +140,30 @@ class WorkflowTests(unittest.TestCase):
         )
         self.assertTrue(all("quarantined" in action.reason for action in removals))
 
+    def test_queue_target_relaxes_diversity_cap_when_quarantines_leave_nine(self) -> None:
+        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        current = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {("Words: End Sound", "Main")}
+        quarantined = QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
+
+        plan = build_queue_plan(
+            self.curriculum,
+            scores,
+            current,
+            quarantined_titles={title: "active quarantine" for title in quarantined},
+        )
+        desired = {activity.key for activity in plan.desired}
+
+        self.assertEqual(len(desired), 10)
+        self.assertIn(("Short Vowel Sound e", "Basic"), desired)
+        addition = next(
+            action for action in plan.actions if action.key == ("Short Vowel Sound e", "Basic")
+        )
+        self.assertIn("queue-target fallback", addition.reason)
+
     def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores.pop(("Short Vowel Sound e", "Basic"), None)
         current = set(PRE_QUARANTINE_QUEUE)
 
         untouched = build_queue_plan(self.curriculum, scores, current)
@@ -150,6 +181,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_deferred_stretch_becomes_eligible_after_supporting_mastery(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores.pop(("Short Vowel Sound e", "Basic"), None)
         scores[("Words with f, g, h", "Main")] = (65,)
         blend_track = next(
             track for track in self.curriculum.tracks if track.track_id == "three_phoneme_blending"
@@ -163,6 +195,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_completed_vowel_track_rotates_in_next_deferred_vowel(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores.pop(("Short Vowel Sound e", "Basic"), None)
         short_a = next(
             track for track in self.curriculum.tracks if track.track_id == "short_a_cvc_middle"
         )
@@ -212,6 +245,7 @@ class WorkflowTests(unittest.TestCase):
             ("Blend Syllables", "Practice 1"): (100,),
             ("Blend Syllables", "Practice 2"): (100,),
             ("Short Vowel Sound a", "Basic"): (100,),
+            ("Short Vowel Sound i", "Basic"): (100,),
             ("Short Vowel Sound u", "Basic"): (100,),
         }
 

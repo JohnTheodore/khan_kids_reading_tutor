@@ -52,11 +52,36 @@ class AndroidDeviceTests(unittest.TestCase):
         )
         self.assertEqual(
             command.call_args_list[-2].args,
-            ("shell", "settings", "put", "system", "user_rotation", "0"),
+            ("shell", "settings", "put", "system", "accelerometer_rotation", "1"),
         )
         self.assertEqual(
             command.call_args_list[-1].args,
-            ("shell", "settings", "put", "system", "accelerometer_rotation", "1"),
+            ("shell", "settings", "put", "system", "user_rotation", "0"),
+        )
+
+    def test_awake_session_restores_fixed_rotation_before_lock(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "command") as command,
+            patch("khan_kids.adb.time.sleep"),
+        ):
+            command.side_effect = [
+                b"120000\n",
+                b"0\n",
+                b"0\n",
+                b"1\n",
+                *([b""] * 10),
+            ]
+            with device.awake_session():
+                pass
+
+        self.assertEqual(
+            command.call_args_list[-2].args,
+            ("shell", "settings", "put", "system", "user_rotation", "1"),
+        )
+        self.assertEqual(
+            command.call_args_list[-1].args,
+            ("shell", "settings", "put", "system", "accelerometer_rotation", "0"),
         )
 
     def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:

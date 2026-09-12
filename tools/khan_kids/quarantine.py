@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
+
+from .records import append_unique_rows_with_records
+
+
+QUARANTINE_FIELDS = ("student", "title", "start_date", "eligible_date", "reason")
+LOW_SCORE_ATTEMPT_THRESHOLD = 4
+LOW_SCORE_FLOOR = 70
+LOW_SCORE_QUARANTINE_DAYS = 14
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +57,55 @@ def read_active_quarantines(
     if len(titles) != len(set(titles)):
         raise ValueError(f"duplicate active lesson quarantines in {path}")
     return tuple(active)
+
+
+def append_low_score_quarantines(
+    path: Path,
+    *,
+    student: str,
+    today: date,
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    new_attempts: Iterable[Mapping[str, object]],
+    active_quarantines: tuple[LessonQuarantine, ...] = (),
+) -> tuple[LessonQuarantine, ...]:
+    """Quarantine newly reassessed families that remain below the score floor."""
+    active_titles = {record.title for record in active_quarantines}
+    candidates = {
+        (str(row.get("lesson_title", "")), str(row.get("activity_variant", "")))
+        for row in new_attempts
+    }
+    rows: list[dict[str, object]] = []
+    for title, variant in sorted(candidates):
+        history = scores.get((title, variant), ())
+        if (
+            not title
+            or title in active_titles
+            or len(history) < LOW_SCORE_ATTEMPT_THRESHOLD
+            or history[-1] >= LOW_SCORE_FLOOR
+        ):
+            continue
+        evidence = " → ".join(f"{score}%" for score in history)
+        rows.append(
+            {
+                "student": student,
+                "title": title,
+                "start_date": today.isoformat(),
+                "eligible_date": (today + timedelta(days=LOW_SCORE_QUARANTINE_DAYS)).isoformat(),
+                "reason": (
+                    f"{LOW_SCORE_QUARANTINE_DAYS}-day instructional quarantine after "
+                    f"{len(history)} {variant} attempts; latest score is below "
+                    f"{LOW_SCORE_FLOOR}% ({history[-1]}%); scores: {evidence}"
+                ),
+            }
+        )
+        active_titles.add(title)
+    append_unique_rows_with_records(
+        path,
+        QUARANTINE_FIELDS,
+        rows,
+        identity_fields=("student", "title", "start_date"),
+    )
+    return read_active_quarantines(path, student=student, today=today)
 
 
 def _parse_row(row: dict[str, str | None], path: Path) -> LessonQuarantine:

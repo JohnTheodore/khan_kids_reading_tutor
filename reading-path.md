@@ -26,7 +26,8 @@ both at least 90%. Lower later results hold the rung or trigger a narrower Khan
 prerequisite. They do not cause automatic promotion.
 
 The queue also enforces instructional diversity. All five short-vowel/CVC-middle
-tracks share a maximum of three active lessons. Within that group, current
+tracks normally share a maximum of three active lessons. The next approved
+track may exceed that cap only when needed to preserve the ten-item queue. Within that group, current
 80–99% evidence is preferred, followed by the most advanced mastered sequence
 and then curriculum order. A promotion retains the same group slot. When a
 complete vowel track frees a slot, the next deferred vowel rotates in. The core
