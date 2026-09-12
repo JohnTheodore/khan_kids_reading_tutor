@@ -180,6 +180,51 @@ Persistent ADB is intentionally powerful. For this use case:
 - Make recovery physical: if pairing is lost, require someone at the unlocked tablet to pair again rather than weakening authentication.
 - Accept that no software arrangement can guarantee access during power loss, pre-boot failure, Wi-Fi/router outage, a stopped OrbStack VM, or a sleeping/off Mac.
 
+## Orientation-lock postmortem
+
+The mastery workflow also needs a stable 2560×1600 coordinate space. A live
+September 12 run exposed a visible landscape → portrait → landscape transition
+even though the session restored auto-rotate correctly afterward. This was not
+an application animation: Android WindowManager's rotation history recorded
+`ROTATION_270 to ROTATION_0` at 17:02:47.014 and `ROTATION_0 to ROTATION_270`
+at 17:02:47.389, a 375 ms portrait interval.
+
+The pre-run state explains the transition:
+
+| State | Live value |
+|---|---|
+| Visible display | `ROTATION_270`, 2560×1600 landscape |
+| Rotation mode | `free` |
+| `accelerometer_rotation` | `1` |
+| Stored `user_rotation` fallback | `0`, natural portrait |
+
+The old entry sequence wrote `accelerometer_rotation=0` and then
+`user_rotation=3` as separate ADB commands. The first write made the stale
+`user_rotation=0` effective immediately, so Android rendered portrait before
+the second process reached WindowManager. Reordering only the cleanup fixed an
+exit-side risk but could not fix this entry-side gap.
+
+The supported WindowManager shell interface provides the stronger primitive:
+`wm user-rotation lock 3`. Its command handler parses both the mode and angle,
+then calls `freezeDisplayRotation(displayId, rotation)` once.^7 WindowManager
+handles that request under its global lock and performs one rotation update.^8
+Android defines `ROTATION_270` as value `3`, matching the calibrated
+landscape direction on this tablet.^9
+
+The corrected session therefore:
+
+1. Reads `wm user-rotation` and accepts only `free` or `lock 0..3`.
+2. Saves one exact restoration command.
+3. Enters calibrated landscape with `wm user-rotation lock 3`.
+4. Restores `free` or the original `lock N` on every exit path.
+
+This design also removes direct orientation-setting duplication: one
+WindowManager abstraction owns entry, parsing, and restoration. A live
+acceptance test ran the corrected session while the tablet was already in
+`ROTATION_270`; WindowManager's transition count remained unchanged at eight,
+the session ended in `free`, auto-rotate remained enabled, and the display
+remained at `ROTATION_270`.^10
+
 ## Implementation sequence and acceptance tests
 
 ### Phase 1 — prerequisites
@@ -238,3 +283,7 @@ Android build.
 4. Android Developers Blog, “[Introducing Fast and Reliable Wireless Debugging with Android Debug Bridge (ADB) Wi-Fi 2.0](https://android-developers.googleblog.com/2026/09/wireless-debugging-adb-wifi-2.html),” September 9, 2026.
 5. Local system and tablet inspection, September 12, 2026. Read-only ADB settings/properties, network interfaces, macOS DNS-SD browse, ADB 37.0.1 compatibility test, and repository source inspection.
 6. Repository documentation, [`README.md`](README.md), especially “Enable wireless debugging,” “Pair, then connect,” privacy limitations, and troubleshooting.
+7. Android Open Source Project, “[WindowManagerShellCommand.java](https://android.googlesource.com/platform/frameworks/base/+/master/services/core/java/com/android/server/wm/WindowManagerShellCommand.java#459).” The `user-rotation` command and its single `freezeDisplayRotation`/`thawDisplayRotation` calls.
+8. Android Open Source Project, “[WindowManagerService.java](https://android.googlesource.com/platform/frameworks/base/+/master/services/core/java/com/android/server/wm/WindowManagerService.java).” Display-rotation locking under the WindowManager global lock followed by rotation recalculation.
+9. Android Developers, “[Surface rotation constants](https://developer.android.com/reference/android/view/Surface#ROTATION_270).” `ROTATION_270` has constant value `3`.
+10. Local Pixel Tablet inspection and acceptance test, September 12, 2026. WindowManager rotation history, rotation-mode/settings state, and before/after transition counts.

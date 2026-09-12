@@ -288,10 +288,7 @@ class KhanKidsAutomation:
     def _scan_assignments(
         self, *, today: date, include_score_histories: bool
     ) -> AssignmentSnapshot:
-        root = self.ensure_assignments_report()
-        root = self._filter_assignments_to_student(root)
-        if not self._assignments_at_top:
-            root = self._scroll_to_top()
+        root = self._assignment_report_top()
         active_rows: dict[tuple[str, str, str], AssignmentRow] = {}
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
@@ -378,18 +375,10 @@ class KhanKidsAutomation:
         pending = set(requested)
         if not pending:
             return
-        root = self.ensure_assignments_report()
-        root = self._filter_assignments_to_student(root)
-        if not self._assignments_at_top:
-            root = self._scroll_to_top()
+        root = self._assignment_report_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
-            rows = parse_assignment_rows(
-                root,
-                self.student,
-                roster=(self.student,),
-                layout=self.layout,
-            )
+            rows = self._assignment_rows(root)
             visible_matches = [
                 row for row in rows if (row.title, row.variant) in pending and row.rect.top < 1420
             ]
@@ -406,15 +395,7 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x,
-                1380,
-                self.layout.safe_scroll_x,
-                680,
-                SCROLL_DURATION_MS,
-            )
-            self._assignments_at_top = False
-            root = self.root(f"bulk-unassign-{page + 1:03d}")
+            root = self._next_assignment_page(f"bulk-unassign-{page + 1:03d}")
         if pending:
             raise AutomationError(f"Active assignments not found: {sorted(pending)!r}")
 
@@ -451,18 +432,10 @@ class KhanKidsAutomation:
             yield ActionResult("checked", title, variant, "saved; final verification pending")
 
     def _find_assignment(self, title: str, variant: str) -> AssignmentRow:
-        root = self.ensure_assignments_report()
-        root = self._filter_assignments_to_student(root)
-        if not self._assignments_at_top:
-            root = self._scroll_to_top()
+        root = self._assignment_report_top()
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
-            rows = parse_assignment_rows(
-                root,
-                self.student,
-                roster=(self.student,),
-                layout=self.layout,
-            )
+            rows = self._assignment_rows(root)
             matches = [row for row in rows if row.title == title and row.variant == variant]
             if len(matches) == 1:
                 return matches[0]
@@ -472,16 +445,31 @@ class KhanKidsAutomation:
             if signature == prior_signature:
                 break
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x,
-                1380,
-                self.layout.safe_scroll_x,
-                680,
-                SCROLL_DURATION_MS,
-            )
-            self._assignments_at_top = False
-            root = self.root(f"find-assignment-{page + 1:03d}")
+            root = self._next_assignment_page(f"find-assignment-{page + 1:03d}")
         raise AutomationError(f"Active assignment not found: {title!r}/{variant!r}")
+
+    def _assignment_report_top(self) -> ET.Element:
+        root = self._filter_assignments_to_student(self.ensure_assignments_report())
+        return root if self._assignments_at_top else self._scroll_to_top()
+
+    def _assignment_rows(self, root: ET.Element) -> list[AssignmentRow]:
+        return parse_assignment_rows(
+            root,
+            self.student,
+            roster=(self.student,),
+            layout=self.layout,
+        )
+
+    def _next_assignment_page(self, capture_name: str) -> ET.Element:
+        self.device.swipe(
+            self.layout.safe_scroll_x,
+            1380,
+            self.layout.safe_scroll_x,
+            680,
+            SCROLL_DURATION_MS,
+        )
+        self._assignments_at_top = False
+        return self.root(capture_name)
 
     def _open_all_progress(self) -> ET.Element:
         root = self.ensure_assignments_report()

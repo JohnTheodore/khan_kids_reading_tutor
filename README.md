@@ -685,7 +685,14 @@ Android PIN and Khan parent password may be kept in the owner-private,
 Git-ignored `.secrets.json` described above. They are loaded lazily, never
 written to reports, and never passed as complete command-line arguments.
 The command temporarily prevents sleep and restores the tablet's prior screen
-timeout and plugged-in stay-awake setting on success or failure.
+timeout, plugged-in stay-awake setting, and rotation mode on success or
+failure. Orientation locking uses Android WindowManager's single
+`wm user-rotation lock 3` operation. Do not replace it with consecutive writes
+to `accelerometer_rotation` and `user_rotation`: when auto-rotate is enabled,
+the stored fallback angle may still be portrait, and disabling auto-rotate
+first visibly flashes that stale angle before the landscape write arrives.
+The workflow reads `wm user-rotation` before starting and restores exactly
+`free` or the prior `lock N` mode during cleanup.
 
 For the usual one-command operation, run without an address or student; the
 private device configuration supplies both:
@@ -877,7 +884,12 @@ timeout using the commands above. Always restore the original setting.
 ### The crawler reports an unexpected screen
 
 - Stop it with `Ctrl+C`.
-- Restore landscape orientation and the expected starting screen.
+- Confirm `adb shell wm user-rotation` reports `free` after the workflow, or
+  the same `lock N` state that existed before it.
+- Confirm `adb shell dumpsys window displays` reports `mRotation=3` for the
+  calibrated 2560×1600 landscape direction.
+- Restore landscape orientation and the expected starting screen if either
+  check differs.
 - Confirm Khan Kids has not changed its layout or labels.
 - Compare the current screenshot dimensions with `2560x1600`.
 - Recalibrate constants in the relevant crawler before retrying.

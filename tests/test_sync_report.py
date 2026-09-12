@@ -190,36 +190,7 @@ class SyncReportTests(unittest.TestCase):
         self.assertIn("HOLD; scores: 69%", terminal)
 
     def test_interrupted_terminal_output_shows_only_completed_actions(self) -> None:
-        payload = {
-            "status": "interrupted",
-            "student": "Student A",
-            "new_attempt_records": 0,
-            "actions": [
-                {
-                    "kind": "add",
-                    "title": "Short Vowel Sound i",
-                    "variant": "Basic",
-                    "reason": "first unmastered activity",
-                },
-                {
-                    "kind": "add",
-                    "title": "Short Vowel Sound e",
-                    "variant": "Basic",
-                    "reason": "first unmastered activity",
-                },
-            ],
-            "applied": [
-                {
-                    "action": "checked",
-                    "title": "Short Vowel Sound i",
-                    "variant": "Basic",
-                }
-            ],
-            "observed_assignments": [],
-            "desired_assignments": [],
-            "stretch_assignments": [],
-            "score_evidence": [],
-        }
+        payload = _interrupted_payload()
 
         terminal = render_terminal_summary(payload)
 
@@ -242,41 +213,49 @@ class SyncReportTests(unittest.TestCase):
         self.assertFalse(terminal_color_enabled("never", stream))
 
     def test_interrupted_report_includes_only_completed_actions(self) -> None:
-        payload = {
-            "status": "interrupted",
-            "generated_at": "2026-09-10T10:00:00-04:00",
-            "interrupted_at": "2026-09-10T10:01:00-04:00",
-            "student": "Student A",
-            "actions": [
-                {
-                    "kind": "add",
-                    "title": "Short Vowel Sound i",
-                    "variant": "Basic",
-                    "reason": "first unmastered activity",
-                },
-                {
-                    "kind": "add",
-                    "title": "Short Vowel Sound e",
-                    "variant": "Basic",
-                    "reason": "first unmastered activity",
-                },
-            ],
-            "applied": [
-                {
-                    "action": "checked",
-                    "title": "Short Vowel Sound i",
-                    "variant": "Basic",
-                }
-            ],
-            "desired_assignments": [],
-            "track_states": [],
-        }
+        payload = _interrupted_payload()
 
         report = render_sync_report(payload)
 
         self.assertIn("Applied before interruption additions", report)
         self.assertIn("Short Vowel Sound i", report)
         self.assertNotIn("Short Vowel Sound e", report)
+
+
+def _interrupted_payload() -> dict[str, object]:
+    return {
+        "status": "interrupted",
+        "generated_at": "2026-09-10T10:00:00-04:00",
+        "interrupted_at": "2026-09-10T10:01:00-04:00",
+        "student": "Student A",
+        "new_attempt_records": 0,
+        "actions": [
+            {
+                "kind": "add",
+                "title": "Short Vowel Sound i",
+                "variant": "Basic",
+                "reason": "first unmastered activity",
+            },
+            {
+                "kind": "add",
+                "title": "Short Vowel Sound e",
+                "variant": "Basic",
+                "reason": "first unmastered activity",
+            },
+        ],
+        "applied": [
+            {
+                "action": "checked",
+                "title": "Short Vowel Sound i",
+                "variant": "Basic",
+            }
+        ],
+        "observed_assignments": [],
+        "desired_assignments": [],
+        "stretch_assignments": [],
+        "score_evidence": [],
+        "track_states": [],
+    }
 
 
 if __name__ == "__main__":

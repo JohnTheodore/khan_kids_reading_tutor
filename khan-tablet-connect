@@ -2,12 +2,4 @@
 set -euo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$repo_dir"
-
-platform_tools="$repo_dir/private/android-sdk/platform-tools"
-if [[ -x "$platform_tools/adb" ]]; then
-  PATH="$platform_tools:$PATH"
-  export PATH
-fi
-
-exec "$repo_dir/tools/run-python" tools/resolve_khan_device.py "$@"
+exec "$repo_dir/tools/run-tablet-workflow" connect "$@"

@@ -169,31 +169,28 @@ class AndroidDevice:
         """Keep the screen awake in landscape, then restore all prior settings."""
         timeout = self._setting("system", "screen_off_timeout")
         stay_on = self._setting("global", "stay_on_while_plugged_in")
-        accelerometer = self._setting("system", "accelerometer_rotation")
-        rotation = self._setting("system", "user_rotation")
+        restore_rotation = self._rotation_restore_command()
         with ExitStack() as restore:
-            if accelerometer == "0":
-                # ExitStack runs callbacks in reverse order. Restore the fixed angle
-                # before leaving rotation locked.
-                restore.callback(
-                    self._set_setting, "system", "accelerometer_rotation", accelerometer
-                )
-                restore.callback(self._set_setting, "system", "user_rotation", rotation)
-            else:
-                # Re-enable sensor rotation before restoring its stale fallback angle;
-                # otherwise an auto-rotated landscape device briefly turns portrait.
-                restore.callback(self._set_setting, "system", "user_rotation", rotation)
-                restore.callback(
-                    self._set_setting, "system", "accelerometer_rotation", accelerometer
-                )
+            restore.callback(self.command, *restore_rotation)
             restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
             restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
             self.keep_awake()
+            # WindowManager applies the lock mode and angle in one operation. Separate
+            # settings writes briefly lock to a stale portrait fallback before the
+            # landscape angle arrives.
+            self.command("shell", "wm", "user-rotation", "lock", "3")
             self.command("shell", "wm", "set-ignore-orientation-request", "false")
-            self._set_setting("system", "accelerometer_rotation", "0")
-            self._set_setting("system", "user_rotation", "3")
             time.sleep(self.settle_seconds)
             yield
+
+    def _rotation_restore_command(self) -> tuple[str, ...]:
+        state = self.command("shell", "wm", "user-rotation", capture=True).decode().strip()
+        fields = state.split()
+        if fields == ["free"]:
+            return ("shell", "wm", "user-rotation", "free")
+        if len(fields) == 2 and fields[0] == "lock" and fields[1] in {"0", "1", "2", "3"}:
+            return ("shell", "wm", "user-rotation", "lock", fields[1])
+        raise AutomationError(f"Unexpected Android user-rotation state: {state!r}")
 
     def _setting(self, namespace: str, key: str) -> str:
         value = (

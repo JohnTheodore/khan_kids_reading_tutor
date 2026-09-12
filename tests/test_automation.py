@@ -22,13 +22,7 @@ from khan_kids.ui import Rect
 
 class AutomationTests(unittest.TestCase):
     def test_roster_only_students_screen_is_not_tapped_by_coordinate(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         root = ET.Element("hierarchy")
         parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
         for text in ("Students", "Student A", "Student B"):
@@ -41,13 +35,7 @@ class AutomationTests(unittest.TestCase):
         device.tap.assert_not_called()
 
     def test_exact_roster_screen_opens_class_reports_at_guarded_coordinate(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         root = ET.Element("hierarchy")
         parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
         for text in ("Students", "Add Students", "Student A", "Student B"):
@@ -66,13 +54,7 @@ class AutomationTests(unittest.TestCase):
         device.tap.assert_called_once_with(1280, 459)
 
     def test_navigation_waits_for_two_stable_profile_chooser_reads(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         blank = _screen_with_text()
         incomplete = _screen_with_text(("dad", Rect(100, 100, 300, 160)))
         chooser = _screen_with_text(
@@ -91,13 +73,7 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(device.hierarchy.call_count, 4)
 
     def test_stable_assignments_report_returns_after_one_read(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         report = _screen_with_text(
             ("Class Report: Assignments", Rect(100, 100, 600, 160)),
             ("Assignments", Rect(100, 200, 300, 260)),
@@ -114,13 +90,7 @@ class AutomationTests(unittest.TestCase):
         device.hierarchy.assert_called_once_with()
 
     def test_navigation_state_change_resets_stability(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         chooser = _screen_with_text(
             ("dad", Rect(100, 100, 300, 160)),
             ("Student A", Rect(400, 100, 600, 160)),
@@ -140,13 +110,7 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(device.hierarchy.call_count, 3)
 
     def test_unknown_navigation_state_times_out_without_tapping(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         device.hierarchy.return_value = _screen_with_text(
             ("Unknown screen", Rect(100, 100, 300, 160))
         )
@@ -209,25 +173,14 @@ class AutomationTests(unittest.TestCase):
         device.tap_rect.assert_called_once_with(shifted_enter)
 
     def test_return_to_profile_chooser_uses_in_app_back_and_switch_user(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         report = _screen_with_text(
             ("Class Report: Assignments", Rect(600, 20, 1900, 120)),
             ("Assignments", Rect(900, 130, 1200, 190)),
             ("All Progress", Rect(1250, 130, 1550, 190)),
         )
         _add_control(report, REPORT_BACK_RECT)
-        roster = _screen_with_text(
-            ("Students", Rect(300, 300, 700, 400)),
-            ("Add Students", Rect(1900, 400, 2300, 500)),
-            ("Student A", Rect(300, 500, 600, 600)),
-            ("Student B", Rect(1000, 500, 1300, 600)),
-        )
+        roster = _roster_screen()
         _add_control(roster, SWITCH_USER_RECT)
         chooser = _screen_with_text(
             ("dad", Rect(400, 500, 700, 800)),
@@ -249,13 +202,7 @@ class AutomationTests(unittest.TestCase):
         )
 
     def test_return_to_profile_chooser_is_no_op_when_already_there(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         chooser = _screen_with_text()
         automation._wait_for_navigation_state = Mock(
             return_value=(chooser, "profile_chooser")
@@ -265,21 +212,10 @@ class AutomationTests(unittest.TestCase):
         device.tap_rect.assert_not_called()
 
     def test_return_to_profile_chooser_rejects_missing_switch_user_control(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         report = _screen_with_text()
         _add_control(report, REPORT_BACK_RECT)
-        roster = _screen_with_text(
-            ("Students", Rect(300, 300, 700, 400)),
-            ("Add Students", Rect(1900, 400, 2300, 500)),
-            ("Student A", Rect(300, 500, 600, 600)),
-            ("Student B", Rect(1000, 500, 1300, 600)),
-        )
+        roster = _roster_screen()
         automation._wait_for_navigation_state = Mock(
             return_value=(report, "assignments_report")
         )
@@ -291,13 +227,7 @@ class AutomationTests(unittest.TestCase):
         device.tap_rect.assert_called_once_with(REPORT_BACK_RECT)
 
     def test_bulk_unassignment_uses_one_traversal_and_bottom_first(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         upper = _row("Upper", 500)
         lower = _row("Lower", 900)
         automation.ensure_assignments_report = Mock()
@@ -319,13 +249,7 @@ class AutomationTests(unittest.TestCase):
         device.swipe.assert_not_called()
 
     def test_bulk_assignment_reuses_one_all_progress_pass_for_a_grade(self) -> None:
-        device = _device()
-        automation = KhanKidsAutomation(
-            device,
-            student="Student A",
-            roster=("Student A", "Student B"),
-            scratch=Path("/tmp/not-used"),
-        )
+        device, automation = _automation()
         progress = ET.Element("progress")
         top = ET.Element("top")
         first_dialog = ET.Element("first-dialog")
@@ -379,6 +303,17 @@ def _device() -> Mock:
     return device
 
 
+def _automation() -> tuple[Mock, KhanKidsAutomation]:
+    device = _device()
+    automation = KhanKidsAutomation(
+        device,
+        student="Student A",
+        roster=("Student A", "Student B"),
+        scratch=Path("/tmp/not-used"),
+    )
+    return device, automation
+
+
 def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
     root = ET.Element("hierarchy")
     parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
@@ -390,6 +325,15 @@ def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
             text=text,
         )
     return root
+
+
+def _roster_screen() -> ET.Element:
+    return _screen_with_text(
+        ("Students", Rect(300, 300, 700, 400)),
+        ("Add Students", Rect(1900, 400, 2300, 500)),
+        ("Student A", Rect(300, 500, 600, 600)),
+        ("Student B", Rect(1000, 500, 1300, 600)),
+    )
 
 
 def _add_control(root: ET.Element, rect: Rect) -> None:

@@ -13,6 +13,21 @@ from khan_kids.adb import AndroidDevice, AutomationError, run_command
 
 
 class AndroidDeviceTests(unittest.TestCase):
+    def _run_awake_session(
+        self, rotation_state: bytes, *, fail: bool = False
+    ) -> tuple[AndroidDevice, object]:
+        device = AndroidDevice("test-device")
+        command_patch = patch.object(device, "command")
+        with command_patch as command, patch("khan_kids.adb.time.sleep"):
+            command.side_effect = [b"120000\n", b"0\n", rotation_state, *([b""] * 10)]
+            if fail:
+                with self.assertRaisesRegex(RuntimeError, "test failure"), device.awake_session():
+                    raise RuntimeError("test failure")
+            else:
+                with device.awake_session():
+                    pass
+        return device, command
+
     def test_failed_command_becomes_concise_automation_error(self) -> None:
         with patch("khan_kids.adb.subprocess.run") as run:
             run.side_effect = subprocess.CalledProcessError(
@@ -22,67 +37,51 @@ class AndroidDeviceTests(unittest.TestCase):
             with self.assertRaisesRegex(AutomationError, "device offline"):
                 run_command(("adb", "get-state"), capture=True)
 
-    def test_awake_session_restores_settings_after_failure(self) -> None:
-        device = AndroidDevice("test-device")
-        with (
-            patch.object(device, "command") as command,
-            patch("khan_kids.adb.time.sleep"),
-        ):
-            command.side_effect = [
-                b"120000\n",
-                b"0\n",
-                b"1\n",
-                b"0\n",
-                *([b""] * 10),
-            ]
-            with self.assertRaisesRegex(RuntimeError, "test failure"), device.awake_session():
-                raise RuntimeError("test failure")
+    def test_awake_session_atomically_locks_landscape_and_restores_auto_rotation(self) -> None:
+        _device, command = self._run_awake_session(b"free\n", fail=True)
 
-        self.assertIn(
-            ("shell", "wm", "set-ignore-orientation-request", "false"),
-            [call.args for call in command.call_args_list],
+        calls = [call.args for call in command.call_args_list]
+        landscape_lock = ("shell", "wm", "user-rotation", "lock", "3")
+        compatibility_override = (
+            "shell",
+            "wm",
+            "set-ignore-orientation-request",
+            "false",
         )
+        self.assertIn(landscape_lock, calls)
+        self.assertIn(compatibility_override, calls)
+        self.assertLess(calls.index(landscape_lock), calls.index(compatibility_override))
         self.assertEqual(
-            command.call_args_list[-4].args,
+            command.call_args_list[-3].args,
             ("shell", "settings", "put", "system", "screen_off_timeout", "120000"),
         )
         self.assertEqual(
-            command.call_args_list[-3].args,
+            command.call_args_list[-2].args,
             ("shell", "settings", "put", "global", "stay_on_while_plugged_in", "0"),
         )
         self.assertEqual(
-            command.call_args_list[-2].args,
-            ("shell", "settings", "put", "system", "accelerometer_rotation", "1"),
-        )
-        self.assertEqual(
             command.call_args_list[-1].args,
-            ("shell", "settings", "put", "system", "user_rotation", "0"),
+            ("shell", "wm", "user-rotation", "free"),
         )
 
-    def test_awake_session_restores_fixed_rotation_before_lock(self) -> None:
+    def test_awake_session_restores_prior_fixed_rotation(self) -> None:
+        _device, command = self._run_awake_session(b"lock 1\n")
+
+        self.assertEqual(
+            command.call_args_list[-1].args,
+            ("shell", "wm", "user-rotation", "lock", "1"),
+        )
+
+    def test_awake_session_rejects_unrecognized_rotation_state(self) -> None:
         device = AndroidDevice("test-device")
-        with (
-            patch.object(device, "command") as command,
-            patch("khan_kids.adb.time.sleep"),
+        with patch.object(
+            device,
+            "command",
+            side_effect=[b"120000\n", b"0\n", b"unexpected\n"],
         ):
-            command.side_effect = [
-                b"120000\n",
-                b"0\n",
-                b"0\n",
-                b"1\n",
-                *([b""] * 10),
-            ]
-            with device.awake_session():
-                pass
-
-        self.assertEqual(
-            command.call_args_list[-2].args,
-            ("shell", "settings", "put", "system", "user_rotation", "1"),
-        )
-        self.assertEqual(
-            command.call_args_list[-1].args,
-            ("shell", "settings", "put", "system", "accelerometer_rotation", "0"),
-        )
+            with self.assertRaisesRegex(AutomationError, "Unexpected Android user-rotation"):
+                with device.awake_session():
+                    pass
 
     def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)

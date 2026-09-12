@@ -61,8 +61,10 @@ EXPECTED_BEGINNING_QUARANTINE_QUEUE = PRE_QUARANTINE_QUEUE - {
 }
 EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
     ("Words: End Sound", "Main"),
-    ("Short Vowel Sound u", "Main"),
+    ("Words with m & n", "Main"),
+    ("Short Vowel Sound a", "Main"),
 } | {
+    ("Short Vowel Sound a", "Practice 1"),
     ("Short Vowel Sound e", "Main"),
     ("Short Vowel Sound o", "Basic"),
 }
@@ -80,6 +82,24 @@ class WorkflowTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.catalog = CatalogIndex(CATALOG_PATH)
         cls.curriculum = ReadingCurriculum.load(CURRICULUM_PATH, cls.catalog)
+
+    def _plan_payload(
+        self,
+        snapshot: AssignmentSnapshot,
+        plan: QueuePlan,
+        day: int,
+        **details: object,
+    ) -> dict[str, object]:
+        return create_plan_payload(
+            student="Student A",
+            snapshot=snapshot,
+            plan=plan,
+            curriculum=self.curriculum,
+            catalog_path=CATALOG_PATH,
+            curriculum_path=CURRICULUM_PATH,
+            generated_at=datetime(2026, 9, day),
+            **details,
+        )
 
     def test_current_records_preserve_the_diverse_ten_item_queue(self) -> None:
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
@@ -115,8 +135,7 @@ class WorkflowTests(unittest.TestCase):
         )
 
     def test_quarantine_removes_every_variant_of_a_family_and_refills_queue(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        scores = _historical_planner_scores()
 
         plan = build_queue_plan(
             self.curriculum,
@@ -141,8 +160,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(all("quarantined" in action.reason for action in removals))
 
     def test_queue_target_relaxes_diversity_cap_when_quarantines_leave_nine(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        scores = _historical_planner_scores()
         current = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {("Words: End Sound", "Main")}
         quarantined = QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
 
@@ -162,8 +180,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("queue-target fallback", addition.reason)
 
     def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        scores = _historical_planner_scores()
         current = set(PRE_QUARANTINE_QUEUE)
 
         untouched = build_queue_plan(self.curriculum, scores, current)
@@ -180,8 +197,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("deferred for retry", removal.reason)
 
     def test_deferred_stretch_becomes_eligible_after_supporting_mastery(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        scores = _historical_planner_scores()
         scores[("Words with f, g, h", "Main")] = (65,)
         blend_track = next(
             track for track in self.curriculum.tracks if track.track_id == "three_phoneme_blending"
@@ -194,8 +210,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn(("Words with f, g, h", "Main"), {activity.key for activity in plan.desired})
 
     def test_completed_vowel_track_rotates_in_next_deferred_vowel(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
-        scores.pop(("Short Vowel Sound e", "Basic"), None)
+        scores = _historical_planner_scores()
         short_a = next(
             track for track in self.curriculum.tracks if track.track_id == "short_a_cvc_middle"
         )
@@ -265,15 +280,11 @@ class WorkflowTests(unittest.TestCase):
         snapshot = _snapshot(score=92)
         current = {(row.title, row.variant) for row in snapshot.rows}
         plan = build_queue_plan(self.curriculum, {}, current)
-        payload = create_plan_payload(
-            student="Student A",
-            snapshot=snapshot,
-            plan=plan,
-            curriculum=self.curriculum,
-            catalog_path=CATALOG_PATH,
-            curriculum_path=CURRICULUM_PATH,
+        payload = self._plan_payload(
+            snapshot,
+            plan,
+            9,
             new_attempt_records=0,
-            generated_at=datetime(2026, 9, 9),
         )
         self.assertEqual(payload["path_id"], "minimum-viable-reading-path-v1")
 
@@ -291,15 +302,11 @@ class WorkflowTests(unittest.TestCase):
         snapshot = AssignmentSnapshot((), ())
         scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
         plan = build_queue_plan(self.curriculum, scores, set())
-        payload = create_plan_payload(
-            student="Student A",
-            snapshot=snapshot,
-            plan=plan,
-            curriculum=self.curriculum,
-            catalog_path=CATALOG_PATH,
-            curriculum_path=CURRICULUM_PATH,
+        payload = self._plan_payload(
+            snapshot,
+            plan,
+            10,
             new_attempt_records=0,
-            generated_at=datetime(2026, 9, 10),
         )
 
         desired, _actions = validate_reviewed_plan(
@@ -316,15 +323,11 @@ class WorkflowTests(unittest.TestCase):
     def test_reviewed_plan_is_rejected_when_quarantine_state_changes(self) -> None:
         snapshot = AssignmentSnapshot((), ())
         plan = build_queue_plan(self.curriculum, {}, set())
-        payload = create_plan_payload(
-            student="Student A",
-            snapshot=snapshot,
-            plan=plan,
-            curriculum=self.curriculum,
-            catalog_path=CATALOG_PATH,
-            curriculum_path=CURRICULUM_PATH,
+        payload = self._plan_payload(
+            snapshot,
+            plan,
+            11,
             new_attempt_records=0,
-            generated_at=datetime(2026, 9, 11),
         )
         quarantine = LessonQuarantine(
             "Student A",
@@ -362,15 +365,11 @@ class WorkflowTests(unittest.TestCase):
             ),
             (),
         )
-        payload = create_plan_payload(
-            student="Student A",
-            snapshot=snapshot,
-            plan=plan,
-            curriculum=self.curriculum,
-            catalog_path=CATALOG_PATH,
-            curriculum_path=CURRICULUM_PATH,
+        payload = self._plan_payload(
+            snapshot,
+            plan,
+            9,
             new_attempt_records=1,
-            generated_at=datetime(2026, 9, 9),
             scores={("Blend Sounds 2", "Basic"): (85, 92, 94)},
             new_attempts=[
                 {
@@ -432,6 +431,33 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(len((temporary_path / "actions.csv").read_text().splitlines()), 3)
             self.assertTrue(args.apply_plan.exists())
             self.assertIn("Applied promotions", (temporary_path / "sync-log.md").read_text())
+
+
+def _historical_planner_scores() -> dict[tuple[str, str], tuple[int, ...]]:
+    """Freeze scenario tests at the score state their queue fixtures describe."""
+    return {
+        ("Beginning Sounds 2", "Basic"): (83, 70, 75, 79, 94),
+        ("Blend Sounds 1", "Basic"): (90, 80, 100, 100),
+        ("Blend Sounds 2", "Basic"): (85, 92, 92),
+        ("Blend Sounds 2", "Main"): (69, 75, 100),
+        ("Blend Sounds 2", "Practice 1"): (67,),
+        ("Blend Syllables", "Basic"): (100,),
+        ("Blend Syllables", "Main"): (91, 94),
+        ("Blend Syllables", "Practice 1"): (100,),
+        ("Blend Syllables", "Practice 2"): (93, 100),
+        ("Ending Sound", "Basic"): (58,),
+        ("Make New Words", "Basic"): (92, 71, 100, 85, 92, 100),
+        ("Make New Words", "Main"): (92,),
+        ("Middle Sound", "Basic"): (50,),
+        ("Short Vowel Sound a", "Basic"): (89, 100),
+        ("Short Vowel Sound a", "Main"): (84,),
+        ("Short Vowel Sound i", "Basic"): (100,),
+        ("Short Vowel Sound u", "Basic"): (89, 100),
+        ("Word Families", "Basic"): (72, 69, 69),
+        ("Words with b, c, d", "Main"): (92, 39),
+        ("Words: End Sound", "Basic"): (100,),
+        ("Words: End Sound", "Main"): (83, 56, 68, 69),
+    }
 
 
 def _snapshot(*, score: int) -> AssignmentSnapshot:

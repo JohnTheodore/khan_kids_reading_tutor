@@ -2193,3 +2193,134 @@ None.
 | wait.profile chooser after switch user | 1 | 0.459 | 0.459 | 0.459 |
 | phase.plan_queue | 1 | 0.014 | 0.014 | 0.014 |
 | startup.connected | 1 | 0.007 | 0.007 | 0.007 |
+
+## 2026-09-12T17:04:36-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 3
+- Desired queue size: 10
+- Assignment changes: 6
+
+### New scores
+
+- Short Vowel Sound a — Main: 100% on 2026-09-12 (history: 84% → 100%)
+- Make New Words — Main: 88% on 2026-09-12 (history: 92% → 88%)
+- Words with m & n — Main: 58% on 2026-09-12 (history: 58%)
+
+### Score controls read
+
+- Short Vowel Sound a — Main: 100% on 2026-09-12, 84% on 2026-09-11
+- Blend Sounds 2 — Practice 1: 67% on 2026-09-11
+- Make New Words — Main: 88% on 2026-09-12, 92% on 2026-09-11
+- Beginning Sounds 2 — Basic: 94% on 2026-09-12, 94% on 2026-09-12, 79% on 2026-09-11, 75% on 2026-09-09, 70% on 2026-09-09, 83% on 2026-09-08
+- Words with m & n — Main: 58% on 2026-09-12
+
+### Mastered
+
+- Beginning Sounds 2 — Basic
+  - Scores: 83% → 70% → 75% → 79% → 94% → 94%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Beginning Sounds 2 — Main
+- Short Vowel Sound a — Main
+  - Scores: 84% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound a — Practice 1
+
+### Applied unchecks
+
+- Beginning Sounds 2 — Basic
+  - Scores: 83% → 70% → 75% → 79% → 94% → 94%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Beginning Sounds 2 — Main
+- Short Vowel Sound a — Main
+  - Scores: 84% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound a — Practice 1
+- Words with m & n — Main
+  - Scores: 58%
+  - Why: Deferred for retry: latest stretch attempt is below 70% (58%); waiting for supporting mastery
+
+### Applied promotions
+
+- Beginning Sounds 2 — Basic → Beginning Sounds 2 — Main
+- Short Vowel Sound a — Main → Short Vowel Sound a — Practice 1
+
+### Applied additions
+
+- Short Vowel Sound a — Practice 1: Next difficulty after Short Vowel Sound a — Main met the mastery rule.
+- Short Vowel Sound u — Main: Queue-target fallback beyond the normal diversity cap: first unmastered activity in short u cvc middle
+- Beginning Sounds 2 — Main: Next difficulty after Beginning Sounds 2 — Basic met the mastery rule.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Desired queue
+
+- Blend Sounds 2 — Practice 1
+- Make New Words — Main
+- Short Vowel Sound a — Practice 1
+- Short Vowel Sound i — Main
+- Short Vowel Sound e — Main
+- Short Vowel Sound o — Basic
+- Short Vowel Sound u — Main
+- Words with b & d — Main
+- Blend Sounds 1 — Main
+- Beginning Sounds 2 — Main
+
+### Stretch slots
+
+- Words with b & d — Main
+- Blend Sounds 1 — Main
+- Beginning Sounds 2 — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Practice 1: not_mastered (67%)
+- Make New Words — Main: not_mastered (92%, 88%)
+- Short Vowel Sound a — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound i — Main: not_mastered (not attempted)
+- Short Vowel Sound e — Main: not_mastered (not attempted)
+- Short Vowel Sound o — Basic: not_mastered (not attempted)
+- Short Vowel Sound u — Main: not_mastered (not attempted)
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 118.17 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 80 | 67.885 | 0.849 | 1.88 |
+| phase.batch_add | 1 | 45.267 | 45.267 | 45.267 |
+| workflow.scan_assignments | 2 | 31.513 | 15.756 | 25.804 |
+| phase.review_assignments | 1 | 25.804 | 25.804 | 25.804 |
+| phase.bulk_remove | 1 | 23.615 | 23.615 | 23.615 |
+| adb.tap | 39 | 13.718 | 0.352 | 5.425 |
+| wait.stable Khan navigation state | 5 | 10.282 | 2.056 | 6.124 |
+| adb.screenshot | 12 | 8.407 | 0.701 | 1.237 |
+| adb.swipe | 15 | 7.875 | 0.525 | 0.632 |
+| startup.launch | 1 | 6.907 | 6.907 | 6.907 |
+| phase.final_verify | 1 | 5.709 | 5.709 | 5.709 |
+| wait.lesson variants | 3 | 4.818 | 1.606 | 1.882 |
+| wait.score dialog | 5 | 4.723 | 0.945 | 1.361 |
+| wait.score dialog closed | 5 | 4.365 | 0.873 | 1.384 |
+| adb.keyevent | 19 | 4.045 | 0.213 | 0.349 |
+| wait.assignment dialog | 6 | 3.956 | 0.659 | 0.859 |
+| teardown.switch_user | 1 | 3.673 | 3.673 | 3.673 |
+| wait.assignment saved | 6 | 3.247 | 0.541 | 1.262 |
+| adb.other | 8 | 2.633 | 0.329 | 1.228 |
+| wait.assignments report | 2 | 2.324 | 1.162 | 1.672 |
+| adb.settings | 11 | 2.175 | 0.198 | 0.246 |
+| wait.teacher roster after login | 1 | 1.771 | 1.771 | 1.771 |
+| startup.ui_backend | 1 | 1.361 | 1.361 | 1.361 |
+| wait.parent password dialog | 1 | 0.727 | 0.727 | 0.727 |
+| wait.teacher roster before switch user | 1 | 0.714 | 0.714 | 0.714 |
+| wait.all progress report | 1 | 0.678 | 0.678 | 0.678 |
+| wait.profile chooser after switch user | 1 | 0.556 | 0.556 | 0.556 |
+| startup.connected | 1 | 0.024 | 0.024 | 0.024 |
+| phase.plan_queue | 1 | 0.009 | 0.009 | 0.009 |
