@@ -57,12 +57,7 @@ class AutomationTests(unittest.TestCase):
         device, automation = _automation()
         blank = _screen_with_text()
         incomplete = _screen_with_text(("dad", Rect(100, 100, 300, 160)))
-        chooser = _screen_with_text(
-            ("dad", Rect(100, 100, 300, 160)),
-            ("Student A", Rect(400, 100, 600, 160)),
-            ("Student B", Rect(700, 100, 900, 160)),
-            ("Sign Out", Rect(2200, 1400, 2500, 1550)),
-        )
+        chooser = _chooser_screen()
         device.hierarchy.side_effect = (blank, incomplete, chooser, chooser)
 
         with patch("khan_kids.automation.time.sleep"):
@@ -91,12 +86,7 @@ class AutomationTests(unittest.TestCase):
 
     def test_navigation_state_change_resets_stability(self) -> None:
         device, automation = _automation()
-        chooser = _screen_with_text(
-            ("dad", Rect(100, 100, 300, 160)),
-            ("Student A", Rect(400, 100, 600, 160)),
-            ("Student B", Rect(700, 100, 900, 160)),
-            ("Sign Out", Rect(2200, 1400, 2500, 1550)),
-        )
+        chooser = _chooser_screen()
         password = _screen_with_text(
             ("Enter Password", Rect(900, 100, 1600, 200)),
             ("Enter", Rect(1100, 440, 1400, 510)),
@@ -188,10 +178,8 @@ class AutomationTests(unittest.TestCase):
             ("Student B", Rect(1400, 500, 1700, 800)),
             ("Sign Out", Rect(2200, 1400, 2500, 1550)),
         )
-        automation._wait_for_navigation_state = Mock(
-            return_value=(report, "assignments_report")
-        )
-        automation._wait_for_root = Mock(side_effect=(roster, chooser))
+        automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
+        automation._wait_for_navigation_target = Mock(side_effect=(roster, chooser))
 
         result = automation.return_to_profile_chooser()
 
@@ -204,9 +192,7 @@ class AutomationTests(unittest.TestCase):
     def test_return_to_profile_chooser_is_no_op_when_already_there(self) -> None:
         device, automation = _automation()
         chooser = _screen_with_text()
-        automation._wait_for_navigation_state = Mock(
-            return_value=(chooser, "profile_chooser")
-        )
+        automation._wait_for_navigation_state = Mock(return_value=(chooser, "profile_chooser"))
 
         self.assertIs(automation.return_to_profile_chooser(), chooser)
         device.tap_rect.assert_not_called()
@@ -216,12 +202,51 @@ class AutomationTests(unittest.TestCase):
         report = _screen_with_text()
         _add_control(report, REPORT_BACK_RECT)
         roster = _roster_screen()
-        automation._wait_for_navigation_state = Mock(
-            return_value=(report, "assignments_report")
-        )
-        automation._wait_for_root = Mock(return_value=roster)
+        automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
+        automation._wait_for_navigation_target = Mock(return_value=roster)
 
         with self.assertRaisesRegex(AutomationError, "Switch User"):
+            automation.return_to_profile_chooser()
+
+        device.tap_rect.assert_called_once_with(REPORT_BACK_RECT)
+
+    def test_return_to_profile_chooser_retries_switch_user_from_fresh_roster(self) -> None:
+        device, automation = _automation()
+        report = _screen_with_text()
+        _add_control(report, REPORT_BACK_RECT)
+        first_roster = _roster_screen()
+        _add_control(first_roster, SWITCH_USER_RECT)
+        fresh_roster = _roster_screen()
+        _add_control(fresh_roster, SWITCH_USER_RECT)
+        chooser = _screen_with_text()
+        automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
+        automation._wait_for_navigation_target = Mock(
+            side_effect=(
+                first_roster,
+                AutomationError("transition timeout"),
+                chooser,
+            )
+        )
+        automation.live_root = Mock(return_value=fresh_roster)
+
+        self.assertIs(automation.return_to_profile_chooser(), chooser)
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [call(REPORT_BACK_RECT), call(SWITCH_USER_RECT), call(SWITCH_USER_RECT)],
+        )
+
+    def test_return_to_profile_chooser_fails_closed_on_unexpected_screen(self) -> None:
+        device, automation = _automation()
+        report = _screen_with_text()
+        _add_control(report, REPORT_BACK_RECT)
+        unexpected = _screen_with_text()
+        automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
+        automation._wait_for_navigation_target = Mock(
+            side_effect=AutomationError("transition timeout")
+        )
+        automation.live_root = Mock(return_value=unexpected)
+
+        with self.assertRaisesRegex(AutomationError, "unexpected navigation state None"):
             automation.return_to_profile_chooser()
 
         device.tap_rect.assert_called_once_with(REPORT_BACK_RECT)
@@ -333,6 +358,15 @@ def _roster_screen() -> ET.Element:
         ("Add Students", Rect(1900, 400, 2300, 500)),
         ("Student A", Rect(300, 500, 600, 600)),
         ("Student B", Rect(1000, 500, 1300, 600)),
+    )
+
+
+def _chooser_screen() -> ET.Element:
+    return _screen_with_text(
+        ("dad", Rect(100, 100, 300, 160)),
+        ("Student A", Rect(400, 100, 600, 160)),
+        ("Student B", Rect(700, 100, 900, 160)),
+        ("Sign Out", Rect(2200, 1400, 2500, 1550)),
     )
 
 

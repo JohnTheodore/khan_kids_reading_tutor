@@ -624,7 +624,12 @@ On successful completion, mastery sync stays inside the running Khan Kids app:
 it uses the app's own **Back** control to return from Class Reports to Teacher
 Tools, selects **Switch User**, and verifies the profile chooser. It does not
 stop or relaunch Khan Kids during teardown. Both image-backed controls are used
-only after their surrounding screen and exact bounds have been validated.
+only after their surrounding screen and exact bounds have been validated. Each
+transition must produce two consecutive reads of the expected destination. If
+Khan drops a tap or its accessibility tree is late, teardown re-reads the live
+source screen and retries the guarded control up to three times, allowing 12
+seconds per attempt. It still stops immediately if any unexpected screen
+appears.
 
 Run a read-only review with:
 
@@ -712,11 +717,23 @@ score are unchanged; use `--full-score-scan` to disable that review cache too.
 Use `--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
 stretch policy are described in [`reading-path.md`](reading-path.md).
 
+Queue reconciliation is idempotent: a verified mastery action is durable and
+cannot regress merely because its predecessor is no longer assigned and its
+live score dialog is unavailable. Complete live histories are reconciled by
+occurrence count, so two identical scores on the same date remain two attempts
+without being appended again on the next scan. The assignment-action ledger
+records each actual mutation with a unique timestamp. An operating-system lock
+allows only one reading workflow to use the tablet and its local records at a
+time; a concurrent invocation fails before opening the app.
+
 Every workflow failure from `khan-mastery-sync` also appends a distinct,
 secret-safe entry to [`INCIDENTS.md`](INCIDENTS.md) before returning a nonzero
 status. Automatic diagnostics redact common device-address, pairing-code, and
 local-home-path forms. A failure remains fail-closed: the incident is a record
-for diagnosis, not permission to continue from an unrecognized screen.
+for diagnosis, not permission to continue from an unrecognized screen. If the
+data phase completed before teardown failed, its saved outcome and full terminal
+report remain authoritative; the error and incident explicitly identify the
+later teardown failure, and timing data is still persisted.
 
 When changes are needed, removals use one Assignments traversal and additions
 are sorted into archive order and applied in one forward All Progress traversal
@@ -784,9 +801,11 @@ repository location first, so they can be invoked by absolute path from another
 working directory.
 
 Khan's report provides dates and percentages but no attempt timestamp or
-stable attempt ID. Therefore, two genuinely separate attempts with the same
-lesson, variant, date, and percentage are indistinguishable and are stored as
-one record. The command never interprets a blank result as zero.
+stable attempt ID. The workflow therefore reconciles the multiplicity of each
+lesson/variant/date/percentage tuple against the complete live history. Two
+identical displayed attempts are stored as two occurrences, while rescanning
+that unchanged pair adds nothing. The command never interprets a blank result
+as zero.
 
 ## Test the tools
 

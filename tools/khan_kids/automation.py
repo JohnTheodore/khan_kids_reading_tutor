@@ -27,6 +27,8 @@ from .vision import CheckboxReading, CheckboxState, read_checkbox
 SCROLL_DURATION_MS = 300
 REPORT_BACK_RECT = Rect(38, 38, 171, 171)
 SWITCH_USER_RECT = Rect(2259, 12, 2529, 74)
+TEARDOWN_NAVIGATION_ATTEMPTS = 3
+TEARDOWN_NAVIGATION_TIMEOUT_SECONDS = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,7 +113,7 @@ class KhanKidsAutomation:
         return root
 
     def return_to_profile_chooser(self) -> ET.Element:
-        """Leave Teacher view through Khan's UI without restarting the app."""
+        """Leave Teacher view through Khan's UI, retrying dropped navigation taps."""
         root, state = self._wait_for_navigation_state()
         if state == "profile_chooser":
             return root
@@ -120,25 +122,70 @@ class KhanKidsAutomation:
                 f"Cannot safely leave Teacher view from navigation state {state!r}"
             )
 
-        self.device.tap_rect(
-            _guarded_unlabeled_control(root, REPORT_BACK_RECT, "Class Report back")
+        roster = self._tap_until_navigation_target(
+            root,
+            source_state=state,
+            target_state="teacher_roster",
+            control_rect=REPORT_BACK_RECT,
+            control_name="Class Report back",
         )
-        roster = self._wait_for_root(
-            self._is_teacher_roster,
-            description="teacher roster before switch user",
+        return self._tap_until_navigation_target(
+            roster,
+            source_state="teacher_roster",
+            target_state="profile_chooser",
+            control_rect=SWITCH_USER_RECT,
+            control_name="Switch User",
+        )
+
+    def _tap_until_navigation_target(
+        self,
+        root: ET.Element,
+        *,
+        source_state: str,
+        target_state: str,
+        control_rect: Rect,
+        control_name: str,
+    ) -> ET.Element:
+        """Retry a guarded Khan control only while the source screen remains intact."""
+        for _attempt in range(TEARDOWN_NAVIGATION_ATTEMPTS):
+            self.device.tap_rect(_guarded_unlabeled_control(root, control_rect, control_name))
+            try:
+                return self._wait_for_navigation_target(
+                    target_state,
+                    timeout=TEARDOWN_NAVIGATION_TIMEOUT_SECONDS,
+                )
+            except AutomationError:
+                root = self.live_root()
+                state = self._navigation_state(root)
+            if state == target_state:
+                return root
+            if state != source_state:
+                raise AutomationError(
+                    f"{control_name} reached unexpected navigation state {state!r}"
+                )
+        raise AutomationError(
+            f"{control_name} remained on {source_state!r} after "
+            f"{TEARDOWN_NAVIGATION_ATTEMPTS} guarded attempts"
+        )
+
+    def _wait_for_navigation_target(self, target_state: str, *, timeout: float) -> ET.Element:
+        """Require two consecutive reads of the requested post-tap screen."""
+        matching_reads = 0
+
+        def is_stable_target(root: ET.Element) -> bool:
+            nonlocal matching_reads
+            if self._navigation_state(root) == target_state:
+                matching_reads += 1
+            else:
+                matching_reads = 0
+            return matching_reads >= 2
+
+        return self._wait_for_root(
+            is_stable_target,
+            description=f"stable {target_state} after navigation",
+            timeout=timeout,
             persist=False,
         )
-        self.device.tap_rect(
-            _guarded_unlabeled_control(roster, SWITCH_USER_RECT, "Switch User")
-        )
-        chooser = self._wait_for_root(
-            lambda candidate: self._is_profile_chooser(text_set(candidate)),
-            description="profile chooser after switch user",
-            persist=False,
-        )
-        if not self._is_profile_chooser(text_set(chooser)):
-            raise AutomationError("Switch User did not reach the profile chooser")
-        return chooser
 
     def _wait_for_navigation_state(
         self,

@@ -36,6 +36,7 @@ from khan_kids.records import (
     ATTEMPT_ID_FIELDS,
     append_unique_rows_with_records,
     read_attempt_scores,
+    read_mastered_action_keys,
     record_action,
     write_json_atomic,
 )
@@ -48,9 +49,11 @@ from khan_kids.sync_report import (
 )
 from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
+from khan_kids.workflow_lock import exclusive_workflow_lock
 
-PLAN_VERSION = 2
+PLAN_VERSION = 3
 INCIDENT_LOG_PATH = Path("INCIDENTS.md")
+WORKFLOW_LOCK_PATH = Path("private/.reading-workflow.lock")
 
 
 def create_plan_payload(
@@ -66,12 +69,14 @@ def create_plan_payload(
     scores: dict[tuple[str, str], tuple[int, ...]] | None = None,
     new_attempts: list[dict[str, str]] | None = None,
     active_quarantines: tuple[LessonQuarantine, ...] = (),
+    mastered_keys: set[tuple[str, str]] | None = None,
     score_scan_mode: str = "cache_eligible",
 ) -> dict[str, object]:
     stretch_keys = {
         activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
     }
     score_map = scores or {}
+    mastered_keys = mastered_keys or set()
     relevant_keys = dict.fromkeys(
         [action.key for action in plan.actions] + [activity.key for activity in plan.desired]
     )
@@ -113,6 +118,7 @@ def create_plan_payload(
         ],
         "active_quarantines": [record.as_dict() for record in active_quarantines],
         "quarantine_state_sha256": _quarantine_digest(active_quarantines),
+        "mastery_state_sha256": _mastery_digest(mastered_keys),
         "observed_assignments": [
             {
                 "title": row.title,
@@ -129,7 +135,12 @@ def create_plan_payload(
         "actions": [action.as_dict() for action in plan.actions],
         "track_states": [_track_payload(state) for state in plan.tracks],
         "score_evidence": [
-            _score_evidence_payload(title, variant, score_map.get((title, variant), ()))
+            _score_evidence_payload(
+                title,
+                variant,
+                score_map.get((title, variant), ()),
+                mastered=(title, variant) in mastered_keys,
+            )
             for title, variant in relevant_keys
         ],
     }
@@ -144,6 +155,7 @@ def validate_reviewed_plan(
     curriculum_path: Path,
     curriculum: ReadingCurriculum,
     active_quarantines: tuple[LessonQuarantine, ...] = (),
+    mastered_keys: set[tuple[str, str]] | None = None,
 ) -> tuple[tuple[Activity, ...], tuple[QueueAction, ...]]:
     _validate_plan_metadata(
         payload,
@@ -156,6 +168,8 @@ def validate_reviewed_plan(
         raise AutomationError("Reviewed plan is stale; changed inputs: observed_state_sha256")
     if payload.get("quarantine_state_sha256") != _quarantine_digest(active_quarantines):
         raise AutomationError("Reviewed plan is stale; changed inputs: quarantine_state_sha256")
+    if payload.get("mastery_state_sha256") != _mastery_digest(mastered_keys or set()):
+        raise AutomationError("Reviewed plan is stale; changed inputs: mastery_state_sha256")
 
     raw_desired = payload.get("desired_assignments")
     raw_actions = payload.get("actions")
@@ -289,6 +303,7 @@ def main() -> None:
     active_quarantines = read_active_quarantines(
         quarantine_path, student=args.student, today=args.today
     )
+    mastered_keys = read_mastered_action_keys(actions_path, args.student)
     reviewed_payload = None
     if args.apply_plan:
         reviewed_payload = _read_object(args.apply_plan)
@@ -303,6 +318,7 @@ def main() -> None:
     device = AndroidDevice(args.serial, timing=timing)
     history_cache = HistoryCache.load(cache_path, student=args.student, today=args.today)
     output_payload: dict[str, object]
+    teardown_error: AutomationError | None = None
     output_plan_path = args.apply_plan or plan_path
     with timing.span("startup.connected"):
         device.assert_connected()
@@ -339,6 +355,7 @@ def main() -> None:
                 curriculum=curriculum,
                 catalog=catalog,
                 active_quarantines=active_quarantines,
+                mastered_keys=mastered_keys,
                 plan_path=args.apply_plan,
             )
         else:
@@ -353,9 +370,20 @@ def main() -> None:
                 report_path=report_path,
                 plan_path=plan_path,
                 active_quarantines=active_quarantines,
+                mastered_keys=mastered_keys,
             )
-        with timing.span("teardown.switch_user"):
-            automation.return_to_profile_chooser()
+        try:
+            with timing.span("teardown.switch_user"):
+                automation.return_to_profile_chooser()
+        except Exception as error:
+            output_payload["teardown"] = {
+                "status": "failed",
+                "error": str(error),
+            }
+            teardown_error = AutomationError(
+                "Teardown failed after the sync outcome "
+                f"{output_payload['status']!r} had already been saved: {error}"
+            )
 
     timing_snapshot = timing.snapshot()
     output_payload["performance"] = {
@@ -384,6 +412,8 @@ def main() -> None:
                 color=terminal_color_enabled(args.color, sys.stdout),
             )
         )
+    if teardown_error is not None:
+        raise teardown_error
 
 
 def _review_snapshot(
@@ -398,6 +428,7 @@ def _review_snapshot(
     report_path: Path,
     plan_path: Path,
     active_quarantines: tuple[LessonQuarantine, ...],
+    mastered_keys: set[tuple[str, str]],
 ) -> dict[str, object]:
     with automation.device.timing.span("phase.plan_queue"):
         preferred_grades = {
@@ -411,12 +442,14 @@ def _review_snapshot(
             ATTEMPT_FIELDS,
             attempt_rows,
             identity_fields=ATTEMPT_ID_FIELDS,
+            reconcile_occurrences=True,
         )
         scores = overlay_live_scores(
             read_attempt_scores(attempts_path, args.student), snapshot.histories
         )
         active_quarantines = append_low_score_quarantines(
-            args.quarantines or Path(
+            args.quarantines
+            or Path(
                 f"student-records/{args.student.casefold().replace(' ', '-')}-lesson-quarantines.csv"
             ),
             student=args.student,
@@ -438,6 +471,7 @@ def _review_snapshot(
             scores,
             current,
             quarantined_titles=quarantine_reasons,
+            mastered_keys=mastered_keys,
         )
         payload = create_plan_payload(
             student=args.student,
@@ -451,6 +485,7 @@ def _review_snapshot(
             scores=scores,
             new_attempts=appended_rows,
             active_quarantines=active_quarantines,
+            mastered_keys=mastered_keys,
             score_scan_mode=(
                 "live_all_available" if args.sync or args.full_score_scan else "cache_eligible"
             ),
@@ -473,6 +508,7 @@ def _review_snapshot(
             curriculum=curriculum,
             catalog=catalog,
             active_quarantines=active_quarantines,
+            mastered_keys=mastered_keys,
             plan_path=plan_path,
         )
     append_sync_report(report_path, payload)
@@ -490,6 +526,7 @@ def _apply_reviewed_plan(
     curriculum: ReadingCurriculum,
     catalog: CatalogIndex,
     active_quarantines: tuple[LessonQuarantine, ...] = (),
+    mastered_keys: set[tuple[str, str]] | None = None,
     plan_path: Path | None = None,
 ) -> dict[str, object]:
     plan_path = plan_path or args.apply_plan
@@ -503,6 +540,7 @@ def _apply_reviewed_plan(
         curriculum_path=args.curriculum,
         curriculum=curriculum,
         active_quarantines=active_quarantines,
+        mastered_keys=mastered_keys,
     )
     if len(actions) > args.max_actions:
         raise AutomationError(
@@ -605,14 +643,22 @@ def _score_evidence_payload(
     title: str,
     variant: str,
     scores: tuple[int, ...],
+    *,
+    mastered: bool = False,
 ) -> dict[str, object]:
     decision = evaluate_mastery(scores)
+    if mastered and decision.status.value != "mastered":
+        reason = "mastery was preserved from a previously verified assignment action"
+        status = "mastered"
+    else:
+        reason = decision.reason
+        status = decision.status.value
     return {
         "title": title,
         "variant": variant,
         "scores": list(decision.scores),
-        "status": decision.status.value,
-        "reason": decision.reason,
+        "status": status,
+        "reason": reason,
     }
 
 
@@ -650,6 +696,11 @@ def _quarantine_digest(records: tuple[LessonQuarantine, ...]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def _mastery_digest(keys: set[tuple[str, str]]) -> str:
+    canonical = json.dumps(sorted(keys), separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 def _history_lookup_for_run(args: argparse.Namespace, history_cache: HistoryCache):
     """Mastery syncs must open every available live score control."""
     if args.sync or args.full_score_scan:
@@ -659,7 +710,8 @@ def _history_lookup_for_run(args: argparse.Namespace, history_cache: HistoryCach
 
 def cli() -> None:
     try:
-        main()
+        with exclusive_workflow_lock(WORKFLOW_LOCK_PATH):
+            main()
     except Exception as error:
         incident_line = ""
         if "--sync" in sys.argv:

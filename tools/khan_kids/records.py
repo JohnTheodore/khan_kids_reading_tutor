@@ -6,8 +6,9 @@ import csv
 import json
 import os
 import tempfile
+from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 ATTEMPT_FIELDS = (
@@ -38,6 +39,7 @@ ACTION_FIELDS = (
     "activity_variant",
     "reason",
     "result",
+    "recorded_at",
 )
 
 
@@ -86,8 +88,9 @@ def append_unique_rows_with_records(
     rows: Iterable[Mapping[str, object]],
     *,
     identity_fields: Sequence[str],
+    reconcile_occurrences: bool = False,
 ) -> list[dict[str, str]]:
-    """Atomically append unique records and return the normalized additions."""
+    """Append missing identities, optionally preserving their observed multiplicity."""
     path.parent.mkdir(parents=True, exist_ok=True)
     existing: list[dict[str, str]] = []
     if path.exists():
@@ -98,13 +101,20 @@ def append_unique_rows_with_records(
                     f"Unexpected columns in {path}: {reader.fieldnames!r}; expected {list(fieldnames)!r}"
                 )
             existing = list(reader)
-    identities = {tuple(record[field] for field in identity_fields) for record in existing}
+    existing_counts = Counter(
+        tuple(record.get(field) or "" for field in identity_fields) for record in existing
+    )
+    observed_counts: Counter[tuple[str, ...]] = Counter()
     additions: list[dict[str, str]] = []
     for row in rows:
         normalized = {field: str(row.get(field, "")) for field in fieldnames}
         identity = tuple(normalized[field] for field in identity_fields)
-        if identity not in identities:
-            identities.add(identity)
+        observed_counts[identity] += 1
+        if (
+            observed_counts[identity] > existing_counts[identity]
+            if reconcile_occurrences
+            else existing_counts[identity] == 0 and observed_counts[identity] == 1
+        ):
             additions.append(normalized)
     if not additions:
         return []
@@ -130,6 +140,7 @@ def record_action(
     variant: str,
     reason: str,
     result: str,
+    recorded_at: datetime | None = None,
 ) -> None:
     append_unique_rows(
         path,
@@ -143,10 +154,34 @@ def record_action(
                 "activity_variant": variant,
                 "reason": reason,
                 "result": result,
+                "recorded_at": (recorded_at or datetime.now().astimezone()).isoformat(
+                    timespec="microseconds"
+                ),
             }
         ],
-        identity_fields=("action_date", "student", "action", "lesson_title", "activity_variant"),
+        identity_fields=("recorded_at",),
     )
+
+
+def read_mastered_action_keys(path: Path, student: str) -> set[tuple[str, str]]:
+    """Return every lesson variant whose successful removal recorded mastery."""
+    if not path.exists():
+        return set()
+    with path.open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames != list(ACTION_FIELDS):
+            raise ValueError(
+                f"Unexpected columns in {path}: {reader.fieldnames!r}; "
+                f"expected {list(ACTION_FIELDS)!r}"
+            )
+        return {
+            (row["lesson_title"], row["activity_variant"])
+            for row in reader
+            if row["student"] == student
+            and row["action"] == "unchecked"
+            and row["reason"].casefold().startswith("mastered:")
+            and row["result"].casefold().startswith("saved")
+        }
 
 
 def read_attempt_scores(path: Path, student: str) -> dict[tuple[str, str], tuple[int, ...]]:

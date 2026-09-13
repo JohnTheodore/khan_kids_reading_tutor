@@ -53,12 +53,7 @@ def render_sync_report(payload: dict[str, object]) -> str:
     timestamp = str(
         payload.get("applied_at") or payload.get("interrupted_at") or payload["generated_at"]
     )
-    actions = _reported_actions(payload)
-    removals = [action for action in actions if action.get("kind") == "remove"]
-    additions = [action for action in actions if action.get("kind") == "add"]
-    mastered = [
-        action for action in removals if str(action.get("reason", "")).startswith("mastered:")
-    ]
+    actions, removals, additions, mastered = _action_groups(payload)
     promoted = [action for action in mastered if "; promote to " in str(action.get("reason", ""))]
     verb = {
         "applied": "Applied",
@@ -136,12 +131,7 @@ def terminal_color_enabled(mode: str, stream: TextIO) -> bool:
 def render_terminal_summary(payload: dict[str, object], *, color: bool = False) -> str:
     """Render the mandatory human-readable result printed after every successful run."""
     status = str(payload.get("status", "unknown"))
-    actions = _reported_actions(payload)
-    removals = [action for action in actions if action.get("kind") == "remove"]
-    additions = [action for action in actions if action.get("kind") == "add"]
-    mastered = [
-        action for action in removals if str(action.get("reason", "")).startswith("mastered:")
-    ]
+    actions, removals, additions, mastered = _action_groups(payload)
     desired = _object_list(payload.get("desired_assignments"))
     observed = _object_list(payload.get("observed_assignments"))
     quarantines = _object_list(payload.get("active_quarantines"))
@@ -257,6 +247,23 @@ def _reported_actions(payload: dict[str, object]) -> list[dict[str, object]]:
         for action in actions
         if (action.get("kind"), action.get("title"), action.get("variant")) in applied_keys
     ]
+
+
+def _action_groups(
+    payload: dict[str, object],
+) -> tuple[
+    list[dict[str, object]],
+    list[dict[str, object]],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
+    actions = _reported_actions(payload)
+    removals = [action for action in actions if action.get("kind") == "remove"]
+    additions = [action for action in actions if action.get("kind") == "add"]
+    mastered = [
+        action for action in removals if str(action.get("reason", "")).startswith("mastered:")
+    ]
+    return actions, removals, additions, mastered
 
 
 def _object_list(value: object) -> list[dict[str, object]]:

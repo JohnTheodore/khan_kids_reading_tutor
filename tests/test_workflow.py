@@ -18,7 +18,7 @@ from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.planner import QueueAction, QueuePlan, build_queue_plan
 from khan_kids.quarantine import LessonQuarantine
-from khan_kids.records import read_attempt_scores
+from khan_kids.records import read_attempt_scores, read_mastered_action_keys
 from khan_kids.reports import AssignmentRow, AssignmentSnapshot, ScoreAttempt, ScoreHistory
 from khan_kids.ui import Rect
 from khan_kids.workflow import histories_to_attempt_rows
@@ -63,10 +63,14 @@ EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
     ("Words: End Sound", "Main"),
     ("Words with m & n", "Main"),
     ("Short Vowel Sound a", "Main"),
-} | {
     ("Short Vowel Sound a", "Practice 1"),
-    ("Short Vowel Sound e", "Main"),
     ("Short Vowel Sound o", "Basic"),
+    ("Beginning Sounds 2", "Basic"),
+} | {
+    ("Words with a", "Main"),
+    ("Short Vowel Sound e", "Main"),
+    ("Short Vowel Sound o", "Main"),
+    ("Beginning Sounds 2", "Main"),
 }
 QUARANTINED_BEGINNING_TITLES = {
     "Words with b, c, d",
@@ -112,10 +116,50 @@ class WorkflowTests(unittest.TestCase):
                 title: "active quarantine"
                 for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
             },
+            mastered_keys=read_mastered_action_keys(
+                Path("student-records/student-a-assignment-actions.csv"), "Student A"
+            ),
         )
 
         self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_LIVE_QUEUE)
         self.assertEqual(plan.actions, ())
+
+    def test_verified_mastery_is_a_fixed_point_after_live_duplicate_disappears(self) -> None:
+        current = EXPECTED_LIVE_QUEUE - {("Beginning Sounds 2", "Main")} | {
+            ("Beginning Sounds 2", "Basic")
+        }
+        durable_scores = read_attempt_scores(
+            Path("student-records/student-a-lesson-attempts.csv"), "Student A"
+        )
+        live_scores = dict(durable_scores)
+        live_scores[("Beginning Sounds 2", "Basic")] = (83, 70, 75, 79, 94, 94)
+        quarantines = {
+            title: "active quarantine"
+            for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
+        }
+
+        first = build_queue_plan(
+            self.curriculum,
+            live_scores,
+            current,
+            quarantined_titles=quarantines,
+        )
+        mastered = {
+            action.key
+            for action in first.actions
+            if action.kind == "remove" and action.reason.startswith("mastered:")
+        }
+        second = build_queue_plan(
+            self.curriculum,
+            durable_scores,
+            {activity.key for activity in first.desired},
+            quarantined_titles=quarantines,
+            mastered_keys=mastered,
+        )
+
+        self.assertIn(("Beginning Sounds 2", "Main"), {item.key for item in first.desired})
+        self.assertEqual(second.desired, first.desired)
+        self.assertEqual(second.actions, ())
 
     def test_mastery_sync_disables_score_history_cache(self) -> None:
         cache = Mock()

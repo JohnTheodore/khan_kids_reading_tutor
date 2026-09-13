@@ -74,14 +74,16 @@ class AndroidDeviceTests(unittest.TestCase):
 
     def test_awake_session_rejects_unrecognized_rotation_state(self) -> None:
         device = AndroidDevice("test-device")
-        with patch.object(
-            device,
-            "command",
-            side_effect=[b"120000\n", b"0\n", b"unexpected\n"],
+        with (
+            patch.object(
+                device,
+                "command",
+                side_effect=[b"120000\n", b"0\n", b"unexpected\n"],
+            ),
+            self.assertRaisesRegex(AutomationError, "Unexpected Android user-rotation"),
+            device.awake_session(),
         ):
-            with self.assertRaisesRegex(AutomationError, "Unexpected Android user-rotation"):
-                with device.awake_session():
-                    pass
+            pass
 
     def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)

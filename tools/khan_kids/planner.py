@@ -66,9 +66,13 @@ def build_queue_plan(
     current: set[tuple[str, str]],
     *,
     quarantined_titles: dict[str, str] | None = None,
+    mastered_keys: set[tuple[str, str]] | None = None,
 ) -> QueuePlan:
     quarantined_titles = quarantined_titles or {}
-    preliminary = {track.track_id: _evaluate_track(track, scores) for track in curriculum.tracks}
+    mastered_keys = mastered_keys or set()
+    preliminary = {
+        track.track_id: _evaluate_track(track, scores, mastered_keys) for track in curriculum.tracks
+    }
     complete = {track_id for track_id, state in preliminary.items() if state.complete}
     states: list[TrackState] = []
     candidates: list[tuple[Track, TrackState]] = []
@@ -107,6 +111,7 @@ def build_queue_plan(
         scores,
         current,
         complete,
+        mastered_keys,
         excluded={activity.key for activity in core_desired},
         quarantined_titles=set(quarantined_titles),
         limit=curriculum.queue_limit - len(core_desired),
@@ -130,8 +135,7 @@ def build_queue_plan(
     for track, state in fallback_pairs:
         assert state.next_activity is not None
         reasons[state.next_activity.key] = (
-            "queue-target fallback beyond the normal diversity cap: "
-            f"{_target_reason(track, state)}"
+            f"queue-target fallback beyond the normal diversity cap: {_target_reason(track, state)}"
         )
     core_pairs.extend(fallback_pairs)
     core_desired = tuple(state.next_activity for _track, state in core_pairs)
@@ -170,6 +174,7 @@ def build_queue_plan(
                 desired_keys,
                 diversity_holds,
                 quarantined_titles,
+                mastered_keys,
             ),
         )
         for title, variant in sorted(current - desired_keys)
@@ -193,6 +198,7 @@ def _select_stretch_activities(
     scores: dict[tuple[str, str], tuple[int, ...]],
     current: set[tuple[str, str]],
     complete_tracks: set[str],
+    mastered_keys: set[tuple[str, str]],
     *,
     excluded: set[tuple[str, str]],
     quarantined_titles: set[str],
@@ -201,7 +207,7 @@ def _select_stretch_activities(
     candidates = [
         (stretch, activity, decision)
         for stretch in curriculum.stretch_pool
-        if (evaluated := _evaluate_stretch(stretch, scores)) is not None
+        if (evaluated := _evaluate_stretch(stretch, scores, mastered_keys)) is not None
         for activity, decision in (evaluated,)
         if activity.key not in excluded and activity.title not in quarantined_titles
     ]
@@ -226,10 +232,12 @@ def _select_stretch_activities(
 
 
 def _evaluate_stretch(
-    stretch: StretchTrack, scores: dict[tuple[str, str], tuple[int, ...]]
+    stretch: StretchTrack,
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    mastered_keys: set[tuple[str, str]],
 ) -> tuple[Activity, MasteryDecision] | None:
     for activity in stretch.activities:
-        decision = evaluate_mastery(scores.get(activity.key, ()))
+        decision = _evaluate_activity(activity.key, scores, mastered_keys)
         if decision.status is not MasteryStatus.MASTERED:
             return activity, decision
     return None
@@ -302,6 +310,7 @@ def _removal_reason(
     desired_keys: set[tuple[str, str]],
     diversity_holds: dict[tuple[str, str], int],
     quarantined_titles: dict[str, str],
+    mastered_keys: set[tuple[str, str]],
 ) -> str:
     if key[0] in quarantined_titles:
         return f"quarantined: {quarantined_titles[key[0]]}"
@@ -312,7 +321,7 @@ def _removal_reason(
     stretch_location = stretch_locations.get(key)
     if stretch_location is not None:
         stretch, position, _activity = stretch_location
-        decision = evaluate_mastery(scores.get(key, ()))
+        decision = _evaluate_activity(key, scores, mastered_keys)
         if decision.status is MasteryStatus.MASTERED:
             if position + 1 == len(stretch.activities):
                 return f"mastered: {decision.reason}; stretch lesson family complete"
@@ -332,7 +341,7 @@ def _removal_reason(
     if location is None:
         return "not in the approved reading path"
     track, position, _activity = location
-    decision = evaluate_mastery(scores.get(key, ()))
+    decision = _evaluate_activity(key, scores, mastered_keys)
     if decision.status is not MasteryStatus.MASTERED:
         return "not in the mastery-gated desired queue"
     if position + 1 == len(track.activities):
@@ -363,12 +372,31 @@ def snapshot_fingerprint(snapshot: AssignmentSnapshot) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _evaluate_track(track: Track, scores: dict[tuple[str, str], tuple[int, ...]]) -> TrackState:
+def _evaluate_track(
+    track: Track,
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    mastered_keys: set[tuple[str, str]],
+) -> TrackState:
     for activity in track.activities:
-        decision = evaluate_mastery(scores.get(activity.key, ()))
+        decision = _evaluate_activity(activity.key, scores, mastered_keys)
         if decision.status is not MasteryStatus.MASTERED:
             return TrackState(track.track_id, False, False, activity, decision)
     return TrackState(track.track_id, True, False, None, None)
+
+
+def _evaluate_activity(
+    key: tuple[str, str],
+    scores: dict[tuple[str, str], tuple[int, ...]],
+    mastered_keys: set[tuple[str, str]],
+) -> MasteryDecision:
+    decision = evaluate_mastery(scores.get(key, ()))
+    if key not in mastered_keys or decision.status is MasteryStatus.MASTERED:
+        return decision
+    return MasteryDecision(
+        MasteryStatus.MASTERED,
+        decision.scores,
+        "mastery was preserved from a previously verified assignment action",
+    )
 
 
 def _target_reason(track: Track, state: TrackState) -> str:

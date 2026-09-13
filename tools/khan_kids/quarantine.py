@@ -10,7 +10,6 @@ from pathlib import Path
 
 from .records import append_unique_rows_with_records
 
-
 QUARANTINE_FIELDS = ("student", "title", "start_date", "eligible_date", "reason")
 LOW_SCORE_ATTEMPT_THRESHOLD = 4
 LOW_SCORE_FLOOR = 70

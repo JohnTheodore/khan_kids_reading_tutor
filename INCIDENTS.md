@@ -416,3 +416,155 @@ contradicts it.
 - The normal workflow safety guards remained in force.
 - Any completed assignment actions, if present, remain recorded in the student sync log.
 - Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-12-AUTO-194445-306272 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-12 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for profile chooser after switch user`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+### Resolution update — 2026-09-12
+
+**Status: Resolved / monitoring.** The assignment phase was not interrupted.
+The structured plan had already been saved as `applied` at 19:44:36, all four
+planned assignment changes were recorded as saved, and the exact ten-item final
+queue had passed verification before teardown began. The missing performance
+section confirms that the exception bypassed the old post-session reporting
+path; it does not invalidate the earlier applied outcome.
+
+The teardown implementation had two inadequate assumptions: each unlabeled
+Khan control received only one tap, and the profile chooser had only the generic
+six-second hierarchy timeout to appear. Khan Kids exposes this interface through
+an asynchronously updated React Native accessibility tree, so either a dropped
+tap or a delayed tree left the workflow with no safe recovery path. Device logs
+show repeated hierarchy reads during the timeout and no application crash or
+ANR. The exact transient screen is not recoverable after the fact, so the logs
+do not distinguish a dropped tap from delayed accessibility exposure.
+
+The fix now:
+
+- requires two consecutive semantic classifications of each teardown destination;
+- allows 12 seconds for each transition;
+- re-reads and revalidates the live source screen before retrying a guarded
+  **Back** or **Switch User** control, up to three attempts;
+- refuses another tap if the UI has moved to an unknown or unexpected screen;
+- preserves the applied/review outcome, timing report, and explicit teardown
+  error before returning nonzero and creating the automatic incident; and
+- covers successful teardown, dropped-tap recovery, missing-control rejection,
+  and unexpected-screen fail-closed behavior with automated tests.
+
+Verification completed on 2026-09-12: all 84 repository tests passed, and a
+navigation-only live check entered Class Reports, exercised the repaired
+teardown, and finished at a semantically verified `profile_chooser`. The live
+check did not scan scores or modify assignments.
+
+Evidence: `private/student-a-reading-plan.json`,
+`student-records/student-a-assignment-actions.csv`,
+`student-records/student-a-reading-sync-log.md`, device logcat for
+19:44:36–19:44:45 EDT, and the teardown regression tests in
+`tests/test_automation.py`.
+
+## KKRT-2026-09-13-001 — Mastery queue oscillated across unchanged syncs
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-13 |
+| Severity | SEV-2 — repeated syncs reversed a verified mastery promotion |
+| Status | Resolved / monitoring |
+| Detected by | Idempotency audit of consecutive mastery-sync reports |
+| Affected component | Attempt persistence, mastery planning, and action audit log |
+
+### Summary and impact
+
+`Beginning Sounds 2 — Basic` was promoted to Main at 17:04, reverted to Basic
+at 19:44, and promoted to Main again at 20:03 without another lesson attempt.
+The queue remained at ten assignments and each individual run verified its own
+desired state, but the desired state itself oscillated between runs.
+
+### Root cause
+
+The live score dialog contained two distinct 94% attempts on the same date.
+The attempt ledger used lesson, variant, date, and percentage as a set identity,
+so it retained only one 94%. After Basic was unassigned, its live dialog was no
+longer available; planning fell back to the incomplete durable history and no
+longer considered Basic mastered. Same-day action deduplication also suppressed
+some repeated mutation records, obscuring the cycle in the action ledger.
+
+### Corrective and preventive actions
+
+- Reconcile attempt identities as occurrence counts from each complete live
+  history; an unchanged rescan appends nothing.
+- Treat every successfully saved mastery removal in the existing action ledger
+  as durable, monotonic mastery evidence.
+- Add a mastery-state digest to reviewed plans so changes invalidate stale plans.
+- Timestamp every assignment mutation instead of collapsing repeated same-day
+  events.
+- Hold a nonblocking operating-system lock for the complete tablet workflow.
+- Test the duplicate-score promotion followed by an inactive-predecessor run
+  and require the second plan to contain zero actions.
+
+### Verification
+
+The production records form a fixed point. A read-only planner check preserved
+the current ten-item queue with zero actions. Two completed live syncs then
+preserved that same queue with zero assignment mutations: the first recorded
+three legitimate new scores, and the second recorded zero new attempts.
+`Beginning Sounds 2 — Main` remained selected throughout. All 88 automated
+tests also passed.
+
+## KKRT-2026-09-13-AUTO-093824-722732 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-13 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Khan Kids did not become the foreground app`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-13-AUTO-093950-013788 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-13 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for assignments report`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
