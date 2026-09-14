@@ -143,7 +143,17 @@ class AndroidDevice:
         if not secret or not secret.isascii() or not secret.isalnum():
             raise AutomationError("Secret contains unsupported input characters")
         for character in secret:
-            self.command("shell", "input", "keyevent", f"KEYCODE_{character.upper()}")
+            keycode = f"KEYCODE_{character.upper()}"
+            if character.isupper():
+                self.command(
+                    "shell",
+                    "input",
+                    "keycombination",
+                    "KEYCODE_SHIFT_LEFT",
+                    keycode,
+                )
+            else:
+                self.command("shell", "input", "keyevent", keycode)
 
     def foreground_package(self) -> str | None:
         state = self.command("shell", "dumpsys", "window", capture=True).decode(errors="replace")

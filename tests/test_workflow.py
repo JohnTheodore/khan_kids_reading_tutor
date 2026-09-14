@@ -66,11 +66,13 @@ EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
     ("Short Vowel Sound a", "Practice 1"),
     ("Short Vowel Sound o", "Basic"),
     ("Beginning Sounds 2", "Basic"),
+    ("Blend Sounds 1", "Main"),
 } | {
     ("Words with a", "Main"),
     ("Short Vowel Sound e", "Main"),
     ("Short Vowel Sound o", "Main"),
     ("Beginning Sounds 2", "Main"),
+    ("Blend Sounds 1", "Practice 1"),
 }
 QUARANTINED_BEGINNING_TITLES = {
     "Words with b, c, d",

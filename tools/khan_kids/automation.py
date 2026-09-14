@@ -50,6 +50,7 @@ class KhanKidsAutomation:
         layout: ReportLayout = DEFAULT_REPORT_LAYOUT,
         parent_password_provider: Callable[[], str] | None = None,
         history_lookup: Callable[[AssignmentRow], ScoreHistory | None] | None = None,
+        forbidden_students: tuple[str, ...] = (),
     ) -> None:
         if student not in roster:
             raise ValueError(f"Student {student!r} is not in roster {roster!r}")
@@ -60,6 +61,7 @@ class KhanKidsAutomation:
         self.layout = layout
         self.parent_password_provider = parent_password_provider
         self.history_lookup = history_lookup
+        self.forbidden_students = forbidden_students
         self._assignments_at_top = False
         self.scratch.mkdir(parents=True, exist_ok=True)
 
@@ -229,6 +231,11 @@ class KhanKidsAutomation:
         if is_assignment_report(root):
             return "assignments_report"
         texts = text_set(root)
+        unexpected = set(self.forbidden_students) & texts
+        if unexpected:
+            raise AutomationError(
+                f"Account identity guard found forbidden students: {sorted(unexpected)!r}"
+            )
         if "Class Report: All Progress" in texts:
             return "all_progress_report"
         if "Class Reports" in texts:
@@ -529,6 +536,69 @@ class KhanKidsAutomation:
             raise AutomationError("Navigation did not reach Class Report: All Progress")
         self._assignments_at_top = False
         return after
+
+    def ensure_all_progress_report(self) -> ET.Element:
+        """Reach All Progress through guarded navigation without changing report data."""
+        root, state = self._wait_for_navigation_state()
+        if state == "all_progress_report":
+            return root
+        return self._open_all_progress()
+
+    def select_grade_subject(self, grade: str, subject: str) -> ET.Element:
+        """Apply an All Progress grade/subject filter using labeled modal controls."""
+        root = self.ensure_all_progress_report()
+        current = _filter_value(root, "Subject:")
+        self.device.tap(current.rect.right + 38, current.rect.center[1])
+        modal = self._wait_for_root(
+            lambda candidate: "Select Grade & Subject" in text_set(candidate),
+            description="grade and subject selector",
+        )
+        grade_options = [
+            item
+            for item in find_text(modal, grade)
+            if 600 < item.rect.left < 1200 and item.rect.top > 450
+        ]
+        subject_options = [
+            item
+            for item in find_text(modal, subject)
+            if item.rect.left > 1200 and item.rect.top > 450
+        ]
+        if len(grade_options) != 1 or len(subject_options) != 1:
+            raise AutomationError(
+                f"Grade/subject modal did not uniquely expose {grade!r}/{subject!r}"
+            )
+        self.device.tap_rect(grade_options[0].rect)
+        self.device.tap_rect(subject_options[0].rect)
+        modal = self.live_root()
+        self.device.tap_rect(_unique_visible(modal, "Done").rect)
+        grade_code = {
+            "Preschool (Age 2)": "Pre-K.Age2",
+            "Preschool (Age 3)": "Pre-K.Age3",
+            "Preschool (Age 4)": "Pre-K.Age4",
+            "Kindergarten": "K",
+            "1st Grade": "Grade1",
+            "2nd Grade": "Grade2",
+        }[grade]
+        subject_code = "ELA" if subject == "English Language Arts" else subject
+        if subject == "Books":
+            expected = "All Ages : Books"
+        elif subject == "Videos" and grade in {
+            "Preschool (Age 2)",
+            "Preschool (Age 3)",
+            "Preschool (Age 4)",
+            "Kindergarten",
+        }:
+            expected = "K & Pre-K : Videos"
+        else:
+            expected = f"{grade_code} : {subject_code}"
+        return self._wait_for_root(
+            lambda candidate: (
+                "Class Report: All Progress" in text_set(candidate)
+                and _filter_value(candidate, "Subject:").text == expected
+            ),
+            description="grade and subject applied",
+            timeout=12,
+        )
 
     def _filter_assignments_to_student(self, root: ET.Element | None = None) -> ET.Element:
         root = root if root is not None else self.root("before-student-filter")
@@ -870,7 +940,7 @@ def _filter_value(root: ET.Element, label_text: str) -> UiText:
         item
         for item in visible_nodes(root)
         if item.rect.left > label.rect.right
-        and item.rect.right < 620
+        and item.rect.right < 800
         and abs(item.rect.center[1] - label.rect.center[1]) < 30
     ]
     if len(matches) != 1:

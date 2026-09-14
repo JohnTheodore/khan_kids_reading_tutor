@@ -127,6 +127,34 @@ class AndroidDeviceTests(unittest.TestCase):
         )
         self.assertFalse(any("1357" in argument for call in calls for argument in call))
 
+    def test_secret_entry_preserves_case_without_exposing_complete_secret(self) -> None:
+        device = AndroidDevice("test-device")
+        with patch.object(device, "command") as command:
+            device.enter_alphanumeric_secret("Ab2")
+
+        calls = [call.args for call in command.call_args_list]
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "shell",
+                    "input",
+                    "keycombination",
+                    "KEYCODE_SHIFT_LEFT",
+                    "KEYCODE_A",
+                ),
+                ("shell", "input", "keyevent", "KEYCODE_B"),
+                ("shell", "input", "keyevent", "KEYCODE_2"),
+            ],
+        )
+        self.assertFalse(any("Ab2" in argument for call in calls for argument in call))
+
+    def test_secret_entry_rejects_non_alphanumeric_text(self) -> None:
+        device = AndroidDevice("test-device")
+
+        with self.assertRaisesRegex(AutomationError, "unsupported"):
+            device.enter_alphanumeric_secret("not safe!")
+
     def test_lock_state_reads_window_markers(self) -> None:
         device = AndroidDevice("test-device")
         with patch.object(

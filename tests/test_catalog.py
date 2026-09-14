@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from khan_kids.catalog import CatalogIndex
+from catalog_test_case import ArchiveCatalogTestCase
 
 
-class CatalogTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.catalog = CatalogIndex(Path("data/reading-ela-archive.json"))
-
+class CatalogTests(ArchiveCatalogTestCase):
     def test_curriculum_path_disambiguates_repeated_title(self) -> None:
         entry = self.catalog.find(
             "Blend Sounds 1",
@@ -25,4 +20,6 @@ class CatalogTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    import unittest
+
     unittest.main()

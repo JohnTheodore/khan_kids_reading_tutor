@@ -1,160 +1,129 @@
 #!/usr/bin/env python3
-"""Build the complete ELA archive and student-performance record from reports."""
+"""Build normalized records from one or more read-only All Progress crawls."""
 
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import json
-import re
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
 from khan_kids.constants import GRADE_SLUGS, normalize_report_grade_label
-from khan_kids.ui import VARIANT_ORDER, node_rect
-
-GRADE_ORDER = GRADE_SLUGS
-STUDENTS = ("Student A", "Student B")
+from khan_kids.report_archive import REPORT_SUBJECTS, parse_page
+from khan_kids.ui import VARIANT_ORDER, near
 
 
-def score_value(raw: str | None) -> dict[str, object]:
-    if raw is None:
-        return {"display": None, "status": "not_attempted"}
-    if match := re.fullmatch(r"(\d+)%", raw):
-        return {"display": raw, "status": "scored", "percent": int(match.group(1))}
-    if match := re.fullmatch(r"(\d+)/(\d+)", raw):
-        return {
-            "display": raw,
-            "status": "aggregate_count",
-            "completed": int(match.group(1)),
-            "total": int(match.group(2)),
-        }
-    if raw == "Viewed":
-        return {"display": raw, "status": "viewed"}
-    return {"display": raw, "status": "other"}
+def stitched_title_rows(
+    report_dir: Path, page_count: int, students: tuple[str, ...]
+) -> list[dict[str, object]]:
+    """Remove scroll overlap while preserving real repeated title placements."""
+    stitched: list[dict[str, object]] = []
 
-
-def page_rows(path: Path) -> list[dict[str, object]]:
-    root = ET.parse(path).getroot()
-    text_nodes = []
-    for node in root.iter("node"):
-        text = node.attrib.get("text", "").strip()
-        rect = node_rect(node)
-        if text and rect is not None:
-            text_nodes.append((text, rect))
-
-    rows = []
-    for text, left_box in text_nodes:
-        x1, y1, x2, y2 = (
-            left_box.left,
-            left_box.top,
-            left_box.right,
-            left_box.bottom,
+    def signature(row: dict[str, object]) -> tuple[object, ...]:
+        return (
+            row["text"],
+            tuple(
+                (student, row["results"][student]["display"])  # type: ignore[index]
+                for student in students
+            ),
         )
-        if not (385 <= y1 < 1600 and x1 >= 90 and x2 <= 570):
-            continue
-        displays = {}
-        for student, low_x, high_x in (
-            ("Student A", 570, 780),
-            ("Student B", 780, 1000),
+
+    for page_number in range(page_count):
+        page = [
+            row
+            for row in parse_page(report_dir / f"page-{page_number:03d}.xml", students)
+            if near(int(row["x"]), 200)
+        ]
+        page_signatures = [signature(row) for row in page]
+        stitched_signatures = [signature(row) for row in stitched]
+        if any(
+            stitched_signatures[start : start + len(page)] == page_signatures
+            for start in range(len(stitched) - len(page) + 1)
         ):
-            values = []
-            for candidate, candidate_box in text_nodes:
-                candidate_center_y = candidate_box.center[1]
-                if (
-                    low_x <= candidate_box.left < high_x
-                    and y1 <= candidate_center_y <= y2
-                    and candidate not in values
-                ):
-                    values.append(candidate)
-            displays[student] = " | ".join(values) if values else None
-        rows.append(
-            {
-                "text": text,
-                "x": x1,
-                "bounds": left_box.as_list(),
-                "results": {student: score_value(displays[student]) for student in STUDENTS},
-            }
-        )
-    unique = {(row["text"], tuple(row["bounds"])): row for row in rows}
-    return sorted(unique.values(), key=lambda row: (row["bounds"][1], row["x"]))  # type: ignore[index]
+            continue
+        overlap = 0
+        for size in range(min(len(stitched), len(page)), 0, -1):
+            if stitched_signatures[-size:] == page_signatures[:size]:
+                overlap = size
+                break
+        stitched.extend(page[overlap:])
+    return stitched
 
 
 def merge_result(
-    destination: dict[str, object], source: dict[str, object], conflicts: list
+    destination: dict[str, object],
+    source: dict[str, object],
+    conflicts: list[tuple[str, object, object]],
+    students: tuple[str, ...],
 ) -> None:
-    for student in STUDENTS:
-        old = destination[student]
-        new = source[student]
-        if old["display"] is None and new["display"] is not None:  # type: ignore[index]
+    for student in students:
+        old, new = destination[student], source[student]  # type: ignore[index]
+        if old["display"] is None and new["display"] is not None:
             destination[student] = new
         elif (
-            old["display"] is not None  # type: ignore[index]
-            and new["display"] is not None  # type: ignore[index]
-            and old["display"] != new["display"]  # type: ignore[index]
+            old["display"] is not None
+            and new["display"] is not None
+            and old["display"] != new["display"]
         ):
-            conflicts.append((student, old["display"], new["display"]))  # type: ignore[index]
+            conflicts.append((student, old["display"], new["display"]))
 
 
-def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
-    manifest = json.loads((grade_dir / "manifest.json").read_text())
+def build_report(
+    report_dir: Path, students: tuple[str, ...]
+) -> tuple[dict[str, object], list[tuple[str, object, object]]]:
+    manifest = json.loads((report_dir / "manifest.json").read_text())
     page_count = len(manifest["pages"])
     records: dict[tuple[str | None, str | None, str], dict[str, object]] = {}
     title_keys: dict[str, list[tuple[str | None, str | None, str]]] = defaultdict(list)
     group_domains: dict[str, set[str]] = defaultdict(set)
-    conflicts = []
+    conflicts: list[tuple[str, object, object]] = []
     global_domain: str | None = None
     global_group: str | None = None
     current_key: tuple[str | None, str | None, str] | None = None
-    grade_label = normalize_report_grade_label(manifest["grade"])
     reported_total = None
 
     for page_number in range(page_count):
-        rows = page_rows(grade_dir / f"page-{page_number:03d}.xml")
+        rows = parse_page(report_dir / f"page-{page_number:03d}.xml", students)
         domain: str | None = None
         group: str | None = None
         explicit_domain_seen = False
         page_current = current_key
         title_seen_on_page = False
         for row in rows:
-            x = int(row["x"])
-            text = str(row["text"])
-            if x == 100:
+            x, text = int(row["x"]), str(row["text"])
+            if near(x, 100):
                 if reported_total is None:
                     totals = [
-                        result.get("total")
-                        for result in row["results"].values()  # type: ignore[union-attr]
-                        if result.get("status") == "aggregate_count"
+                        value.get("total")
+                        for value in row["results"].values()  # type: ignore[union-attr]
+                        if value.get("status") == "aggregate_count"
                     ]
                     if totals:
                         reported_total = int(totals[0])
                 continue
-            if x == 133:
+            if near(x, 133):
                 domain, group, page_current = text, None, None
                 explicit_domain_seen = True
                 continue
-            if x in (166, 167):
+            if near(x, 167):
                 group, page_current = text, None
                 if domain is None:
-                    known_domains = group_domains[text]
-                    domain = next(iter(known_domains)) if len(known_domains) == 1 else global_domain
+                    known = group_domains[text]
+                    domain = next(iter(known)) if len(known) == 1 else global_domain
                 if domain:
                     group_domains[text].add(domain)
                 continue
-            if x == 200:
+            if near(x, 200):
                 title_seen_on_page = True
                 known_keys = title_keys[text]
                 if group is None and len(known_keys) == 1:
                     key = known_keys[0]
                     domain, group = key[0], key[1]
                 else:
-                    domain = domain or global_domain
-                    group = group or global_group
+                    domain, group = domain or global_domain, group or global_group
                     key = (domain, group, text)
-                    # At an overlapping page prefix, an earlier heading may be
-                    # offscreen. Prefer the known placement unless this page has
-                    # explicitly entered a new domain (the Age-4 Letters & Words case).
                     if (
                         known_keys
                         and key not in known_keys
@@ -175,26 +144,19 @@ def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
                     }
                     title_keys[text].append(key)
                 else:
-                    merge_result(records[key]["aggregate_results"], row["results"], conflicts)  # type: ignore[arg-type]
+                    merge_result(
+                        records[key]["aggregate_results"], row["results"], conflicts, students
+                    )  # type: ignore[arg-type]
                 continue
-            if (
-                x == 239
-                and title_seen_on_page
-                and page_current is not None
-                and text in VARIANT_ORDER
-            ):
-                activity = records[page_current]["activities"]  # type: ignore[index]
-                if text not in activity:
-                    activity[text] = {"variant": text, "results": row["results"]}
+            if near(x, 239) and title_seen_on_page and page_current and text in VARIANT_ORDER:
+                activities = records[page_current]["activities"]  # type: ignore[index]
+                if text not in activities:
+                    activities[text] = {"variant": text, "results": row["results"]}
                 else:
-                    merge_result(activity[text]["results"], row["results"], conflicts)
-
-        if domain is not None:
-            global_domain = domain
-        if group is not None:
-            global_group = group
-        if page_current is not None:
-            current_key = page_current
+                    merge_result(activities[text]["results"], row["results"], conflicts, students)
+        global_domain = domain or global_domain
+        global_group = group or global_group
+        current_key = page_current or current_key
 
     placements = []
     for record in records.values():
@@ -202,171 +164,229 @@ def build_grade(grade_dir: Path) -> tuple[dict[str, object], list]:
         record["activities"] = [activities[v] for v in VARIANT_ORDER if v in activities]
         record["lesson_type"] = "variant_group" if activities else "direct"
         placements.append(record)
-
+    title_rows = stitched_title_rows(report_dir, page_count, students)
+    expected_occurrences: defaultdict[str, int] = defaultdict(int)
+    retained_occurrences: defaultdict[str, int] = defaultdict(int)
+    for placement in placements:
+        retained_occurrences[str(placement["title"])] += 1
+    records_by_title: defaultdict[str, list[dict[str, object]]] = defaultdict(list)
+    for placement in placements:
+        records_by_title[str(placement["title"])].append(placement)
+    for row in title_rows:
+        title = str(row["text"])
+        expected_occurrences[title] += 1
+        if expected_occurrences[title] <= retained_occurrences[title]:
+            continue
+        if not records_by_title[title]:
+            raise RuntimeError(f"Could not reconstruct repeated report placement {title!r}")
+        duplicate = copy.deepcopy(records_by_title[title][0])
+        duplicate["aggregate_results"] = row["results"]
+        duplicate["duplicate_placement_occurrence"] = expected_occurrences[title]
+        placements.append(duplicate)
     if reported_total is None:
-        raise RuntimeError(f"Could not read reported lesson total for {grade_dir.name}")
+        raise RuntimeError(f"Could not read reported lesson total for {report_dir}")
     if len(placements) != reported_total:
         raise RuntimeError(
-            f"{grade_dir.name}: extracted {len(placements)} placements, report says {reported_total}"
+            f"{report_dir}: extracted {len(placements)} placements, report says {reported_total}"
         )
     return (
         {
-            "slug": grade_dir.name,
-            "grade": grade_label,
+            "filter": manifest["filter"],
             "capture_pages": page_count,
             "reported_lesson_total": reported_total,
             "lesson_placements": placements,
+            "histories": manifest.get("histories", []),
+            "history_unavailable": manifest.get("history_unavailable", []),
         },
         conflicts,
     )
 
 
-def result_display(result: dict[str, object]) -> str:
-    return str(result["display"]) if result["display"] is not None else "—"
+def discover_reports(source: Path) -> list[tuple[str, str, Path]]:
+    reports = []
+    for subject in REPORT_SUBJECTS:
+        subject_dir = source / subject
+        if not subject_dir.is_dir():
+            continue
+        for grade in (*GRADE_SLUGS, "all-ages", "k-pre-k"):
+            if (subject_dir / grade / "manifest.json").exists():
+                reports.append((subject, grade, subject_dir / grade))
+    if reports:
+        return reports
+    return [
+        ("ela", grade, source / grade)
+        for grade in GRADE_SLUGS
+        if (source / grade / "manifest.json").exists()
+    ]
+
+
+def write_outputs(
+    reports: list[dict[str, object]], students: tuple[str, ...], output: Path
+) -> dict[str, int]:
+    output.mkdir(parents=True, exist_ok=True)
+    inventory_path = output / "lesson-inventory.csv"
+    attempts_path = output / "lesson-attempts.csv"
+    discrepancy_path = output / "summary-history-discrepancies.csv"
+    manifest_path = output / "capture-manifest.json"
+    markdown_path = output / "learning-history.md"
+    completeness_path = output / "completeness-report.md"
+
+    inventory_rows = []
+    attempt_rows = []
+    summary_by_title: dict[tuple[str, str, str], str | None] = {}
+    unavailable = []
+    for report in reports:
+        subject, grade = str(report["subject"]), str(report["grade_slug"])
+        unavailable.extend(
+            {"subject": subject, "grade": grade, **row} for row in report["history_unavailable"]
+        )  # type: ignore[arg-type]
+        for placement in report["lesson_placements"]:  # type: ignore[union-attr]
+            activities = placement["activities"] or [
+                {"variant": "Direct", "results": placement["aggregate_results"]}
+            ]
+            for activity in activities:
+                for student in students:
+                    result = activity["results"][student]
+                    inventory_rows.append(
+                        {
+                            "student": student,
+                            "subject": subject,
+                            "grade": grade,
+                            "domain": placement["domain"],
+                            "skill_group": placement["skill_group"],
+                            "lesson_title": placement["title"],
+                            "activity_variant": activity["variant"],
+                            "result_status": result["status"],
+                            "result_display": result["display"],
+                            "title_aggregate": placement["aggregate_results"][student]["display"],
+                        }
+                    )
+                    summary_by_title[(subject, grade, placement["title"])] = placement[
+                        "aggregate_results"
+                    ][student]["display"]
+        for history in report["histories"]:  # type: ignore[union-attr]
+            occurrences: defaultdict[tuple[object, object, object], int] = defaultdict(int)
+            for item in history["attempts"]:
+                identity = (item["normalized_date"], item["variant"], item["score_percent"])
+                occurrences[identity] += 1
+                attempt_rows.append(
+                    {
+                        "student": history["student"],
+                        "subject": subject,
+                        "grade": grade,
+                        "lesson_title": history["lesson_title"],
+                        "curriculum_path": history["curriculum_path"],
+                        "activity_variant": item["variant"],
+                        "display_date": item["display_date"],
+                        "normalized_date": item["normalized_date"],
+                        "date_resolution": item["date_resolution"],
+                        "score_percent": item["score_percent"],
+                        "occurrence": occurrences[identity],
+                    }
+                )
+
+    discrepancies = []
+    history_titles = {(row["subject"], row["grade"], row["lesson_title"]) for row in attempt_rows}
+    for key, display in summary_by_title.items():
+        if display is not None and key not in history_titles:
+            discrepancies.append(
+                {
+                    "subject": key[0],
+                    "grade": key[1],
+                    "lesson_title": key[2],
+                    "summary": display,
+                    "issue": "no detailed history captured",
+                }
+            )
+
+    _write_csv(inventory_path, inventory_rows)
+    _write_csv(attempts_path, attempt_rows)
+    _write_csv(discrepancy_path, discrepancies)
+    payload = {
+        "students": list(students),
+        "report_count": len(reports),
+        "expected_report_count": 22,
+        "inventory_rows": len(inventory_rows),
+        "dated_attempt_rows": len(attempt_rows),
+        "summary_history_discrepancies": len(discrepancies),
+        "history_unavailable": unavailable,
+        "reports": reports,
+    }
+    manifest_path.write_text(json.dumps(payload, indent=2) + "\n")
+    lines = [
+        f"# {students[0]}’s Khan Kids learning history"
+        if len(students) == 1
+        else "# Khan Kids learning history",
+        "",
+        f"- Reports captured: {len(reports)}/22 (18 graded core, 1 all-ages, 3 video bands)",
+        f"- Lesson/activity inventory rows: {len(inventory_rows):,}",
+        f"- Dated attempt rows exposed by Khan Kids: {len(attempt_rows):,}",
+        f"- Summary/history discrepancies: {len(discrepancies):,}",
+        "",
+        "Dates retain Khan Kids’ displayed value. When the app omits the year, the normalized year is the most recent non-future year whose weekday matches; the inference method is recorded per row.",
+    ]
+    markdown_path.write_text("\n".join(lines) + "\n")
+    completeness_path.write_text(
+        "# Capture completeness\n\n"
+        f"- Report coverage: {len(reports)}/22 (Books is All Ages; Videos uses 3 bands)\n"
+        f"- Detailed-history gaps: {len(discrepancies)}\n"
+        f"- Score cells without an exposed dialog: {len(unavailable)}\n\n"
+        "A complete archive means every row Khan Kids currently exposes was captured. It cannot prove retention of attempts the service no longer displays.\n"
+    )
+    return {
+        "reports": len(reports),
+        "inventory_rows": len(inventory_rows),
+        "attempt_rows": len(attempt_rows),
+        "discrepancies": len(discrepancies),
+    }
+
+
+def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
+    if not rows:
+        path.write_text("")
+        return
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
-    parser.add_argument("--json", type=Path, default=Path("data/reading-ela-archive.json"))
-    parser.add_argument("--markdown", type=Path, default=Path("reading-ela-archive.md"))
-    parser.add_argument("--csv", type=Path, default=Path("reading-ela-performance.csv"))
+    parser.add_argument(
+        "--history-source",
+        type=Path,
+        help="read detailed histories from a separate crawl with matching reports",
+    )
+    parser.add_argument("--student", action="append")
+    parser.add_argument("--output", type=Path, default=Path("private/report-archive.local"))
     args = parser.parse_args()
-
-    grades = []
-    conflicts = []
-    for slug in GRADE_ORDER:
-        grade, grade_conflicts = build_grade(args.source / slug)
-        grades.append(grade)
-        conflicts.extend(grade_conflicts)
-    if conflicts:
-        raise RuntimeError(f"Conflicting repeated score cells: {conflicts[:10]}")
-
-    all_placements = [p for grade in grades for p in grade["lesson_placements"]]
-    activity_count = sum(max(1, len(p["activities"])) for p in all_placements)
-    unique_titles = sorted(
-        {p["title"] for p in all_placements}, key=lambda title: (title.casefold(), title)
+    students = tuple(args.student or ["Student A", "Student B"])
+    history_reports = (
+        {
+            (subject, grade_slug): path
+            for subject, grade_slug, path in discover_reports(args.history_source)
+        }
+        if args.history_source
+        else {}
     )
-    payload = {
-        "source": "Khan Academy Kids Class Reports > All Progress > English Language Arts",
-        "captured_on": "2026-09-08",
-        "android_app_version": "9.0.1 (versionCode 123)",
-        "students": list(STUDENTS),
-        "notes": [
-            "Results are copied exactly from the report: percentage, Viewed, aggregate count, or null when blank.",
-            "A blank report cell is represented as null/not_attempted; it is not interpreted as a zero score.",
-            "Lesson placements retain grade and hierarchy. The same title may appear in more than one grade.",
-            "For expandable lesson titles, aggregate title results and individual activity-variant results are both retained.",
-            "The report provides domain and skill-group context, but no prose lesson descriptions.",
-        ],
-        "grade_count": len(grades),
-        "reported_lesson_placements": len(all_placements),
-        "assignable_activity_placements": activity_count,
-        "globally_unique_title_strings": len(unique_titles),
-        "unique_title_strings": unique_titles,
-        "grades": grades,
-    }
-    args.json.parent.mkdir(parents=True, exist_ok=True)
-    args.json.write_text(json.dumps(payload, indent=2) + "\n")
-
-    with args.csv.open("w", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(
-            [
-                "grade",
-                "domain",
-                "skill_group",
-                "lesson_title",
-                "activity_variant",
-                "Student A",
-                "Student B",
-                "title_aggregate_Student A",
-                "title_aggregate_Student B",
-            ]
-        )
-        for grade in grades:
-            for placement in grade["lesson_placements"]:
-                activities = placement["activities"] or [
-                    {"variant": "Direct", "results": placement["aggregate_results"]}
-                ]
-                for activity in activities:
-                    writer.writerow(
-                        [
-                            grade["grade"],
-                            placement["domain"],
-                            placement["skill_group"],
-                            placement["title"],
-                            activity["variant"],
-                            activity["results"]["Student A"]["display"],
-                            activity["results"]["Student B"]["display"],
-                            placement["aggregate_results"]["Student A"]["display"],
-                            placement["aggregate_results"]["Student B"]["display"],
-                        ]
-                    )
-
-    lines = [
-        "# Khan Academy Kids — complete ELA report archive",
-        "",
-        "Captured from **Class Reports → All Progress → English Language Arts** on 2026-09-08, "
-        "using Android app 9.0.1 (versionCode 123).",
-        "",
-        f"- Grades: {len(grades)}",
-        f"- Reported lesson placements: {len(all_placements):,}",
-        f"- Assignable activity placements after expanding variants: {activity_count:,}",
-        f"- Globally unique title strings: {len(unique_titles):,}",
-        "",
-        "Results use the app's exact display: a percentage, `Viewed`, an aggregate fraction, or `—` "
-        "for a blank cell. A blank is not treated as 0%.",
-        "The report does not provide prose descriptions; each lesson's domain and skill-group path records what it covers.",
-    ]
-    for grade in grades:
-        lines.extend(
-            [
-                "",
-                f"## {grade['grade']}",
-                "",
-                f"{grade['reported_lesson_total']} report lessons; {grade['capture_pages']} captured screens.",
-            ]
-        )
-        current_domain = None
-        current_group = None
-        for placement in grade["lesson_placements"]:
-            if placement["domain"] != current_domain:
-                current_domain = placement["domain"]
-                current_group = None
-                lines.extend(["", f"### {current_domain}", ""])
-            if placement["skill_group"] != current_group:
-                current_group = placement["skill_group"]
-                lines.extend(["", f"#### {current_group}", ""])
-            aggregate = placement["aggregate_results"]
-            if placement["activities"]:
-                lines.append(
-                    f"- **{placement['title']}** — aggregate: Student A {result_display(aggregate['Student A'])}; "
-                    f"Student B {result_display(aggregate['Student B'])}"
-                )
-                for activity in placement["activities"]:
-                    results = activity["results"]
-                    lines.append(
-                        f"  - {activity['variant']} — Student A {result_display(results['Student A'])}; "
-                        f"Student B {result_display(results['Student B'])}"
-                    )
-            else:
-                lines.append(
-                    f"- **{placement['title']}** — Student A {result_display(aggregate['Student A'])}; "
-                    f"Student B {result_display(aggregate['Student B'])}"
-                )
-    args.markdown.write_text("\n".join(lines).rstrip() + "\n")
-
-    print(
-        json.dumps(
-            {
-                "grades": len(grades),
-                "lesson_placements": len(all_placements),
-                "activity_placements": activity_count,
-                "unique_titles": len(unique_titles),
-            }
-        )
-    )
+    reports = []
+    for subject, grade_slug, path in discover_reports(args.source):
+        report, report_conflicts = build_report(path, students)
+        if args.history_source:
+            history_path = history_reports.get((subject, grade_slug))
+            if history_path is None:
+                parser.error(f"history source is missing {subject}/{grade_slug}")
+            history_manifest = json.loads((history_path / "manifest.json").read_text())
+            report["histories"] = history_manifest.get("histories", [])
+            report["history_unavailable"] = history_manifest.get("history_unavailable", [])
+        report["subject"] = subject
+        report["grade_slug"] = grade_slug
+        report["grade"] = normalize_report_grade_label(str(report["filter"]))
+        report["repeated_title_score_conflicts"] = report_conflicts
+        reports.append(report)
+    print(json.dumps(write_outputs(reports, students, args.output)))
 
 
 if __name__ == "__main__":

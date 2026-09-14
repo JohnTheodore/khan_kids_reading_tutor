@@ -470,68 +470,80 @@ This project ultimately used **All Progress** rather than the Reading tab for
 the full archive because All Progress provides the complete hierarchy and each
 student's result in one place.
 
-### Capture the complete ELA report
+### Capture a complete, read-only progress archive
 
-In Khan Kids, navigate manually to:
+The report crawler enters **Teacher view → Students → Class Reports → All
+Progress** through state-checked navigation. By default it covers every report
+Khan exposes: all six grades for English Language Arts, Math, and Logic+, the
+grade-independent **All Ages** Books report, and three Videos bands (**K &
+Pre-K**, **Grade1**, and **Grade2**)—22 reports total.
 
-```text
-Teacher view → Students → Class Reports → All Progress
-```
-
-Set **Students** to **All** and select an ELA subject so the visible subject
-label ends in `: ELA`. Then run:
-
-```bash
-python3 tools/khan_report_archive_crawl.py \
-  --serial "$KHAN_SERIAL" \
-  --output private/my-family/raw-reports/ela
-```
-
-The crawler selects each grade, expands the report hierarchy, captures every
-visible score, and scrolls through blank score-table space. Restrict a test run
-to one grade with, for example:
+Use account-specific, ignored configuration and secrets files. The roster is
+explicit, and forbidden-student guards prevent captures from silently crossing
+between family accounts:
 
 ```bash
-python3 tools/khan_report_archive_crawl.py \
-  --serial "$KHAN_SERIAL" \
-  --grade preschool-age-4 \
-  --output private/my-family/test-report/ela
+serial="$(tools/run-tablet-workflow connect \
+  --config private/student-c-tablet.local.json)"
+
+tools/run-python tools/khan_report_archive_crawl.py \
+  --serial "$serial" \
+  --student Student C \
+  --forbid-student Student A \
+  --forbid-student Student B \
+  --secrets-file private/student-c-secrets.local.json \
+  --output private/student-c/archive-pass-1.local \
+  --capture-histories
+```
+
+The crawler only changes report filters, expands report rows, opens
+score-history dialogs, and closes them. It never changes an assignment
+checkbox and never presses Save.
+Restrict a pilot to one combination with, for example:
+
+```bash
+tools/run-python tools/khan_report_archive_crawl.py \
+  --serial "$serial" \
+  --student Student C \
+  --forbid-student Student A \
+  --forbid-student Student B \
+  --secrets-file private/student-c-secrets.local.json \
+  --grade kindergarten \
+  --subject ela \
+  --output private/student-c/archive-pilot.local
 ```
 
 Valid grade slugs are `preschool-age-2`, `preschool-age-3`,
-`preschool-age-4`, `kindergarten`, `1st-grade`, and `2nd-grade`.
+`preschool-age-4`, `kindergarten`, `1st-grade`, and `2nd-grade`. Subject slugs
+are `ela`, `math`, `logic`, `books`, and `videos`.
 
-### Adapt the report parser to your children
-
-[`tools/build_reading_report_archive.py`](tools/build_reading_report_archive.py)
-currently reflects the source family:
-
-- `STUDENTS` contains `Student A` and `Student B`.
-- The two score-column x-coordinate ranges are calibrated to their two-column
-  report layout.
-- Output headings and CSV columns use those names.
-
-Before processing another family, make a private branch and update `STUDENTS`
-plus the column ranges in `page_rows()`. A one-child or three-child roster may
-lay out the table differently. Inspect one XML file and its matching screenshot
-to determine the correct bounds:
+The parser is roster-driven; do not create family-specific copies of crawler or
+parser code. Build private normalized records with:
 
 ```bash
-less private/my-family/raw-reports/ela/preschool-age-4/page-000.xml
+tools/run-python tools/build_reading_report_archive.py \
+  private/student-c/archive-pass-1.local \
+  --student Student C \
+  --output private/student-c/records.local
 ```
 
-Then build the archive with private output paths:
+For a two-pass capture, use the validation pass for the freshest inventory and
+the history-bearing pass for detailed score dialogs:
 
 ```bash
-python3 tools/build_reading_report_archive.py \
-  private/my-family/raw-reports/ela \
-  --json private/my-family/reading-ela-archive.json \
-  --markdown private/my-family/reading-ela-archive.md \
-  --csv private/my-family/reading-ela-performance.csv
+tools/run-python tools/build_reading_report_archive.py \
+  private/student-c/archive-pass-2.local \
+  --history-source private/student-c/archive-pass-1.local \
+  --student Student C \
+  --output private/student-c/records.local
 ```
 
-The two builder scripts also contain capture-date and app-version metadata from
-this run. Update those fields if provenance matters for a new dataset.
+This produces a full lesson/activity inventory, occurrence-aware dated-attempt
+CSV, discrepancy CSV, capture manifest, readable history, and completeness
+report. Khan Kids displays weekday/month/day in historical dialogs but omits
+the year. Both the raw displayed date and a clearly labeled, weekday-checked
+year inference are retained. A second crawl should be compared with the first
+before declaring the archive stable because Khan's own results can appear late.
 
 ## Analyze a child's progress
 

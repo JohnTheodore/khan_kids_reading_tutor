@@ -8,15 +8,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from khan_kids.catalog import CatalogIndex
+from catalog_test_case import ArchiveCatalogTestCase
 from khan_kids.curriculum import ReadingCurriculum
 
 
-class CurriculumTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.catalog = CatalogIndex(Path("data/reading-ela-archive.json"))
-
+class CurriculumTests(ArchiveCatalogTestCase):
     def test_every_configured_activity_exists_in_the_archive(self) -> None:
         curriculum = ReadingCurriculum.load(Path("data/reading-curriculum.json"), self.catalog)
 
