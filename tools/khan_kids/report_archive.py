@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -247,23 +248,11 @@ def progress_history_close_rect(root: ET.Element, student: str) -> Rect:
     headings = {f"{student}'s Skills Scores", f"{student}'s Lesson Scores"}
     if not headings & {item.text for item in visible_nodes(root)}:
         raise AutomationError("Cannot resolve history close control outside a history dialog")
-    candidates = []
-    for node in root.iter("node"):
-        rect = node_rect(node)
-        if (
-            node.attrib.get("class") == "android.view.ViewGroup"
-            and rect is not None
-            and rect.left > 1500
-            and 90 <= rect.width <= 160
-            and 90 <= rect.height <= 160
-            and 50 < rect.top < 1000
-        ):
-            candidates.append(rect)
-    if len(candidates) != 1:
-        raise AutomationError(
-            f"Expected one progress-history close control, found {len(candidates)}"
-        )
-    return candidates[0]
+    return _unique_close_rect(
+        root,
+        description="progress-history",
+        position=lambda rect: rect.left > 1500 and 50 < rect.top < 1000,
+    )
 
 
 def assignment_dialog_close_rect(root: ET.Element) -> Rect:
@@ -271,22 +260,30 @@ def assignment_dialog_close_rect(root: ET.Element) -> Rect:
     texts = {item.text for item in visible_nodes(root)}
     if "Save" not in texts or not any(text.startswith("Assign\n") for text in texts):
         raise AutomationError("Cannot resolve assignment close control outside its dialog")
+    return _unique_close_rect(
+        root,
+        description="assignment-dialog",
+        position=lambda rect: rect.left > 2000 and rect.top < 250,
+    )
+
+
+def _unique_close_rect(
+    root: ET.Element, *, description: str, position: Callable[[Rect], bool]
+) -> Rect:
+    """Find one image-backed square close control within validated dialog bounds."""
     candidates = []
     for node in root.iter("node"):
         rect = node_rect(node)
         if (
             node.attrib.get("class") == "android.view.ViewGroup"
             and rect is not None
-            and rect.left > 2000
             and 90 <= rect.width <= 160
             and 90 <= rect.height <= 160
-            and rect.top < 250
+            and position(rect)
         ):
             candidates.append(rect)
     if len(candidates) != 1:
-        raise AutomationError(
-            f"Expected one assignment-dialog close control, found {len(candidates)}"
-        )
+        raise AutomationError(f"Expected one {description} close control, found {len(candidates)}")
     return candidates[0]
 
 

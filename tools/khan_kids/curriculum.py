@@ -10,15 +10,23 @@ from .catalog import CatalogIndex
 from .constants import LEARNING_SEQUENCE
 
 
-@dataclass(frozen=True, slots=True)
-class Activity:
-    grade: str
+class LessonIdentity:
+    """Shared title/variant identity for curriculum and queue records."""
+
+    __slots__ = ()
     title: str
     variant: str
 
     @property
     def key(self) -> tuple[str, str]:
         return (self.title, self.variant)
+
+
+@dataclass(frozen=True, slots=True)
+class Activity(LessonIdentity):
+    grade: str
+    title: str
+    variant: str
 
     def as_dict(self) -> dict[str, str]:
         return {"grade": self.grade, "title": self.title, "variant": self.variant}

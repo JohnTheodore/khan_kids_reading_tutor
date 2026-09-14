@@ -54,7 +54,10 @@ def render_sync_report(payload: dict[str, object]) -> str:
         payload.get("applied_at") or payload.get("interrupted_at") or payload["generated_at"]
     )
     actions, removals, additions, mastered = _action_groups(payload)
-    promoted = [action for action in mastered if "; promote to " in str(action.get("reason", ""))]
+    addition_lessons = {_lesson(action) for action in additions}
+    promoted = [
+        action for action in mastered if (_promotion_destination(action) in addition_lessons)
+    ]
     verb = {
         "applied": "Applied",
         "interrupted": "Applied before interruption",
@@ -115,6 +118,14 @@ def render_sync_report(payload: dict[str, object]) -> str:
         "",
         *_hold_lines(tracks, desired),
         "",
+        "### Interruption recovery",
+        "",
+        *_recovery_lines(payload),
+        "",
+        "### Duration",
+        "",
+        _duration_line(payload),
+        "",
     ]
     return "\n".join(lines).rstrip() + "\n"
 
@@ -134,6 +145,13 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
     actions, removals, additions, mastered = _action_groups(payload)
     desired = _object_list(payload.get("desired_assignments"))
     observed = _object_list(payload.get("observed_assignments"))
+    recovery = payload.get("recovery")
+    live_after_interruption = (
+        _object_list(recovery.get("live_assignments"))
+        if status == "interrupted" and isinstance(recovery, dict)
+        else []
+    )
+    displayed_queue = live_after_interruption if live_after_interruption else desired
     quarantines = _object_list(payload.get("active_quarantines"))
     evidence = _evidence_index(payload)
     performance = payload.get("performance")
@@ -148,7 +166,12 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
         ),
         "=" * 60,
         _paint(f"Outcome: {_outcome(status)}", _outcome_style(status), color),
-        f"Queue: {len(observed)} before → {len(desired)} desired",
+        (
+            f"Queue: {len(observed)} before → {len(displayed_queue)} last verified "
+            f"({len(desired)} desired)"
+            if status == "interrupted" and live_after_interruption
+            else f"Queue: {len(observed)} before → {len(desired)} desired"
+        ),
         f"New attempt records: {new_attempt_count}",
     ]
     if duration is not None:
@@ -184,7 +207,12 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
             _paint("ACTIVE QUARANTINES", "magenta", color),
             *_terminal_quarantines(quarantines, color=color),
             "",
-            _paint(f"ASSIGNED NOW ({len(desired)})", "bold", color),
+            _paint(
+                f"{'LAST VERIFIED QUEUE' if live_after_interruption else 'ASSIGNED NOW'} "
+                f"({len(displayed_queue)})",
+                "bold",
+                color,
+            ),
         ]
     )
     stretches = {
@@ -196,7 +224,7 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
         (item.get("title"), item.get("variant"))
         for item in _object_list(payload.get("new_attempts"))
     }
-    for item in desired:
+    for item in displayed_queue:
         key = (item.get("title"), item.get("variant"))
         record = evidence.get(key)
         role = "stretch" if key in stretches else "core"
@@ -218,8 +246,10 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
             lines.append(_paint(line, "yellow", color))
         else:
             lines.append(_paint(line, "dim", color))
-    if not desired:
+    if not displayed_queue:
         lines.append("  None.")
+    if status == "interrupted":
+        lines.extend(["", _paint("RECOVERY STATUS", "red", color), *_terminal_recovery(payload)])
     return "\n".join(lines)
 
 
@@ -337,10 +367,48 @@ def _promotion_lines(actions: list[dict[str, object]]) -> list[str]:
         return ["None."]
     lines = []
     for action in actions:
-        reason = str(action.get("reason", ""))
-        destination = reason.split("; promote to ", 1)[1]
+        destination = _promotion_destination(action)
         lines.append(f"- {_lesson(action)} → {destination}")
     return lines
+
+
+def _promotion_destination(action: dict[str, object]) -> str | None:
+    reason = str(action.get("reason", ""))
+    marker = "; promote to "
+    return reason.split(marker, 1)[1] if marker in reason else None
+
+
+def _recovery_lines(payload: dict[str, object]) -> list[str]:
+    if payload.get("status") != "interrupted":
+        return ["Not applicable."]
+    recovery = payload.get("recovery")
+    if not isinstance(recovery, dict):
+        return ["Live queue was not captured."]
+    if recovery.get("status") != "captured":
+        return [f"Live queue unavailable: {recovery.get('error', 'unknown error')}"]
+    missing = _object_list(recovery.get("missing_assignments"))
+    unexpected = _object_list(recovery.get("unexpected_assignments"))
+    lines = [f"- Last verified live queue: {recovery.get('live_count', 0)} assignments"]
+    lines.append(
+        "- Missing from desired queue: "
+        + (", ".join(_lesson(item) for item in missing) if missing else "None")
+    )
+    lines.append(
+        "- Unexpected in live queue: "
+        + (", ".join(_lesson(item) for item in unexpected) if unexpected else "None")
+    )
+    return lines
+
+
+def _terminal_recovery(payload: dict[str, object]) -> list[str]:
+    return [f"  {line.removeprefix('- ')}" for line in _recovery_lines(payload)]
+
+
+def _duration_line(payload: dict[str, object]) -> str:
+    performance = payload.get("performance")
+    if not isinstance(performance, dict) or "wall_seconds" not in performance:
+        return "Not recorded."
+    return f"{performance['wall_seconds']} seconds"
 
 
 def _hold_lines(tracks: list[dict[str, object]], desired: list[dict[str, object]]) -> list[str]:

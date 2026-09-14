@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
@@ -79,6 +80,23 @@ class LauncherTests(unittest.TestCase):
         self.assertTrue(result.launched)
         self.assertIn(("force_stop", KHAN_KIDS_PACKAGE), device.calls)
         self.assertIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
+
+    def test_transient_keyguard_and_delayed_foreground_are_waited_out(self) -> None:
+        device = Mock()
+        device.is_locked.side_effect = (False, True, True, False, False)
+        device.foreground_package.side_effect = (
+            "com.android.systemui",
+            "com.android.launcher",
+            KHAN_KIDS_PACKAGE,
+            KHAN_KIDS_PACKAGE,
+        )
+
+        with patch("khan_kids.launcher.time.sleep"):
+            result = ensure_khan_kids_open(device, pin_provider=lambda: "1234")
+
+        self.assertTrue(result.unlocked)
+        device.unlock_with_pin.assert_called_once_with("1234")
+        device.start_activity.assert_called_once_with(KHAN_KIDS_ACTIVITY)
 
     def test_secrets_file_must_be_owner_private(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

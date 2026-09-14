@@ -38,6 +38,34 @@ class IncidentTests(unittest.TestCase):
         self.assertIn("[redacted device]", report)
         self.assertIn("[redacted numeric secret]", report)
 
+    def test_incident_names_completed_actions_and_recovered_queue_size(self) -> None:
+        payload = {
+            "applied": [
+                {
+                    "action": "unchecked",
+                    "title": "Blend Sounds 2",
+                    "variant": "Practice 1",
+                }
+            ],
+            "recovery": {
+                "status": "captured",
+                "live_count": 9,
+                "missing_assignments": [{"title": "Blend Sounds 2", "variant": "Practice 2"}],
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "INCIDENTS.md"
+            append_failed_sync_incident(
+                path,
+                student="Student A",
+                error=RuntimeError("transition failed"),
+                payload=payload,
+            )
+            report = path.read_text()
+
+        self.assertIn("unchecked Blend Sounds 2 — Practice 1", report)
+        self.assertIn("9 assignments; 1 missing", report)
+
     def test_mastery_sync_failure_automatically_appends_incident(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "INCIDENTS.md"

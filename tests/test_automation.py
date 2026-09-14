@@ -36,22 +36,27 @@ class AutomationTests(unittest.TestCase):
 
     def test_exact_roster_screen_opens_class_reports_at_guarded_coordinate(self) -> None:
         device, automation = _automation()
-        root = ET.Element("hierarchy")
-        parent = ET.SubElement(root, "node", bounds="[0,0][2560,1600]", text="")
-        for text in ("Students", "Add Students", "Student A", "Student B"):
-            ET.SubElement(parent, "node", bounds="[100,100][300,160]", text=text)
-        device.hierarchy.return_value = root
-        report = ET.Element("hierarchy")
-        report_parent = ET.SubElement(
-            report, "node", bounds="[0,0][2560,1600]", text="Class Report: Assignments"
-        )
-        for text in ("Assignments", "All Progress", "Students:", "All"):
-            ET.SubElement(report_parent, "node", bounds="[100,100][300,160]", text=text)
-        device.dump.return_value = report
+        root = _roster_screen()
+        report = _assignment_screen()
+        device.hierarchy.side_effect = (root, root, report, report)
 
         automation.ensure_assignments_report()
 
-        device.tap.assert_called_once_with(1280, 459)
+        device.tap_rect.assert_called_once_with(Rect(1279, 458, 1281, 460))
+
+    def test_roster_navigation_retries_one_dropped_tap_from_fresh_state(self) -> None:
+        device, automation = _automation()
+        roster = _roster_screen()
+        fresh_roster = _roster_screen()
+        report = _assignment_screen()
+        automation._wait_for_navigation_state = Mock(return_value=(roster, "teacher_roster"))
+        automation._wait_for_stable_root = Mock(
+            side_effect=(AutomationError("dropped tap"), report)
+        )
+        automation.live_root = Mock(return_value=fresh_roster)
+
+        self.assertIs(automation.ensure_assignments_report(), report)
+        self.assertEqual(device.tap_rect.call_count, 2)
 
     def test_navigation_waits_for_two_stable_profile_chooser_reads(self) -> None:
         device, automation = _automation()
@@ -69,13 +74,7 @@ class AutomationTests(unittest.TestCase):
 
     def test_stable_assignments_report_returns_after_one_read(self) -> None:
         device, automation = _automation()
-        report = _screen_with_text(
-            ("Class Report: Assignments", Rect(100, 100, 600, 160)),
-            ("Assignments", Rect(100, 200, 300, 260)),
-            ("All Progress", Rect(400, 200, 600, 260)),
-            ("Students:", Rect(700, 200, 900, 260)),
-            ("All", Rect(1000, 200, 1100, 260)),
-        )
+        report = _assignment_screen()
         device.hierarchy.return_value = report
 
         root, state = automation._wait_for_navigation_state()
@@ -164,11 +163,7 @@ class AutomationTests(unittest.TestCase):
 
     def test_return_to_profile_chooser_uses_in_app_back_and_switch_user(self) -> None:
         device, automation = _automation()
-        report = _screen_with_text(
-            ("Class Report: Assignments", Rect(600, 20, 1900, 120)),
-            ("Assignments", Rect(900, 130, 1200, 190)),
-            ("All Progress", Rect(1250, 130, 1550, 190)),
-        )
+        report = _assignment_screen()
         _add_control(report, REPORT_BACK_RECT)
         roster = _roster_screen()
         _add_control(roster, SWITCH_USER_RECT)
@@ -179,7 +174,7 @@ class AutomationTests(unittest.TestCase):
             ("Sign Out", Rect(2200, 1400, 2500, 1550)),
         )
         automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
-        automation._wait_for_navigation_target = Mock(side_effect=(roster, chooser))
+        automation._wait_for_stable_root = Mock(side_effect=(roster, chooser))
 
         result = automation.return_to_profile_chooser()
 
@@ -199,11 +194,11 @@ class AutomationTests(unittest.TestCase):
 
     def test_return_to_profile_chooser_rejects_missing_switch_user_control(self) -> None:
         device, automation = _automation()
-        report = _screen_with_text()
+        report = _assignment_screen()
         _add_control(report, REPORT_BACK_RECT)
         roster = _roster_screen()
         automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
-        automation._wait_for_navigation_target = Mock(return_value=roster)
+        automation._wait_for_stable_root = Mock(return_value=roster)
 
         with self.assertRaisesRegex(AutomationError, "Switch User"):
             automation.return_to_profile_chooser()
@@ -212,7 +207,7 @@ class AutomationTests(unittest.TestCase):
 
     def test_return_to_profile_chooser_retries_switch_user_from_fresh_roster(self) -> None:
         device, automation = _automation()
-        report = _screen_with_text()
+        report = _assignment_screen()
         _add_control(report, REPORT_BACK_RECT)
         first_roster = _roster_screen()
         _add_control(first_roster, SWITCH_USER_RECT)
@@ -220,7 +215,7 @@ class AutomationTests(unittest.TestCase):
         _add_control(fresh_roster, SWITCH_USER_RECT)
         chooser = _screen_with_text()
         automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
-        automation._wait_for_navigation_target = Mock(
+        automation._wait_for_stable_root = Mock(
             side_effect=(
                 first_roster,
                 AutomationError("transition timeout"),
@@ -237,13 +232,11 @@ class AutomationTests(unittest.TestCase):
 
     def test_return_to_profile_chooser_fails_closed_on_unexpected_screen(self) -> None:
         device, automation = _automation()
-        report = _screen_with_text()
+        report = _assignment_screen()
         _add_control(report, REPORT_BACK_RECT)
         unexpected = _screen_with_text()
         automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
-        automation._wait_for_navigation_target = Mock(
-            side_effect=AutomationError("transition timeout")
-        )
+        automation._wait_for_stable_root = Mock(side_effect=AutomationError("transition timeout"))
         automation.live_root = Mock(return_value=unexpected)
 
         with self.assertRaisesRegex(AutomationError, "unexpected navigation state None"):
@@ -310,6 +303,42 @@ class AutomationTests(unittest.TestCase):
             ],
         )
 
+    def test_lesson_expansion_retries_a_dropped_tap_from_fresh_row(self) -> None:
+        device, automation = _automation()
+        collapsed = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Blend Sounds 2", Rect(200, 500, 900, 580)),
+        )
+        refreshed = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Blend Sounds 2", Rect(200, 500, 900, 580)),
+        )
+        expanded = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Blend Sounds 2", Rect(200, 500, 900, 580)),
+            ("Practice 2", Rect(239, 600, 800, 680)),
+        )
+        dialog = ET.Element("dialog")
+        automation._wait_for_stable_root = Mock(
+            side_effect=(AutomationError("dropped tap"), expanded)
+        )
+        automation.live_root = Mock(return_value=refreshed)
+        automation._wait_for_assignment_dialog = Mock(return_value=dialog)
+
+        result = automation._open_report_variant(
+            "Blend Sounds 2", "Practice 2", root=collapsed, reset_to_top=False
+        )
+
+        self.assertIs(result, dialog)
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [
+                call(Rect(200, 500, 900, 580)),
+                call(Rect(200, 500, 900, 580)),
+                call(Rect(239, 600, 800, 680)),
+            ],
+        )
+
 
 def _row(title: str, top: int) -> AssignmentRow:
     return AssignmentRow(
@@ -358,6 +387,14 @@ def _roster_screen() -> ET.Element:
         ("Add Students", Rect(1900, 400, 2300, 500)),
         ("Student A", Rect(300, 500, 600, 600)),
         ("Student B", Rect(1000, 500, 1300, 600)),
+    )
+
+
+def _assignment_screen() -> ET.Element:
+    return _screen_with_text(
+        ("Class Report: Assignments", Rect(600, 20, 1900, 120)),
+        ("Assignments", Rect(900, 130, 1200, 190)),
+        ("All Progress", Rect(1250, 130, 1550, 190)),
     )
 
 

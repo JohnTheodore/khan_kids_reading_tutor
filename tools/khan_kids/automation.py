@@ -27,8 +27,9 @@ from .vision import CheckboxReading, CheckboxState, read_checkbox
 SCROLL_DURATION_MS = 300
 REPORT_BACK_RECT = Rect(38, 38, 171, 171)
 SWITCH_USER_RECT = Rect(2259, 12, 2529, 74)
-TEARDOWN_NAVIGATION_ATTEMPTS = 3
-TEARDOWN_NAVIGATION_TIMEOUT_SECONDS = 12
+GUARDED_TRANSITION_ATTEMPTS = 3
+GUARDED_TRANSITION_TIMEOUT_SECONDS = 12
+STABLE_TRANSITION_READS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,25 +91,39 @@ class KhanKidsAutomation:
         if state == "assignments_report":
             return root
         if state == "all_progress_report":
-            self._tap_header(root, "Assignments")
+            root = self._tap_navigation_control(
+                root,
+                source_state=state,
+                target_state="assignments_report",
+                control=lambda candidate: self._header_rect(candidate, "Assignments"),
+                control_name="Assignments tab",
+            )
         elif state == "class_reports_menu":
-            self.device.tap_rect(_unique_visible(root, "Class Reports").rect)
+            root = self._tap_navigation_control(
+                root,
+                source_state=state,
+                target_state="assignments_report",
+                control=lambda candidate: _unique_visible(candidate, "Class Reports").rect,
+                control_name="Class Reports",
+            )
         elif state == "teacher_roster":
-            self._open_class_reports_from_roster(root)
+            root = self._open_class_reports_from_roster(root)
         elif state == "profile_chooser":
             root = self._login_parent(root)
-            self._open_class_reports_from_roster(root)
+            root = self._open_class_reports_from_roster(root)
         elif state == "password_dialog":
             root = self._submit_parent_password(root)
-            self._open_class_reports_from_roster(root)
+            root = self._open_class_reports_from_roster(root)
         elif state == "report_tabs":
-            self.device.tap_rect(_unique_visible(root, "Assignments").rect)
+            root = self._tap_navigation_control(
+                root,
+                source_state=state,
+                target_state="assignments_report",
+                control=lambda candidate: _unique_visible(candidate, "Assignments").rect,
+                control_name="Assignments tab",
+            )
         else:
             raise AssertionError(f"Unhandled navigation state: {state}")
-        root = self._wait_for_root(
-            lambda candidate: is_assignment_report(candidate),
-            description="assignments report",
-        )
         if not is_assignment_report(root):
             raise AutomationError("Navigation did not reach Class Report: Assignments")
         self._assignments_at_top = True
@@ -148,45 +163,100 @@ class KhanKidsAutomation:
         control_rect: Rect,
         control_name: str,
     ) -> ET.Element:
-        """Retry a guarded Khan control only while the source screen remains intact."""
-        for _attempt in range(TEARDOWN_NAVIGATION_ATTEMPTS):
-            self.device.tap_rect(_guarded_unlabeled_control(root, control_rect, control_name))
+        return self._tap_navigation_control(
+            root,
+            source_state=source_state,
+            target_state=target_state,
+            control=lambda candidate: _guarded_unlabeled_control(
+                candidate, control_rect, control_name
+            ),
+            control_name=control_name,
+        )
+
+    def _tap_navigation_control(
+        self,
+        root: ET.Element,
+        *,
+        source_state: str,
+        target_state: str,
+        control: Callable[[ET.Element], Rect],
+        control_name: str,
+    ) -> ET.Element:
+        return self._tap_until_root_target(
+            root,
+            source=lambda candidate: self._navigation_state(candidate) == source_state,
+            target=lambda candidate: self._navigation_state(candidate) == target_state,
+            control=control,
+            source_name=source_state,
+            target_name=target_state,
+            control_name=control_name,
+            timeout=GUARDED_TRANSITION_TIMEOUT_SECONDS,
+        )
+
+    def _tap_until_root_target(
+        self,
+        root: ET.Element,
+        *,
+        source: Callable[[ET.Element], bool],
+        target: Callable[[ET.Element], bool],
+        control: Callable[[ET.Element], Rect],
+        source_name: str,
+        target_name: str,
+        control_name: str,
+        timeout: float,
+    ) -> ET.Element:
+        """Retry one guarded control only while its validated source remains intact."""
+        for _attempt in range(GUARDED_TRANSITION_ATTEMPTS):
+            if not source(root):
+                raise AutomationError(
+                    f"{control_name} cannot run from unexpected state while expecting "
+                    f"{source_name!r}"
+                )
+            self.device.tap_rect(control(root))
             try:
-                return self._wait_for_navigation_target(
-                    target_state,
-                    timeout=TEARDOWN_NAVIGATION_TIMEOUT_SECONDS,
+                return self._wait_for_stable_root(
+                    target,
+                    description=f"{target_name} after {control_name}",
+                    timeout=timeout,
+                    persist=False,
                 )
             except AutomationError:
                 root = self.live_root()
+            if target(root):
+                confirmation = self.live_root()
+                if target(confirmation):
+                    return confirmation
+                root = confirmation
+            if not source(root):
                 state = self._navigation_state(root)
-            if state == target_state:
-                return root
-            if state != source_state:
                 raise AutomationError(
                     f"{control_name} reached unexpected navigation state {state!r}"
                 )
         raise AutomationError(
-            f"{control_name} remained on {source_state!r} after "
-            f"{TEARDOWN_NAVIGATION_ATTEMPTS} guarded attempts"
+            f"{control_name} remained on {source_name!r} after "
+            f"{GUARDED_TRANSITION_ATTEMPTS} guarded attempts"
         )
 
-    def _wait_for_navigation_target(self, target_state: str, *, timeout: float) -> ET.Element:
-        """Require two consecutive reads of the requested post-tap screen."""
+    def _wait_for_stable_root(
+        self,
+        predicate: Callable[[ET.Element], bool],
+        *,
+        description: str,
+        timeout: float,
+        persist: bool,
+    ) -> ET.Element:
         matching_reads = 0
 
-        def is_stable_target(root: ET.Element) -> bool:
+        def stable(candidate: ET.Element) -> bool:
             nonlocal matching_reads
-            if self._navigation_state(root) == target_state:
-                matching_reads += 1
-            else:
-                matching_reads = 0
-            return matching_reads >= 2
+            matching_reads = matching_reads + 1 if predicate(candidate) else 0
+            return matching_reads >= STABLE_TRANSITION_READS
 
         return self._wait_for_root(
-            is_stable_target,
-            description=f"stable {target_state} after navigation",
+            stable,
+            description=description,
             timeout=timeout,
-            persist=False,
+            persist=persist,
         )
 
     def _wait_for_navigation_state(
@@ -298,14 +368,25 @@ class KhanKidsAutomation:
             timeout=8,
         )
 
-    def _open_class_reports_from_roster(self, root: ET.Element) -> None:
+    def _open_class_reports_from_roster(self, root: ET.Element) -> ET.Element:
         texts = text_set(root)
         required = {"Students", "Add Students", *self.roster}
         if not required.issubset(texts):
             raise AutomationError("Roster screen did not match safe Class Reports preconditions")
         # This control is visible but absent from Khan's accessibility hierarchy. The coordinate
         # is allowed only after exact geometry and roster-screen predicates have been validated.
-        self.device.tap(1280, 459)
+        return self._tap_navigation_control(
+            root,
+            source_state="teacher_roster",
+            target_state="assignments_report",
+            control=lambda candidate: self._class_reports_rect(candidate),
+            control_name="Class Reports roster card",
+        )
+
+    def _class_reports_rect(self, root: ET.Element) -> Rect:
+        if not self._is_teacher_roster(root):
+            raise AutomationError("Roster screen did not match safe Class Reports preconditions")
+        return Rect(1279, 458, 1281, 460)
 
     def _wait_for_root(
         self,
@@ -527,10 +608,12 @@ class KhanKidsAutomation:
 
     def _open_all_progress(self) -> ET.Element:
         root = self.ensure_assignments_report()
-        self._tap_header(root, "All Progress")
-        after = self._wait_for_root(
-            lambda candidate: "Class Report: All Progress" in text_set(candidate),
-            description="all progress report",
+        after = self._tap_navigation_control(
+            root,
+            source_state="assignments_report",
+            target_state="all_progress_report",
+            control=lambda candidate: self._header_rect(candidate, "All Progress"),
+            control_name="All Progress tab",
         )
         if "Class Report: All Progress" not in text_set(after):
             raise AutomationError("Navigation did not reach Class Report: All Progress")
@@ -718,18 +801,17 @@ class KhanKidsAutomation:
                     continue
                 variants = _variants_below(nodes, lesson)
                 if variant not in {item.text for item in variants}:
-                    self.device.tap_rect(lesson.rect)
-                    root = self._wait_for_root(
-                        lambda candidate, current_lesson=lesson: (
-                            variant
-                            in {
-                                item.text
-                                for item in _variants_below(
-                                    visible_nodes(candidate), current_lesson
-                                )
-                            }
+                    root = self._tap_until_root_target(
+                        root,
+                        source=lambda candidate: self._collapsed_lesson_visible(
+                            candidate, title, variant
                         ),
-                        description="lesson variants",
+                        target=lambda candidate: self._variant_visible(candidate, title, variant),
+                        control=lambda candidate: self._visible_lesson_rect(candidate, title),
+                        source_name=f"collapsed All Progress row {title!r}",
+                        target_name=f"lesson variant {title!r}/{variant!r}",
+                        control_name=f"expand lesson {title!r}",
+                        timeout=GUARDED_TRANSITION_TIMEOUT_SECONDS,
                     )
                     nodes = visible_nodes(root)
                     lesson = next(
@@ -755,6 +837,29 @@ class KhanKidsAutomation:
             self.device.swipe(1200, 1380, 1200, 680, SCROLL_DURATION_MS)
             root = self.root(f"find-lesson-{page + 1:03d}")
         raise AutomationError(f"All Progress lesson not found: {title!r}")
+
+    def _visible_lesson_rect(self, root: ET.Element, title: str) -> Rect:
+        matches = [
+            item for item in visible_nodes(root) if item.text == title and near(item.rect.left, 200)
+        ]
+        if len(matches) != 1:
+            raise AutomationError(f"Expected one visible All Progress row named {title!r}")
+        return matches[0].rect
+
+    def _variant_visible(self, root: ET.Element, title: str, variant: str) -> bool:
+        if "Class Report: All Progress" not in text_set(root):
+            return False
+        nodes = visible_nodes(root)
+        lessons = [item for item in nodes if item.text == title and near(item.rect.left, 200)]
+        if len(lessons) != 1:
+            raise AutomationError(f"Expected one visible All Progress row named {title!r}")
+        return variant in {item.text for item in _variants_below(nodes, lessons[0])}
+
+    def _collapsed_lesson_visible(self, root: ET.Element, title: str, variant: str) -> bool:
+        try:
+            return not self._variant_visible(root, title, variant)
+        except AutomationError:
+            return False
 
     def _validate_assignment_dialog(
         self, root: ET.Element, expected_title: str, expected_variant: str
@@ -857,9 +962,11 @@ class KhanKidsAutomation:
                 return "Class Report: All Progress" in text_set(candidate)
             raise ValueError(f"unknown report type: {expected_report}")
 
-        after = self._wait_for_root(
+        after = self._wait_for_stable_root(
             returned_to_report,
             description="assignment saved",
+            timeout=GUARDED_TRANSITION_TIMEOUT_SECONDS,
+            persist=True,
         )
         if not returned_to_report(after):
             raise AutomationError("Assignment dialog did not return to the expected report")
@@ -893,11 +1000,12 @@ class KhanKidsAutomation:
             description="assignment dialog",
         )
 
-    def _tap_header(self, root: ET.Element, label: str) -> None:
+    @staticmethod
+    def _header_rect(root: ET.Element, label: str) -> Rect:
         candidates = [item for item in find_text(root, label) if item.rect.top < 200]
         if len(candidates) != 1:
             raise AutomationError(f"Expected one top {label!r} tab, found {len(candidates)}")
-        self.device.tap_rect(candidates[0].rect)
+        return candidates[0].rect
 
 
 def _unique_visible(root: ET.Element, text: str) -> UiText:

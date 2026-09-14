@@ -568,3 +568,107 @@ tests also passed.
 - The normal workflow safety guards remained in force.
 - Any completed assignment actions, if present, remain recorded in the student sync log.
 - Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-14-AUTO-092714-385487 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-14 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Khan Kids did not become the foreground app`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-14-AUTO-092831-151031 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-14 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for assignments report`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-14-AUTO-093015-575769 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-14 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for lesson variants`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Any completed assignment actions, if present, remain recorded in the student sync log.
+- Diagnose the exact device state before retrying.
+
+### Resolution update — 2026-09-14
+
+**Status: Resolved in code / monitoring live behavior.** This update also covers
+`KKRT-2026-09-14-AUTO-092714-385487` and
+`KKRT-2026-09-14-AUTO-092831-151031`, which were earlier stages of the same
+mastery-sync attempt sequence.
+
+The failures shared one missing resilience mechanism: startup and forward UI
+transitions did not use the guarded, stable-state retry behavior already used
+by teardown. The final attempt then exposed a second safety weakness: the
+workflow removed all four mastered assignments before adding replacements, so
+a dropped lesson-expansion transition interrupted the run after four saved
+removals and only one saved addition.
+
+The corrective implementation now:
+
+- requires stable lock-state and foreground readings and uses Android's
+  wait-capable activity launch while preserving the one-PIN-attempt limit;
+- routes forward report navigation, All Progress navigation, lesson expansion,
+  assignment Save, and teardown through one shared guarded transition system;
+- retries only while a freshly read source screen still satisfies its exact
+  safety predicates and fails closed on any unexpected state;
+- writes a desired-state operation journal before the first mutation and
+  checkpoints every saved and independently verified action;
+- adds before removing when capacity permits and otherwise alternates one
+  removal with one replacement, limiting an interrupted full-queue update to
+  one unmatched removal;
+- verifies the complete live queue after every Save and requires a second exact
+  fixed-point scan before reporting success;
+- attempts a bounded read-only live-queue recovery after interruption and
+  reports the exact saved actions, missing assignments, queue count, and
+  duration; and
+- reports a promotion as applied only when both the removal and its replacement
+  addition were actually saved.
+
+Automated verification completed on 2026-09-14: all 105 repository tests pass,
+including delayed foreground, transient keyguard, dropped roster tap, dropped
+lesson expansion, and a fault injected after a saved removal from a full queue.
+A strict production-source duplication scan found no duplicated blocks. Live
+behavior remains under monitoring until the next requested mastery sync.

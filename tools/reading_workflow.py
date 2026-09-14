@@ -56,6 +56,15 @@ INCIDENT_LOG_PATH = Path("INCIDENTS.md")
 WORKFLOW_LOCK_PATH = Path("private/.reading-workflow.lock")
 
 
+class MasterySyncInterrupted(AutomationError):
+    """Carry the structured, already-persisted failure result to the CLI."""
+
+    def __init__(self, cause: Exception, payload: dict[str, object]) -> None:
+        super().__init__(str(cause))
+        self.cause = cause
+        self.payload = payload
+
+
 def create_plan_payload(
     *,
     student: str,
@@ -320,70 +329,90 @@ def main() -> None:
     output_payload: dict[str, object]
     teardown_error: AutomationError | None = None
     output_plan_path = args.apply_plan or plan_path
-    with timing.span("startup.connected"):
-        device.assert_connected()
-    with device.awake_session(), tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary:
-        credentials = local_secrets_provider(args.secrets_file)
-        with timing.span("startup.launch"):
-            ensure_khan_kids_open(
+    try:
+        with timing.span("startup.connected"):
+            device.assert_connected()
+        with (
+            device.awake_session(),
+            tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary,
+        ):
+            credentials = local_secrets_provider(args.secrets_file)
+            with timing.span("startup.launch"):
+                ensure_khan_kids_open(
+                    device,
+                    pin_provider=lambda: credentials().android_pin,
+                    fresh_start=True,
+                )
+            device.enable_ui_backend(args.ui_backend)
+            automation = KhanKidsAutomation(
                 device,
-                pin_provider=lambda: credentials().android_pin,
-                fresh_start=True,
+                student=args.student,
+                roster=catalog.roster,
+                scratch=Path(temporary),
+                parent_password_provider=lambda: credentials().khan_parent_password,
+                history_lookup=_history_lookup_for_run(args, history_cache),
             )
-        device.enable_ui_backend(args.ui_backend)
-        automation = KhanKidsAutomation(
-            device,
-            student=args.student,
-            roster=catalog.roster,
-            scratch=Path(temporary),
-            parent_password_provider=lambda: credentials().khan_parent_password,
-            history_lookup=_history_lookup_for_run(args, history_cache),
+            with timing.span("phase.review_assignments"):
+                snapshot = automation.scan_assignments(
+                    today=args.today, include_score_histories=True
+                )
+            history_cache.update(snapshot.rows, snapshot.histories)
+            history_cache.save()
+            if args.apply_plan:
+                assert reviewed_payload is not None
+                output_payload = _apply_reviewed_plan(
+                    args=args,
+                    payload=reviewed_payload,
+                    snapshot=snapshot,
+                    automation=automation,
+                    actions_path=actions_path,
+                    report_path=report_path,
+                    curriculum=curriculum,
+                    catalog=catalog,
+                    active_quarantines=active_quarantines,
+                    mastered_keys=mastered_keys,
+                    plan_path=args.apply_plan,
+                )
+            else:
+                output_payload = _review_snapshot(
+                    args=args,
+                    snapshot=snapshot,
+                    automation=automation,
+                    catalog=catalog,
+                    curriculum=curriculum,
+                    attempts_path=attempts_path,
+                    actions_path=actions_path,
+                    report_path=report_path,
+                    plan_path=plan_path,
+                    active_quarantines=active_quarantines,
+                    mastered_keys=mastered_keys,
+                )
+            try:
+                with timing.span("teardown.switch_user"):
+                    automation.return_to_profile_chooser()
+            except Exception as error:
+                output_payload["teardown"] = {
+                    "status": "failed",
+                    "error": str(error),
+                }
+                teardown_error = AutomationError(
+                    "Teardown failed after the sync outcome "
+                    f"{output_payload['status']!r} had already been saved: {error}"
+                )
+    except MasterySyncInterrupted:
+        raise
+    except Exception as error:
+        interrupted = _pre_apply_interruption_payload(
+            args=args,
+            curriculum=curriculum,
+            device=device,
+            history_cache=history_cache,
+            timing=timing,
+            error=error,
         )
-        with timing.span("phase.review_assignments"):
-            snapshot = automation.scan_assignments(today=args.today, include_score_histories=True)
-        history_cache.update(snapshot.rows, snapshot.histories)
-        history_cache.save()
-        if args.apply_plan:
-            assert reviewed_payload is not None
-            output_payload = _apply_reviewed_plan(
-                args=args,
-                payload=reviewed_payload,
-                snapshot=snapshot,
-                automation=automation,
-                actions_path=actions_path,
-                report_path=report_path,
-                curriculum=curriculum,
-                catalog=catalog,
-                active_quarantines=active_quarantines,
-                mastered_keys=mastered_keys,
-                plan_path=args.apply_plan,
-            )
-        else:
-            output_payload = _review_snapshot(
-                args=args,
-                snapshot=snapshot,
-                automation=automation,
-                catalog=catalog,
-                curriculum=curriculum,
-                attempts_path=attempts_path,
-                actions_path=actions_path,
-                report_path=report_path,
-                plan_path=plan_path,
-                active_quarantines=active_quarantines,
-                mastered_keys=mastered_keys,
-            )
-        try:
-            with timing.span("teardown.switch_user"):
-                automation.return_to_profile_chooser()
-        except Exception as error:
-            output_payload["teardown"] = {
-                "status": "failed",
-                "error": str(error),
-            }
-            teardown_error = AutomationError(
-                "Teardown failed after the sync outcome "
-                f"{output_payload['status']!r} had already been saved: {error}"
-            )
+        write_json_atomic(output_plan_path, interrupted)
+        append_sync_report(report_path, interrupted)
+        raise MasterySyncInterrupted(error, interrupted) from error
 
     timing_snapshot = timing.snapshot()
     output_payload["performance"] = {
@@ -413,7 +442,7 @@ def main() -> None:
             )
         )
     if teardown_error is not None:
-        raise teardown_error
+        raise MasterySyncInterrupted(teardown_error, output_payload)
 
 
 def _review_snapshot(
@@ -547,61 +576,207 @@ def _apply_reviewed_plan(
             f"Reviewed plan contains {len(actions)} actions; limit is {args.max_actions}"
         )
     applied: list[dict[str, str]] = []
+    desired_keys = {activity.key for activity in desired}
+    current_keys = _assignment_keys(snapshot)
+    action_by_key = {(action.kind, action.key): action for action in actions}
+    payload["status"] = "applying"
+    payload["operation_journal"] = {
+        "status": "applying",
+        "desired_state_sha256": _key_set_digest(desired_keys),
+        "operations": [{**action.as_dict(), "state": "planned"} for action in actions],
+    }
+    write_json_atomic(plan_path, payload)
     try:
-        removals = {action.key: action for action in actions if action.kind == "remove"}
-        with automation.device.timing.span("phase.bulk_remove"):
-            for result in automation.unassign_many(removals):
-                action = removals[(result.title, result.variant)]
-                _record_applied_action(
-                    result=result,
-                    action=action,
-                    actions_path=actions_path,
-                    student=args.student,
-                    action_date=args.today,
-                    applied=applied,
+        while current_keys != desired_keys:
+            missing = desired_keys - current_keys
+            unexpected = current_keys - desired_keys
+            if missing and len(current_keys) < curriculum.queue_limit:
+                action = min(
+                    (action_by_key[("add", key)] for key in missing),
+                    key=lambda candidate: catalog.order_key(candidate.grade, candidate.title),
                 )
-        additions = sorted(
-            (action for action in actions if action.kind == "add"),
-            key=lambda action: catalog.order_key(action.grade, action.title),
-        )
-        additions_by_key = {action.key: action for action in additions}
-        assignment_specs = tuple(
-            (action.grade, action.title, action.variant) for action in additions
-        )
-        with automation.device.timing.span("phase.batch_add"):
-            for result in automation.assign_many(assignment_specs):
-                action = additions_by_key[(result.title, result.variant)]
-                _record_applied_action(
-                    result=result,
-                    action=action,
-                    actions_path=actions_path,
-                    student=args.student,
-                    action_date=args.today,
-                    applied=applied,
+            elif unexpected:
+                action = next(
+                    action
+                    for action in actions
+                    if action.kind == "remove" and action.key in unexpected
                 )
+            else:
+                raise AutomationError("Desired assignments cannot fit without a validated removal")
 
-        with automation.device.timing.span("phase.final_verify"):
-            final_snapshot = automation.scan_assignments(
+            with automation.device.timing.span(f"phase.{action.kind}_and_verify"):
+                result = _apply_queue_action(automation, action)
+                _record_applied_action(
+                    result=result,
+                    action=action,
+                    actions_path=actions_path,
+                    student=args.student,
+                    action_date=args.today,
+                    applied=applied,
+                )
+                _update_operation_journal(payload, action, state="saved")
+                write_json_atomic(plan_path, payload)
+                verified_snapshot = automation.scan_assignments(
+                    today=args.today, include_score_histories=False
+                )
+                current_keys = _assignment_keys(verified_snapshot)
+                expected_present = action.kind == "add"
+                if (action.key in current_keys) is not expected_present:
+                    raise AutomationError(
+                        f"Saved {action.kind} was not visible in immediate queue verification: "
+                        f"{action.title!r}/{action.variant!r}"
+                    )
+                _update_operation_journal(
+                    payload,
+                    action,
+                    state="verified",
+                    verified_queue=current_keys,
+                )
+                write_json_atomic(plan_path, payload)
+
+        with automation.device.timing.span("phase.fixed_point_verify"):
+            fixed_point_snapshot = automation.scan_assignments(
                 today=args.today, include_score_histories=False
             )
-        final_keys = {(row.title, row.variant) for row in final_snapshot.rows}
-        desired_keys = {activity.key for activity in desired}
-        if final_keys != desired_keys:
-            raise AutomationError("Post-apply verification did not match the desired queue")
+        fixed_point_keys = _assignment_keys(fixed_point_snapshot)
+        if fixed_point_keys != desired_keys:
+            raise AutomationError("Fixed-point verification did not match the desired queue")
     except Exception as error:
+        recovery: dict[str, object]
+        try:
+            with automation.device.timing.span("phase.interruption_reconcile"):
+                recovery_snapshot = automation.scan_assignments(
+                    today=args.today, include_score_histories=False
+                )
+            live_keys = _assignment_keys(recovery_snapshot)
+            recovery = _queue_recovery_payload(live_keys, desired_keys)
+        except Exception as recovery_error:
+            recovery = {"status": "unavailable", "error": str(recovery_error)}
         payload["status"] = "interrupted"
         payload["interrupted_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
         payload["error"] = str(error)
         payload["applied"] = applied
+        payload["recovery"] = recovery
+        _set_journal_status(payload, "interrupted")
+        payload["performance"] = automation.device.timing.snapshot()
         write_json_atomic(plan_path, payload)
         append_sync_report(report_path, payload)
-        raise
+        raise MasterySyncInterrupted(error, payload) from error
     payload["status"] = "applied"
     payload["applied_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
     payload["applied"] = applied
+    payload["verified_assignments"] = [
+        {"title": title, "variant": variant} for title, variant in sorted(fixed_point_keys)
+    ]
+    _set_journal_status(payload, "complete")
     write_json_atomic(plan_path, payload)
     append_sync_report(report_path, payload)
     return payload
+
+
+def _apply_queue_action(automation: KhanKidsAutomation, action: QueueAction) -> ActionResult:
+    if action.kind == "remove":
+        return automation.unassign(action.title, action.variant)
+    return automation.assign(action.grade, action.title, action.variant)
+
+
+def _assignment_keys(snapshot: AssignmentSnapshot) -> set[tuple[str, str]]:
+    return {(row.title, row.variant) for row in snapshot.rows}
+
+
+def _update_operation_journal(
+    payload: dict[str, object],
+    action: QueueAction,
+    *,
+    state: str,
+    verified_queue: set[tuple[str, str]] | None = None,
+) -> None:
+    journal = payload.get("operation_journal")
+    if not isinstance(journal, dict):
+        raise AutomationError("Operation journal is unavailable")
+    operations = journal.get("operations")
+    if not isinstance(operations, list):
+        raise AutomationError("Operation journal has invalid operations")
+    matches = [
+        operation
+        for operation in operations
+        if isinstance(operation, dict)
+        and operation.get("kind") == action.kind
+        and operation.get("title") == action.title
+        and operation.get("variant") == action.variant
+    ]
+    if len(matches) != 1:
+        raise AutomationError(f"Operation journal does not uniquely identify {action.key!r}")
+    matches[0]["state"] = state
+    matches[0][f"{state}_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    if verified_queue is not None:
+        matches[0]["verified_queue_sha256"] = _key_set_digest(verified_queue)
+        matches[0]["verified_queue_count"] = len(verified_queue)
+
+
+def _set_journal_status(payload: dict[str, object], status: str) -> None:
+    journal = payload.get("operation_journal")
+    if isinstance(journal, dict):
+        journal["status"] = status
+
+
+def _queue_recovery_payload(
+    live_keys: set[tuple[str, str]], desired_keys: set[tuple[str, str]]
+) -> dict[str, object]:
+    return {
+        "status": "captured",
+        "live_count": len(live_keys),
+        "live_assignments": [
+            {"title": title, "variant": variant} for title, variant in sorted(live_keys)
+        ],
+        "missing_assignments": [
+            {"title": title, "variant": variant}
+            for title, variant in sorted(desired_keys - live_keys)
+        ],
+        "unexpected_assignments": [
+            {"title": title, "variant": variant}
+            for title, variant in sorted(live_keys - desired_keys)
+        ],
+    }
+
+
+def _pre_apply_interruption_payload(
+    *,
+    args: argparse.Namespace,
+    curriculum: ReadingCurriculum,
+    device: AndroidDevice,
+    history_cache: HistoryCache,
+    timing: TimingRecorder,
+    error: Exception,
+) -> dict[str, object]:
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
+    return {
+        "version": PLAN_VERSION,
+        "status": "interrupted",
+        "generated_at": now,
+        "interrupted_at": now,
+        "student": args.student,
+        "path_id": curriculum.path_id,
+        "new_attempt_records": 0,
+        "new_attempts": [],
+        "score_controls_read": [],
+        "observed_assignments": [],
+        "desired_assignments": [],
+        "stretch_assignments": [],
+        "actions": [],
+        "applied": [],
+        "score_evidence": [],
+        "track_states": [],
+        "active_quarantines": [],
+        "error": str(error),
+        "recovery": {"status": "unavailable", "error": "workflow stopped before mutation"},
+        "performance": {
+            "backend": device.ui_backend_name,
+            "cache_hits": history_cache.hits,
+            "cache_misses": history_cache.misses,
+            **timing.snapshot(),
+        },
+    }
 
 
 def _record_applied_action(
@@ -697,6 +872,10 @@ def _quarantine_digest(records: tuple[LessonQuarantine, ...]) -> str:
 
 
 def _mastery_digest(keys: set[tuple[str, str]]) -> str:
+    return _key_set_digest(keys)
+
+
+def _key_set_digest(keys: set[tuple[str, str]]) -> str:
     canonical = json.dumps(sorted(keys), separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()
 
@@ -714,12 +893,19 @@ def cli() -> None:
             main()
     except Exception as error:
         incident_line = ""
+        interrupted_payload = (
+            error.payload
+            if isinstance(error, MasterySyncInterrupted)
+            else _interrupted_payload_from_arguments()
+        )
+        incident_error = error.cause if isinstance(error, MasterySyncInterrupted) else error
         if "--sync" in sys.argv:
             try:
                 incident_id = append_failed_sync_incident(
                     INCIDENT_LOG_PATH,
                     student=_argument_value("--student") or "unknown",
-                    error=error,
+                    error=incident_error,
+                    payload=interrupted_payload,
                 )
                 incident_line = f"\nIncident recorded: {incident_id}\n"
             except Exception as incident_error:
@@ -727,14 +913,16 @@ def cli() -> None:
                     "\nWARNING: automatic incident recording also failed: "
                     f"{type(incident_error).__name__}\n"
                 )
-        print(
-            "Khan Mastery Sync — FAILED\n"
-            "==========================\n"
-            f"Error: {error}\n\n"
-            "The workflow stopped. Review the sync log for any actions completed "
-            f"before the interruption.{incident_line}",
-            file=sys.stderr,
-        )
+        if interrupted_payload is not None:
+            detail = f"{render_terminal_summary(interrupted_payload)}\n\nFAILURE: {incident_error}"
+        else:
+            detail = (
+                "Khan Mastery Sync — FAILED\n"
+                "==========================\n"
+                f"Error: {error}\n\n"
+                "The workflow stopped before a recoverable live queue was recorded."
+            )
+        print(f"{detail}{incident_line}", file=sys.stderr)
         raise SystemExit(2) from None
 
 
@@ -744,6 +932,23 @@ def _argument_value(option: str) -> str | None:
     except ValueError:
         return None
     return sys.argv[index + 1] if index + 1 < len(sys.argv) else None
+
+
+def _interrupted_payload_from_arguments() -> dict[str, object] | None:
+    student = _argument_value("--student")
+    if student is None:
+        return None
+    selected = _argument_value("--apply-plan") or _argument_value("--plan")
+    path = (
+        Path(selected)
+        if selected
+        else Path(f"private/{student.casefold().replace(' ', '-')}-reading-plan.json")
+    )
+    try:
+        payload = _read_object(path)
+    except (AutomationError, OSError, json.JSONDecodeError):
+        return None
+    return payload if payload.get("status") == "interrupted" else None
 
 
 if __name__ == "__main__":

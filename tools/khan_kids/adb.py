@@ -165,7 +165,10 @@ class AndroidDevice:
         return None
 
     def start_activity(self, component: str) -> None:
-        self.command("shell", "am", "start", "-n", component)
+        # Ask ActivityManager to wait for the launch transition itself.  The
+        # caller still verifies foreground focus because ``am start -W`` can
+        # complete before WindowManager publishes its new current focus.
+        self.command("shell", "am", "start", "-W", "-n", component)
         time.sleep(self.settle_seconds)
 
     def force_stop(self, package: str) -> None:

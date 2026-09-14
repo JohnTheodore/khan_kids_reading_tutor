@@ -4,9 +4,8 @@ import sys
 import tempfile
 import unittest
 from argparse import Namespace
-from contextlib import nullcontext, redirect_stdout
+from contextlib import nullcontext
 from datetime import date, datetime
-from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -23,6 +22,7 @@ from khan_kids.reports import AssignmentRow, AssignmentSnapshot, ScoreAttempt, S
 from khan_kids.ui import Rect
 from khan_kids.workflow import histories_to_attempt_rows
 from reading_workflow import (
+    MasterySyncInterrupted,
     _apply_reviewed_plan,
     _history_lookup_for_run,
     create_plan_payload,
@@ -67,12 +67,18 @@ EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
     ("Short Vowel Sound o", "Basic"),
     ("Beginning Sounds 2", "Basic"),
     ("Blend Sounds 1", "Main"),
+    ("Blend Sounds 1", "Practice 1"),
+    ("Blend Sounds 2", "Practice 1"),
+    ("Short Vowel Sound i", "Main"),
+    ("Short Vowel Sound o", "Main"),
 } | {
     ("Words with a", "Main"),
     ("Short Vowel Sound e", "Main"),
-    ("Short Vowel Sound o", "Main"),
+    ("Short Vowel Sound o", "Practice 1"),
+    ("Short Vowel Sound i", "Practice 1"),
     ("Beginning Sounds 2", "Main"),
-    ("Blend Sounds 1", "Practice 1"),
+    ("Blend Sounds 1", "Practice 2"),
+    ("Blend Sounds 2", "Practice 2"),
 }
 QUARANTINED_BEGINNING_TITLES = {
     "Words with b, c, d",
@@ -105,6 +111,34 @@ class WorkflowTests(unittest.TestCase):
             curriculum_path=CURRICULUM_PATH,
             generated_at=datetime(2026, 9, day),
             **details,
+        )
+
+    def _apply_plan(
+        self,
+        *,
+        payload: dict[str, object],
+        snapshot: AssignmentSnapshot,
+        automation: Mock,
+        directory: Path,
+        day: int,
+    ) -> dict[str, object]:
+        args = Namespace(
+            student="Student A",
+            catalog=CATALOG_PATH,
+            curriculum=CURRICULUM_PATH,
+            max_actions=2,
+            today=date(2026, 9, day),
+            apply_plan=directory / "plan.json",
+        )
+        return _apply_reviewed_plan(
+            args=args,
+            payload=payload,
+            snapshot=snapshot,
+            automation=automation,
+            actions_path=directory / "actions.csv",
+            report_path=directory / "sync-log.md",
+            curriculum=self.curriculum,
+            catalog=self.catalog,
         )
 
     def test_current_records_preserve_the_diverse_ten_item_queue(self) -> None:
@@ -443,40 +477,98 @@ class WorkflowTests(unittest.TestCase):
         )
         automation = Mock()
         automation.device.timing.span.return_value = nullcontext()
-        automation.unassign_many.return_value = iter(
-            (ActionResult("unchecked", "Blend Sounds 2", "Basic", "saved"),)
+        with_both = AssignmentSnapshot((snapshot.rows[0], final_snapshot.rows[0]), ())
+        automation.unassign.return_value = ActionResult(
+            "unchecked", "Blend Sounds 2", "Basic", "saved"
         )
-        automation.assign_many.return_value = iter(
-            (ActionResult("checked", "Blend Sounds 2", "Main", "saved"),)
-        )
-        automation.scan_assignments.return_value = final_snapshot
+        automation.assign.return_value = ActionResult("checked", "Blend Sounds 2", "Main", "saved")
+        automation.scan_assignments.side_effect = (with_both, final_snapshot, final_snapshot)
 
         with tempfile.TemporaryDirectory() as temporary:
             temporary_path = Path(temporary)
-            args = Namespace(
-                student="Student A",
-                catalog=CATALOG_PATH,
-                curriculum=CURRICULUM_PATH,
-                max_actions=2,
-                today=date(2026, 9, 9),
-                apply_plan=temporary_path / "plan.json",
+            self._apply_plan(
+                payload=payload,
+                snapshot=snapshot,
+                automation=automation,
+                directory=temporary_path,
+                day=9,
             )
-            with redirect_stdout(StringIO()):
-                _apply_reviewed_plan(
-                    args=args,
-                    payload=payload,
-                    snapshot=snapshot,
-                    automation=automation,
-                    actions_path=temporary_path / "actions.csv",
-                    report_path=temporary_path / "sync-log.md",
-                    curriculum=self.curriculum,
-                    catalog=self.catalog,
-                )
 
             self.assertEqual(payload["status"], "applied")
             self.assertEqual(len((temporary_path / "actions.csv").read_text().splitlines()), 3)
-            self.assertTrue(args.apply_plan.exists())
+            self.assertTrue((temporary_path / "plan.json").exists())
             self.assertIn("Applied promotions", (temporary_path / "sync-log.md").read_text())
+            self.assertEqual(
+                [call[0] for call in automation.method_calls if call[0] in {"assign", "unassign"}],
+                ["assign", "unassign"],
+            )
+            journal = payload["operation_journal"]
+            self.assertEqual(journal["status"], "complete")
+            self.assertTrue(all(item["state"] == "verified" for item in journal["operations"]))
+
+    def test_interruption_after_full_queue_removal_captures_one_missing_replacement(self) -> None:
+        activities = tuple(self.curriculum.activities_by_key.values())[:11]
+        desired = activities[:10]
+        replacement = desired[-1]
+        displaced = activities[-1]
+        current_activities = (*desired[:-1], displaced)
+        snapshot = AssignmentSnapshot(tuple(_activity_row(item) for item in current_activities), ())
+        plan = QueuePlan(
+            desired,
+            (
+                QueueAction(
+                    "remove",
+                    displaced.title,
+                    displaced.variant,
+                    displaced.grade,
+                    f"mastered: test; promote to {replacement.title} — {replacement.variant}",
+                ),
+                QueueAction(
+                    "add",
+                    replacement.title,
+                    replacement.variant,
+                    replacement.grade,
+                    "replacement",
+                ),
+            ),
+            (),
+        )
+        payload = self._plan_payload(snapshot, plan, 14, new_attempt_records=0)
+        after_removal = AssignmentSnapshot(tuple(_activity_row(item) for item in desired[:-1]), ())
+        automation = Mock()
+        automation.device.timing.span.return_value = nullcontext()
+        automation.device.timing.snapshot.return_value = {"wall_seconds": 3.5, "steps": []}
+        automation.unassign.return_value = ActionResult(
+            "unchecked", displaced.title, displaced.variant, "saved"
+        )
+        automation.scan_assignments.side_effect = (
+            AutomationError("verification hierarchy unavailable"),
+            after_removal,
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_path = Path(temporary)
+            with self.assertRaises(MasterySyncInterrupted):
+                self._apply_plan(
+                    payload=payload,
+                    snapshot=snapshot,
+                    automation=automation,
+                    directory=temporary_path,
+                    day=14,
+                )
+
+            self.assertEqual(payload["status"], "interrupted")
+            self.assertEqual(payload["recovery"]["live_count"], 9)
+            self.assertEqual(
+                payload["recovery"]["missing_assignments"],
+                [{"title": replacement.title, "variant": replacement.variant}],
+            )
+            operations = payload["operation_journal"]["operations"]
+            self.assertEqual([item["state"] for item in operations], ["saved", "planned"])
+            automation.assign.assert_not_called()
+            report = (temporary_path / "sync-log.md").read_text()
+            self.assertIn("Last verified live queue: 9 assignments", report)
+            self.assertIn("Applied before interruption promotions\n\nNone.", report)
 
 
 def _historical_planner_scores() -> dict[tuple[str, str], tuple[int, ...]]:
@@ -516,6 +608,17 @@ def _snapshot(*, score: int) -> AssignmentSnapshot:
         score_rect=Rect(100, 0, 200, 100),
     )
     return AssignmentSnapshot((row,), ())
+
+
+def _activity_row(activity: Activity) -> AssignmentRow:
+    return AssignmentRow(
+        title=activity.title,
+        variant=activity.variant,
+        assigned_date="Today",
+        rect=Rect(0, 0, 100, 100),
+        score=None,
+        score_rect=None,
+    )
 
 
 if __name__ == "__main__":

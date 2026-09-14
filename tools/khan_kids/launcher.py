@@ -6,6 +6,7 @@ import getpass
 import json
 import stat
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,9 @@ from .constants import KHAN_KIDS_ACTIVITY, KHAN_KIDS_PACKAGE
 PinProvider = Callable[[], str]
 SecretsProvider = Callable[[], "LocalSecrets"]
 DEFAULT_SECRETS_PATH = Path(".secrets.json")
+DEVICE_STATE_TIMEOUT_SECONDS = 15.0
+DEVICE_STATE_POLL_SECONDS = 0.2
+DEVICE_STATE_STABLE_READS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,15 +40,19 @@ def ensure_khan_kids_open(
     pin_provider: PinProvider | None = None,
     fresh_start: bool = False,
 ) -> LaunchResult:
-    """Wake, unlock once, and optionally restart Khan Kids at its entry route."""
+    """Wake, unlock once, and wait for Khan Kids to become stably foreground."""
     device.wake()
     unlocked = False
-    if device.is_locked():
+    if _wait_for_stable_value(device.is_locked, description="Android lock state"):
         if pin_provider is None:
             raise AutomationError("Tablet is PIN-locked; a PIN provider is required")
         device.unlock_with_pin(pin_provider())
-        if device.is_locked():
-            raise AutomationError("Tablet remained locked after one PIN attempt; refusing to retry")
+        try:
+            _wait_for_value(device.is_locked, False, description="tablet unlock")
+        except AutomationError as error:
+            raise AutomationError(
+                "Tablet remained locked after one PIN attempt; refusing to retry"
+            ) from error
         unlocked = True
 
     if fresh_start:
@@ -52,9 +60,51 @@ def ensure_khan_kids_open(
     launched = fresh_start or device.foreground_package() != KHAN_KIDS_PACKAGE
     if launched:
         device.start_activity(KHAN_KIDS_ACTIVITY)
-    if device.foreground_package() != KHAN_KIDS_PACKAGE:
-        raise AutomationError("Khan Kids did not become the foreground app")
+    _wait_for_value(
+        device.foreground_package,
+        KHAN_KIDS_PACKAGE,
+        description="Khan Kids foreground focus",
+    )
     return LaunchResult(unlocked=unlocked, launched=launched)
+
+
+def _wait_for_value(
+    read: Callable[[], object],
+    expected: object,
+    *,
+    description: str,
+) -> object:
+    value = _wait_for_stable_value(read, description=description, expected=expected)
+    if value != expected:  # pragma: no cover - the expected-value wait cannot return this
+        raise AssertionError(f"stable {description} returned an unexpected value")
+    return value
+
+
+def _wait_for_stable_value(
+    read: Callable[[], object],
+    *,
+    description: str,
+    expected: object | None = None,
+) -> object:
+    """Poll a device signal until the same acceptable value is read twice."""
+    deadline = time.monotonic() + DEVICE_STATE_TIMEOUT_SECONDS
+    prior: object = object()
+    matching_reads = 0
+    last: object = None
+    while time.monotonic() < deadline:
+        last = read()
+        acceptable = expected is None or last == expected
+        if acceptable and last == prior:
+            matching_reads += 1
+        elif acceptable:
+            matching_reads = 1
+        else:
+            matching_reads = 0
+        if matching_reads >= DEVICE_STATE_STABLE_READS:
+            return last
+        prior = last
+        time.sleep(DEVICE_STATE_POLL_SECONDS)
+    raise AutomationError(f"Timed out waiting for stable {description}; last value was {last!r}")
 
 
 def local_secrets_provider(secrets_file: Path | None) -> SecretsProvider:

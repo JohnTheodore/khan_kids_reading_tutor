@@ -7,7 +7,14 @@ import json
 from dataclasses import dataclass
 from typing import Literal
 
-from .curriculum import Activity, DiversityGroup, ReadingCurriculum, StretchTrack, Track
+from .curriculum import (
+    Activity,
+    DiversityGroup,
+    LessonIdentity,
+    ReadingCurriculum,
+    StretchTrack,
+    Track,
+)
 from .mastery import MasteryDecision, MasteryStatus, evaluate_mastery
 from .reports import AssignmentSnapshot
 
@@ -22,16 +29,12 @@ class TrackState:
 
 
 @dataclass(frozen=True, slots=True)
-class QueueAction:
+class QueueAction(LessonIdentity):
     kind: Literal["add", "remove"]
     title: str
     variant: str
     grade: str
     reason: str
-
-    @property
-    def key(self) -> tuple[str, str]:
-        return (self.title, self.variant)
 
     def as_dict(self) -> dict[str, str]:
         return {

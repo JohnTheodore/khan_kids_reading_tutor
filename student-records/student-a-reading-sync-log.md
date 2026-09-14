@@ -3067,3 +3067,106 @@ None.
 | wait.parent password dialog | 1 | 0.205 | 0.205 | 0.205 |
 | startup.connected | 1 | 0.023 | 0.023 | 0.023 |
 | phase.plan_queue | 1 | 0.014 | 0.014 | 0.014 |
+
+## 2026-09-14T09:30:15-04:00 — interrupted
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 5
+- Desired queue size: 10
+- Assignment changes: 5
+
+### New scores
+
+- Blend Sounds 1 — Practice 1: 100% on 2026-09-14 (history: 100%)
+- Short Vowel Sound i — Main: 100% on 2026-09-13 (history: 100% → 100%)
+- Short Vowel Sound i — Main: 100% on 2026-09-14 (history: 100% → 100%)
+- Short Vowel Sound o — Main: 100% on 2026-09-13 (history: 100%)
+- Blend Sounds 2 — Practice 1: 100% on 2026-09-14 (history: 67% → 78% → 100%)
+
+### Score controls read
+
+- Blend Sounds 1 — Practice 1: 100% on 2026-09-14
+- Short Vowel Sound i — Main: 100% on 2026-09-14, 100% on 2026-09-13
+- Short Vowel Sound o — Main: 100% on 2026-09-13
+- Blend Sounds 2 — Practice 1: 100% on 2026-09-14, 78% on 2026-09-13, 67% on 2026-09-11
+- Make New Words — Main: 94% on 2026-09-13, 88% on 2026-09-12, 92% on 2026-09-11
+
+### Mastered
+
+- Blend Sounds 1 — Practice 1
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; promote to Blend Sounds 1 — Practice 2
+- Blend Sounds 2 — Practice 1
+  - Scores: 67% → 78% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Blend Sounds 2 — Practice 2
+- Short Vowel Sound i — Main
+  - Scores: 100% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound i — Practice 1
+- Short Vowel Sound o — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound o — Practice 1
+
+### Applied before interruption unchecks
+
+- Blend Sounds 1 — Practice 1
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; promote to Blend Sounds 1 — Practice 2
+- Blend Sounds 2 — Practice 1
+  - Scores: 67% → 78% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Blend Sounds 2 — Practice 2
+- Short Vowel Sound i — Main
+  - Scores: 100% → 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound i — Practice 1
+- Short Vowel Sound o — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; promote to Short Vowel Sound o — Practice 1
+
+### Applied before interruption promotions
+
+- Blend Sounds 1 — Practice 1 → Blend Sounds 1 — Practice 2
+- Blend Sounds 2 — Practice 1 → Blend Sounds 2 — Practice 2
+- Short Vowel Sound i — Main → Short Vowel Sound i — Practice 1
+- Short Vowel Sound o — Main → Short Vowel Sound o — Practice 1
+
+### Applied before interruption additions
+
+- Blend Sounds 1 — Practice 2: Next difficulty after Blend Sounds 1 — Practice 1 met the mastery rule.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Desired queue
+
+- Blend Sounds 2 — Practice 2
+- Make New Words — Main
+- Words with a — Main
+- Short Vowel Sound i — Practice 1
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound e — Main
+- Short Vowel Sound u — Main
+- Words with b & d — Main
+- Blend Sounds 1 — Practice 2
+- Beginning Sounds 2 — Main
+
+### Stretch slots
+
+- Words with b & d — Main
+- Blend Sounds 1 — Practice 2
+- Beginning Sounds 2 — Main
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Practice 2: not_mastered (not attempted)
+- Make New Words — Main: provisional (92%, 88%, 94%)
+- Words with a — Main: not_mastered (not attempted)
+- Short Vowel Sound i — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound e — Main: not_mastered (not attempted)
+- Short Vowel Sound o — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound u — Main: not_mastered (not attempted)

@@ -625,22 +625,23 @@ does not inspect or navigate the child lesson view: its fresh start establishes
 the profile chooser as the only supported entry route to the parent/teacher
 workflow.
 
-Khan Kids can become the foreground app before its React Native accessibility
-tree finishes loading. At workflow entry, startup therefore waits up to ten
-seconds for an approved semantic screen and requires two consecutive matching
-classifications before its first navigation. A fully loaded Assignments report
-returns after one read, preserving the common no-op fast path. Unknown states
-still time out without tapping.
+Android can briefly report the lock screen, launcher, or notification shade
+while waking and launching Khan Kids. Startup waits for two matching lock-state
+reads, makes at most one PIN attempt, launches through ActivityManager's
+wait-capable mode, and requires Khan Kids to hold foreground focus for two
+reads. The React Native accessibility tree must then expose an approved semantic
+screen before navigation. Unknown states still time out without tapping.
 
 On successful completion, mastery sync stays inside the running Khan Kids app:
 it uses the app's own **Back** control to return from Class Reports to Teacher
 Tools, selects **Switch User**, and verifies the profile chooser. It does not
 stop or relaunch Khan Kids during teardown. Both image-backed controls are used
 only after their surrounding screen and exact bounds have been validated. Each
-transition must produce two consecutive reads of the expected destination. If
-Khan drops a tap or its accessibility tree is late, teardown re-reads the live
-source screen and retries the guarded control up to three times, allowing 12
-seconds per attempt. It still stops immediately if any unexpected screen
+transition must produce two consecutive reads of the expected destination. One
+shared transition guard covers forward report navigation, lesson expansion,
+assignment Save, and teardown. If Khan drops a tap or its accessibility tree is
+late, the guard re-reads the source screen and retries up to three times,
+allowing 12 seconds per attempt. It stops immediately if any unexpected screen
 appears.
 
 Run a read-only review with:
@@ -747,16 +748,15 @@ data phase completed before teardown failed, its saved outcome and full terminal
 report remain authoritative; the error and incident explicitly identify the
 later teardown failure, and timing data is still persisted.
 
-When changes are needed, removals use one Assignments traversal and additions
-are sorted into archive order and applied in one forward All Progress traversal
-per grade. The workflow does not re-scan Assignments after every addition. It
-instead retains the stronger invariant that matters: one exact final comparison
-of all live assignment keys against the complete desired ten-lesson queue.
-Scroll gestures are short, and the hierarchy returned by boundary detection is
-reused rather than immediately fetched again. Performance reports include
-separate `phase.*` rows for review, planning, bulk removal, batch addition, and
-final verification; lower-level rows overlap those phase totals and explain
-their internal cost.
+Before changing the queue, the workflow atomically writes an operation journal
+containing the desired-state fingerprint and every planned action. It adds a
+replacement before removing its predecessor whenever capacity permits. At a
+full queue it alternates one removal with one addition, so an interruption can
+leave at most one unmatched removal instead of applying every removal first.
+After every Save it captures the complete live queue, verifies the individual
+change, and checkpoints the journal. Success requires a second, independent
+fixed-point scan matching the complete desired set. Performance reports expose
+each mutation-and-verification phase separately.
 
 Every successful run ends with a readable terminal report containing:
 
@@ -796,13 +796,13 @@ Apply mode first repeats the live scan. It refuses to act if the assignments,
 scores, catalog, or curriculum differ from the reviewed snapshot. It also
 validates that the actions produce the desired queue, that every addition is in
 the approved curriculum, and that the queue remains within its configured
-limit. Each successful Save is logged immediately, and the final live queue is
-verified exactly. If a run is interrupted, generate a new review plan; the
-append-only logs and live-state comparison make the remaining work idempotent.
-Every successful review or apply appends a Markdown report naming mastery,
-unchecks, promotions, additions, the desired queue, and held lessons. An
-interrupted apply records only the actions that completed before the error;
-rerun the review command to produce a safe remainder plan.
+limit. Each successful Save is logged and journaled immediately, independently
+verified against the live queue, and followed by fixed-point verification. If a
+run is interrupted, generate a new review plan; live-state reconciliation
+proposes only the remaining difference. The interruption report records saved
+versus verified operations, the last recoverable live queue, missing and
+unexpected assignments, and duration. Promotions are reported as applied only
+when both their removal and replacement addition were actually saved.
 
 The default output paths are derived from the student name. Use `--attempts`,
 `--actions`, `--report`, `--plan`, and `--max-actions` to customize the run.
@@ -868,10 +868,10 @@ rewriting or start a clean repository if personal data has entered history.
 
 - Coordinates and column bounds are device-, orientation-, roster-, and
   app-version-specific.
-- The reading workflow is intentionally fail-closed, but assignment Saves are
-  not transactional across multiple lessons. Generate a fresh review after an
-  interrupted apply; already completed actions appear in the live state and are
-  not proposed again.
+- Khan Kids does not provide a multi-assignment transaction. The workflow limits
+  exposure by checkpointing and verifying every Save and alternating removals
+  with replacements; a process or device failure can still interrupt one pair.
+  Generate a fresh review to reconcile that final difference from live state.
 - Android's UI hierarchy omits some graphical text and does not expose reliable
   checkbox state for every React Native control.
 - The library does not provide prose descriptions for most lessons. Some targets

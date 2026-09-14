@@ -71,3 +71,8 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-13,Student A,checked,Words with a,Main,first unmastered activity in short_a_cvc_middle,saved; final verification pending,2026-09-13T10:16:38.199399-04:00
 2026-09-13,Student A,unchecked,Blend Sounds 1,Main,mastered: latest attempt is 100%; promote to Blend Sounds 1 — Practice 1,saved,2026-09-13T15:01:03.882346-04:00
 2026-09-13,Student A,checked,Blend Sounds 1,Practice 1,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-13T15:01:19.918418-04:00
+2026-09-14,Student A,unchecked,Blend Sounds 2,Practice 1,mastered: latest attempt is 100%; promote to Blend Sounds 2 — Practice 2,saved,2026-09-14T09:29:38.032207-04:00
+2026-09-14,Student A,unchecked,Short Vowel Sound o,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound o — Practice 1,saved,2026-09-14T09:29:43.832482-04:00
+2026-09-14,Student A,unchecked,Short Vowel Sound i,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound i — Practice 1,saved,2026-09-14T09:29:48.346932-04:00
+2026-09-14,Student A,unchecked,Blend Sounds 1,Practice 1,mastered: latest attempt is 100%; promote to Blend Sounds 1 — Practice 2,saved,2026-09-14T09:29:54.129641-04:00
+2026-09-14,Student A,checked,Blend Sounds 1,Practice 2,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-14T09:30:08.582754-04:00

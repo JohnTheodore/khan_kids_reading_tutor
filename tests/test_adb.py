@@ -170,6 +170,13 @@ class AndroidDeviceTests(unittest.TestCase):
         with patch.object(device, "command", return_value=state):
             self.assertEqual(device.foreground_package(), "org.khankids.android")
 
+    def test_start_activity_waits_for_activity_manager_transition(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with patch.object(device, "command") as command:
+            device.start_activity("example/.MainActivity")
+
+        command.assert_called_once_with("shell", "am", "start", "-W", "-n", "example/.MainActivity")
+
 
 if __name__ == "__main__":
     unittest.main()
