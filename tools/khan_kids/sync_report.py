@@ -76,6 +76,11 @@ def render_sync_report(payload: dict[str, object]) -> str:
         f"- Path: {payload.get('path_id', 'unknown')}",
         f"- New attempt records: {payload.get('new_attempt_records', 0)}",
         f"- Desired queue size: {len(desired)}",
+        *(
+            [f"- Queue target blocked: {payload['queue_block_reason']}"]
+            if payload.get("queue_block_reason")
+            else []
+        ),
         f"- Assignment changes: {len(actions)}",
         "",
         "### New scores",
@@ -174,6 +179,8 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
         ),
         f"New attempt records: {new_attempt_count}",
     ]
+    if payload.get("queue_block_reason"):
+        lines.append(f"Queue target blocked: {payload['queue_block_reason']}")
     if duration is not None:
         lines.append(f"Duration: {duration} seconds")
 

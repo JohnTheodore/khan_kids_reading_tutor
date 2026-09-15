@@ -672,3 +672,23 @@ including delayed foreground, transient keyguard, dropped roster tap, dropped
 lesson expansion, and a fault injected after a saved removal from a full queue.
 A strict production-source duplication scan found no duplicated blocks. Live
 behavior remains under monitoring until the next requested mastery sync.
+
+### Queue restoration update — 2026-09-15
+
+The teacher Assignments report was subsequently observed with seven active
+lessons after the interrupted September 14 update; the child view was also
+confirmed at seven. This queue remains **operationally unresolved** despite
+the September 14 code fix. A September 15 read-only review captured four new
+scores and proposed eight desired lessons under the old planner, but did not
+change any assignments.
+
+The planner now reuses the existing stretch eligibility rules for two vetted
+oral-phoneme maintenance reserves, Beginning Sounds 1 and Rhyming, and its
+September 15 score-state regression produces an idempotent ten-item desired
+queue. The apply boundary rejects any plan that is not exactly ten, and review
+reports an explicit shortfall without mutation. A live sync on September 15
+repaired seven observed assignments to ten and verified every saved action and
+the final fixed point. The immediately following sync observed ten, proposed
+no changes, and verified a ten-item no-op. **Queue restoration is resolved**;
+continue monitoring future runs for an exhausted eligible pool or Khan-side
+assignment drift.

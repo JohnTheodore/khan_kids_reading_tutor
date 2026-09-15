@@ -125,7 +125,6 @@ def build_queue_plan(
     # Diversity caps express a preference, but the ten-assignment queue target
     # takes precedence when quarantines or exhausted stretch choices leave room.
     open_slots = curriculum.queue_limit - len(core_desired) - len(stretch_desired)
-    open_core_slots = core_limit - len(core_desired)
     selected_core_ids = {track.track_id for track, _state in core_pairs}
     stretch_keys = {activity.key for activity in stretch_desired}
     fallback_pairs = [
@@ -134,7 +133,7 @@ def build_queue_plan(
         if track.track_id not in selected_core_ids
         and state.next_activity is not None
         and state.next_activity.key not in stretch_keys
-    ][: min(open_slots, open_core_slots)]
+    ][:open_slots]
     for track, state in fallback_pairs:
         assert state.next_activity is not None
         reasons[state.next_activity.key] = (

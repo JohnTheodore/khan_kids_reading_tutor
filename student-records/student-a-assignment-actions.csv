@@ -76,3 +76,14 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-14,Student A,unchecked,Short Vowel Sound i,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound i — Practice 1,saved,2026-09-14T09:29:48.346932-04:00
 2026-09-14,Student A,unchecked,Blend Sounds 1,Practice 1,mastered: latest attempt is 100%; promote to Blend Sounds 1 — Practice 2,saved,2026-09-14T09:29:54.129641-04:00
 2026-09-14,Student A,checked,Blend Sounds 1,Practice 2,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-14T09:30:08.582754-04:00
+2026-09-15,Student A,checked,Rhyming,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-15T13:06:01.219620-04:00
+2026-09-15,Student A,checked,Beginning Sounds 1,Basic,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-15T13:06:25.990323-04:00
+2026-09-15,Student A,checked,Blend Sounds 2,Practice 2,first unmastered activity in three_phoneme_blending,saved; final verification pending,2026-09-15T13:06:50.997739-04:00
+2026-09-15,Student A,unchecked,Beginning Sounds 2,Main,deferred for retry: latest stretch attempt is below 70% (59%); waiting for supporting mastery,saved,2026-09-15T13:07:08.805480-04:00
+2026-09-15,Student A,checked,Make New Words,Practice 1,first unmastered activity in phoneme_manipulation,saved; final verification pending,2026-09-15T13:07:29.124408-04:00
+2026-09-15,Student A,unchecked,Blend Sounds 1,Practice 2,mastered: latest attempt is 100%; stretch lesson family complete,saved,2026-09-15T13:07:44.999389-04:00
+2026-09-15,Student A,checked,Short Vowel Sound i,Practice 1,first unmastered activity in short_i_cvc_middle,saved; final verification pending,2026-09-15T13:08:19.095795-04:00
+2026-09-15,Student A,unchecked,Make New Words,Main,mastered: latest attempt is 100%; promote to Make New Words — Practice 1,saved,2026-09-15T13:08:35.306497-04:00
+2026-09-15,Student A,checked,Short Vowel Sound o,Practice 1,first unmastered activity in short_o_cvc_middle,saved; final verification pending,2026-09-15T13:09:13.591898-04:00
+2026-09-15,Student A,unchecked,Short Vowel Sound u,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound u — Practice 1,saved,2026-09-15T13:09:29.945075-04:00
+2026-09-15,Student A,checked,Short Vowel Sound u,Practice 1,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_u_cvc_middle,saved; final verification pending,2026-09-15T13:10:02.237874-04:00

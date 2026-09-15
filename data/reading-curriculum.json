@@ -65,6 +65,18 @@
       "grade": "Preschool (Age 4)",
       "title": "Beginning Sounds 2",
       "retry_milestones": ["three_phoneme_blending"]
+    },
+    {
+      "id": "oral_beginning_sounds_1_maintenance",
+      "grade": "Preschool (Age 4)",
+      "title": "Beginning Sounds 1",
+      "retry_milestones": ["three_phoneme_blending"]
+    },
+    {
+      "id": "rhyming_maintenance",
+      "grade": "Preschool (Age 4)",
+      "title": "Rhyming",
+      "retry_milestones": ["three_phoneme_blending"]
     }
   ],
   "tracks": [

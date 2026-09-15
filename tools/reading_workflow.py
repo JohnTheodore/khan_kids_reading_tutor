@@ -189,8 +189,11 @@ def validate_reviewed_plan(
     desired = tuple(Activity.from_dict(item) for item in raw_desired)
     actions = tuple(QueueAction.from_dict(item) for item in raw_actions)
     permitted = curriculum.activities_by_key
-    if len(desired) > curriculum.queue_limit:
-        raise AutomationError("Reviewed plan exceeds the curriculum queue limit")
+    if len(desired) != curriculum.queue_limit:
+        raise AutomationError(
+            f"Reviewed plan must contain exactly {curriculum.queue_limit} assignments; "
+            f"found {len(desired)}"
+        )
     for activity in desired:
         if permitted.get(activity.key) != activity:
             raise AutomationError(f"Reviewed plan contains an unapproved activity: {activity}")
@@ -520,6 +523,15 @@ def _review_snapshot(
             ),
         )
         write_json_atomic(plan_path, payload)
+    if len(queue_plan.desired) != curriculum.queue_limit:
+        payload["queue_gap"] = curriculum.queue_limit - len(queue_plan.desired)
+        payload["queue_block_reason"] = (
+            f"Only {len(queue_plan.desired)} eligible assignments were found for the "
+            f"required {curriculum.queue_limit}; no assignment changes were applied"
+        )
+        write_json_atomic(plan_path, payload)
+        append_sync_report(report_path, payload)
+        return payload
     if not queue_plan.actions:
         payload["status"] = "no_op"
         payload["verified_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -639,7 +651,7 @@ def _apply_reviewed_plan(
                 today=args.today, include_score_histories=False
             )
         fixed_point_keys = _assignment_keys(fixed_point_snapshot)
-        if fixed_point_keys != desired_keys:
+        if fixed_point_keys != desired_keys or len(fixed_point_keys) != curriculum.queue_limit:
             raise AutomationError("Fixed-point verification did not match the desired queue")
     except Exception as error:
         recovery: dict[str, object]

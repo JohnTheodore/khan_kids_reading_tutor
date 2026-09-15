@@ -111,3 +111,25 @@ the live All Progress page, so it was removed from the active pool.
 **Guardrail:** Quarantine expiration makes these families eligible for planning
 again on October 11; it does not force reassignment. Keep no more than three
 active families from any one narrow instructional group in this queue.
+
+## 2026-09-15 — Require ten eligible assignments and add oral-sound reserves
+
+**Decision:** A successful mastery sync requires exactly ten verified active
+assignments, not merely ten as a maximum. The September 14 interruption left
+seven live assignments, and the previous planner could find only eight eligible
+desired lessons from Student A's new score state. An underfilled plan now stops
+before any assignment mutation and reports its shortfall.
+
+**Reserve choices:** `Beginning Sounds 1` and `Rhyming` are age-four,
+foundational oral-sound activities recorded as not attempted for Student A in
+the archived report. They sit after the existing printed-CVC and oral-blending
+stretch families in the curated pool, so they fill shortages without advancing
+an unfinished core track or repeating the quarantined beginning-CVC families.
+They share the existing stretch mastery, below-70% deferral, supporting-mastery
+retry, pinning, and exact-title quarantine rules; no separate reserve planner
+or duplicated score logic was introduced.
+
+**Verification:** A live sync repaired seven to ten assignments, and the next
+sync verified ten again with no new actions. If all safe candidates are later
+exhausted, the workflow will withhold changes and report the gap rather than
+silently accepting fewer than ten.

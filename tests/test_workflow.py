@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from argparse import Namespace
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
@@ -17,7 +18,7 @@ from khan_kids.catalog import CatalogIndex
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.planner import QueueAction, QueuePlan, build_queue_plan
 from khan_kids.quarantine import LessonQuarantine
-from khan_kids.records import read_attempt_scores, read_mastered_action_keys
+from khan_kids.records import read_attempt_scores
 from khan_kids.reports import AssignmentRow, AssignmentSnapshot, ScoreAttempt, ScoreHistory
 from khan_kids.ui import Rect
 from khan_kids.workflow import histories_to_attempt_rows
@@ -25,6 +26,7 @@ from reading_workflow import (
     MasterySyncInterrupted,
     _apply_reviewed_plan,
     _history_lookup_for_run,
+    _review_snapshot,
     create_plan_payload,
     validate_reviewed_plan,
 )
@@ -79,6 +81,15 @@ EXPECTED_LIVE_QUEUE = EXPECTED_BEGINNING_QUARANTINE_QUEUE - {
     ("Beginning Sounds 2", "Main"),
     ("Blend Sounds 1", "Practice 2"),
     ("Blend Sounds 2", "Practice 2"),
+}
+SEPTEMBER_15_ACTUAL_QUEUE = {
+    ("Blend Sounds 1", "Practice 2"),
+    ("Words with a", "Main"),
+    ("Short Vowel Sound e", "Main"),
+    ("Short Vowel Sound u", "Main"),
+    ("Beginning Sounds 2", "Main"),
+    ("Words with b & d", "Main"),
+    ("Make New Words", "Main"),
 }
 QUARANTINED_BEGINNING_TITLES = {
     "Words with b, c, d",
@@ -141,32 +152,143 @@ class WorkflowTests(unittest.TestCase):
             catalog=self.catalog,
         )
 
-    def test_current_records_preserve_the_diverse_ten_item_queue(self) -> None:
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+    def test_current_records_plan_exactly_ten_after_new_scores(self) -> None:
+        scores = _september_15_planner_scores()
 
         plan = build_queue_plan(
             self.curriculum,
             scores,
-            EXPECTED_LIVE_QUEUE,
+            SEPTEMBER_15_ACTUAL_QUEUE,
             quarantined_titles={
                 title: "active quarantine"
                 for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
             },
-            mastered_keys=read_mastered_action_keys(
-                Path("student-records/student-a-assignment-actions.csv"), "Student A"
-            ),
+            mastered_keys={("Beginning Sounds 2", "Basic")},
         )
 
-        self.assertEqual({activity.key for activity in plan.desired}, EXPECTED_LIVE_QUEUE)
-        self.assertEqual(plan.actions, ())
+        desired = {activity.key for activity in plan.desired}
+        self.assertEqual(len(desired), self.curriculum.queue_limit)
+        self.assertIn(("Make New Words", "Practice 1"), desired)
+        self.assertIn(("Short Vowel Sound u", "Practice 1"), desired)
+        self.assertIn(("Beginning Sounds 1", "Basic"), desired)
+        self.assertIn(("Rhyming", "Basic"), desired)
+        repeated = build_queue_plan(
+            self.curriculum,
+            scores,
+            desired,
+            quarantined_titles={
+                title: "active quarantine"
+                for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
+            },
+            mastered_keys={("Beginning Sounds 2", "Basic")},
+        )
+        self.assertEqual({activity.key for activity in repeated.desired}, desired)
+        self.assertEqual(repeated.actions, ())
+
+    def test_exhausted_reserves_leave_an_underfilled_plan_that_cannot_apply(self) -> None:
+        scores = _september_15_planner_scores()
+        curriculum = replace(self.curriculum, stretch_pool=self.curriculum.stretch_pool[:-2])
+        current = SEPTEMBER_15_ACTUAL_QUEUE
+        plan = build_queue_plan(
+            curriculum,
+            scores,
+            current,
+            quarantined_titles={
+                title: "active quarantine"
+                for title in QUARANTINED_BEGINNING_TITLES | {"Words: End Sound"}
+            },
+            mastered_keys={("Beginning Sounds 2", "Basic")},
+        )
+        self.assertEqual(len(plan.desired), 8)
+        snapshot = AssignmentSnapshot(
+            tuple(_activity_row(self.curriculum.activities_by_key[key]) for key in current), ()
+        )
+        payload = self._plan_payload(snapshot, plan, 15, new_attempt_records=0)
+        automation = Mock()
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            self.assertRaisesRegex(AutomationError, "exactly 10"),
+        ):
+            self._apply_plan(
+                payload=payload,
+                snapshot=snapshot,
+                automation=automation,
+                directory=Path(temporary),
+                day=15,
+            )
+        automation.assign.assert_not_called()
+        automation.unassign.assert_not_called()
+
+    def test_quarantined_reserves_are_not_used_as_fillers(self) -> None:
+        scores = _september_15_planner_scores()
+        plan = build_queue_plan(
+            self.curriculum,
+            scores,
+            SEPTEMBER_15_ACTUAL_QUEUE,
+            quarantined_titles={
+                title: "active quarantine"
+                for title in QUARANTINED_BEGINNING_TITLES
+                | {"Words: End Sound", "Beginning Sounds 1", "Rhyming"}
+            },
+            mastered_keys={("Beginning Sounds 2", "Basic")},
+        )
+        self.assertEqual(len(plan.desired), 8)
+
+    def test_sync_review_reports_gap_without_mutating_when_plan_is_underfilled(self) -> None:
+        snapshot = AssignmentSnapshot(
+            tuple(
+                _activity_row(self.curriculum.activities_by_key[key])
+                for key in SEPTEMBER_15_ACTUAL_QUEUE
+            ),
+            (),
+        )
+        plan = QueuePlan(
+            tuple(self.curriculum.activities_by_key.values())[:8],
+            (QueueAction("remove", "Blend Sounds 1", "Practice 2", "", "test"),),
+            (),
+        )
+        automation = Mock()
+        automation.device.timing.span.return_value = nullcontext()
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch("reading_workflow.build_queue_plan", return_value=plan),
+        ):
+            directory = Path(temporary)
+            payload = _review_snapshot(
+                args=Namespace(
+                    student="Student A",
+                    today=date(2026, 9, 15),
+                    quarantines=directory / "quarantines.csv",
+                    sync=True,
+                    full_score_scan=False,
+                    catalog=CATALOG_PATH,
+                    curriculum=CURRICULUM_PATH,
+                    max_actions=20,
+                    apply_plan=None,
+                ),
+                snapshot=snapshot,
+                automation=automation,
+                catalog=self.catalog,
+                curriculum=self.curriculum,
+                attempts_path=directory / "attempts.csv",
+                actions_path=directory / "actions.csv",
+                report_path=directory / "report.md",
+                plan_path=directory / "plan.json",
+                active_quarantines=(),
+                mastered_keys=set(),
+            )
+            self.assertEqual(payload["status"], "review_required")
+            self.assertEqual(payload["queue_gap"], 2)
+            self.assertIn("no assignment changes were applied", payload["queue_block_reason"])
+            self.assertIn("Queue target blocked", (directory / "report.md").read_text())
+        automation.assign.assert_not_called()
+        automation.unassign.assert_not_called()
 
     def test_verified_mastery_is_a_fixed_point_after_live_duplicate_disappears(self) -> None:
         current = EXPECTED_LIVE_QUEUE - {("Beginning Sounds 2", "Main")} | {
             ("Beginning Sounds 2", "Basic")
         }
-        durable_scores = read_attempt_scores(
-            Path("student-records/student-a-lesson-attempts.csv"), "Student A"
-        )
+        durable_scores = _historical_planner_scores()
         live_scores = dict(durable_scores)
         live_scores[("Beginning Sounds 2", "Basic")] = (83, 70, 75, 79, 94, 94)
         quarantines = {
@@ -194,7 +316,10 @@ class WorkflowTests(unittest.TestCase):
         )
 
         self.assertIn(("Beginning Sounds 2", "Main"), {item.key for item in first.desired})
-        self.assertEqual(second.desired, first.desired)
+        self.assertEqual(
+            {activity.key for activity in second.desired},
+            {activity.key for activity in first.desired},
+        )
         self.assertEqual(second.actions, ())
 
     def test_mastery_sync_disables_score_history_cache(self) -> None:
@@ -253,11 +378,11 @@ class WorkflowTests(unittest.TestCase):
         desired = {activity.key for activity in plan.desired}
 
         self.assertEqual(len(desired), 10)
-        self.assertIn(("Short Vowel Sound e", "Basic"), desired)
+        self.assertIn(("Beginning Sounds 1", "Basic"), desired)
         addition = next(
-            action for action in plan.actions if action.key == ("Short Vowel Sound e", "Basic")
+            action for action in plan.actions if action.key == ("Beginning Sounds 1", "Basic")
         )
-        self.assertIn("queue-target fallback", addition.reason)
+        self.assertIn("stretch slot", addition.reason)
 
     def test_unattempted_stretch_is_pinned_and_low_score_rotates_without_forgetting(self) -> None:
         scores = _historical_planner_scores()
@@ -429,10 +554,16 @@ class WorkflowTests(unittest.TestCase):
             )
 
     def test_apply_records_each_action_and_verifies_the_final_queue(self) -> None:
-        snapshot = _snapshot(score=92)
+        shared = tuple(
+            activity
+            for activity in self.curriculum.activities_by_key.values()
+            if activity.key not in {("Blend Sounds 2", "Basic"), ("Blend Sounds 2", "Main")}
+        )[:9]
+        old = Activity("Preschool (Age 4)", "Blend Sounds 2", "Basic")
+        snapshot = AssignmentSnapshot(tuple(_activity_row(item) for item in (*shared, old)), ())
         desired = Activity("Preschool (Age 4)", "Blend Sounds 2", "Main")
         plan = QueuePlan(
-            (desired,),
+            (*shared, desired),
             (
                 QueueAction("remove", "Blend Sounds 2", "Basic", "", "Basic mastered"),
                 QueueAction(
@@ -463,26 +594,16 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(payload["new_attempts"][0]["score"], 94)
         self.assertEqual(payload["score_evidence"][0]["scores"], [85, 92, 94])
         final_snapshot = AssignmentSnapshot(
-            (
-                AssignmentRow(
-                    title="Blend Sounds 2",
-                    variant="Main",
-                    assigned_date="Today",
-                    rect=Rect(0, 0, 100, 100),
-                    score=None,
-                    score_rect=None,
-                ),
-            ),
-            (),
+            tuple(_activity_row(item) for item in (*shared, desired)), ()
         )
         automation = Mock()
         automation.device.timing.span.return_value = nullcontext()
-        with_both = AssignmentSnapshot((snapshot.rows[0], final_snapshot.rows[0]), ())
+        after_removal = AssignmentSnapshot(tuple(_activity_row(item) for item in shared), ())
         automation.unassign.return_value = ActionResult(
             "unchecked", "Blend Sounds 2", "Basic", "saved"
         )
         automation.assign.return_value = ActionResult("checked", "Blend Sounds 2", "Main", "saved")
-        automation.scan_assignments.side_effect = (with_both, final_snapshot, final_snapshot)
+        automation.scan_assignments.side_effect = (after_removal, final_snapshot, final_snapshot)
 
         with tempfile.TemporaryDirectory() as temporary:
             temporary_path = Path(temporary)
@@ -500,7 +621,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("Applied promotions", (temporary_path / "sync-log.md").read_text())
             self.assertEqual(
                 [call[0] for call in automation.method_calls if call[0] in {"assign", "unassign"}],
-                ["assign", "unassign"],
+                ["unassign", "assign"],
             )
             journal = payload["operation_journal"]
             self.assertEqual(journal["status"], "complete")
@@ -596,6 +717,30 @@ def _historical_planner_scores() -> dict[tuple[str, str], tuple[int, ...]]:
         ("Words: End Sound", "Basic"): (100,),
         ("Words: End Sound", "Main"): (83, 56, 68, 69),
     }
+
+
+def _september_15_planner_scores() -> dict[tuple[str, str], tuple[int, ...]]:
+    """Freeze the seven-item incident and newly observed mastery evidence."""
+    scores = _historical_planner_scores()
+    scores.update(
+        {
+            ("Beginning Sounds 2", "Main"): (59,),
+            ("Blend Sounds 1", "Main"): (90, 100),
+            ("Blend Sounds 1", "Practice 1"): (100,),
+            ("Blend Sounds 1", "Practice 2"): (100,),
+            ("Blend Sounds 2", "Practice 1"): (67, 78, 100),
+            ("Make New Words", "Main"): (92, 88, 94, 100),
+            ("Short Vowel Sound a", "Main"): (84, 100),
+            ("Short Vowel Sound a", "Practice 1"): (84, 100),
+            ("Short Vowel Sound e", "Basic"): (100,),
+            ("Short Vowel Sound i", "Main"): (100, 100),
+            ("Short Vowel Sound o", "Basic"): (100,),
+            ("Short Vowel Sound o", "Main"): (100,),
+            ("Short Vowel Sound u", "Main"): (100,),
+            ("Words with m & n", "Main"): (58,),
+        }
+    )
+    return scores
 
 
 def _snapshot(*, score: int) -> AssignmentSnapshot:

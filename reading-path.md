@@ -32,7 +32,10 @@ track may exceed that cap only when needed to preserve the ten-item queue. Withi
 and then curriculum order. A promotion retains the same group slot. When a
 complete vowel track frees a slot, the next deferred vowel rotates in. The core
 allocation may remain underfilled rather than admit redundant, premature, or
-non-reading filler; curated stretch work fills the remaining queue positions.
+non-reading filler; curated stretch work, including vetted Beginning Sounds 1
+and Rhyming maintenance reserves, fills the remaining positions. If ten
+eligible activities cannot be found, reconciliation stops without changing
+assignments and reports the exact shortfall.
 
 For the current segment, up to eight positions are reserved for the mastery
 spine and at least two for a curated stretch pool of printed CVC lessons and

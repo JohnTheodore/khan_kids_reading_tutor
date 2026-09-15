@@ -63,12 +63,17 @@ band, not proof that a prerequisite is stable enough to build on.
 
 ## Queue composition and stretch lessons
 
-The desired queue contains ten assignments: up to eight mastery-path lessons
-and enough curated printed-CVC stretch lessons to fill the remaining positions.
+The desired queue must contain exactly ten assignments for a successful sync:
+normally up to eight mastery-path lessons, with the remaining positions filled
+from the curated foundational-reading stretch pool. After the existing stretch
+candidates, Beginning Sounds 1 and Rhyming are approved oral-phoneme maintenance
+reserves; they are not a waiver of prerequisites or quarantine rules.
 Normally no more than three active lessons come from the combined short-vowel/
 CVC-middle group. If quarantines or an exhausted stretch pool would otherwise
 leave fewer than ten assignments, the next approved mastery-path lesson may
 temporarily exceed that diversity cap so the queue still reaches ten.
+If fewer than ten safe candidates remain, the sync reports the gap and applies
+no assignment changes. An underfilled reviewed plan cannot be applied.
 
 Stretch exposure is diagnostic; it does not waive or mark a core prerequisite
 as mastered:

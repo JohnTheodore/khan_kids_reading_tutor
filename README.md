@@ -674,7 +674,9 @@ The default review:
   CVC-middle work, to three active choices, but admits the next approved choice
   when needed to reach the ten-assignment target;
 - fills the remaining positions from a curated foundational-reading stretch pool,
-  targeting ten available lessons;
+  including vetted Beginning Sounds 1 and Rhyming maintenance reserves;
+- requires exactly ten eligible desired lessons before changing any assignment;
+  otherwise reports the shortfall and leaves the live queue untouched;
 - pins every active stretch family until its first attempt, preserves a
   below-70% result as deferred, and permits a later retry only after supporting
   mastery evidence changes;
@@ -721,7 +723,12 @@ private device configuration supplies both:
 
 This scans and plans once, then applies and verifies any changes in the same
 device session. If the queue already matches the mastery plan, it records a
-verified no-op and stops without a redundant apply scan. Every run writes
+verified no-op and stops without a redundant apply scan. An eight- or nine-item
+desired plan is never applied or called a verified no-op. The ten-item rule is
+a successful-sync invariant, not a promise that Khan Kids will display ten
+during a capacity-limited remove/add transition or while the tablet is
+unavailable. If safe eligible lessons are exhausted, the report is
+review-required and any changes are withheld. Every run writes
 secret-safe per-step timing data. A mastery sync always opens every available
 colored score control in Student A's Assignments column and records the complete
 displayed history; it never trusts the same-day cache. Review-only runs may
