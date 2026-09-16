@@ -692,3 +692,25 @@ the final fixed point. The immediately following sync observed ten, proposed
 no changes, and verified a ten-item no-op. **Queue restoration is resolved**;
 continue monitoring future runs for an exhausted eligible pool or Khan-side
 assignment drift.
+
+## KKRT-2026-09-16-AUTO-090155-234973 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-16 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`RuntimeError: Tablet discovery failed before workflow startup: macOS discovered 0 wireless ADB services for the configured tablet; expected exactly one`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.

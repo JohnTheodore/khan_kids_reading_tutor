@@ -44,6 +44,7 @@ from khan_kids.reports import AssignmentSnapshot
 from khan_kids.sync_report import (
     append_performance_report,
     append_sync_report,
+    recommend_next_lessons,
     render_terminal_summary,
     terminal_color_enabled,
 )
@@ -418,6 +419,7 @@ def main() -> None:
         raise MasterySyncInterrupted(error, interrupted) from error
 
     timing_snapshot = timing.snapshot()
+    output_payload["next_lesson_recommendations"] = recommend_next_lessons(output_payload)
     output_payload["performance"] = {
         "backend": device.ui_backend_name,
         "cache_hits": history_cache.hits,

@@ -6,7 +6,67 @@ import os
 from pathlib import Path
 from typing import TextIO
 
+from .mastery import MasteryStatus, evaluate_mastery
 from .records import append_text_atomic
+
+
+def recommend_next_lessons(payload: dict[str, object]) -> list[dict[str, object]]:
+    """Rank only a successfully verified queue; recommendations never mutate it."""
+    if payload.get("status") not in {"applied", "no_op"}:
+        return []
+    evidence = _evidence_index(payload)
+    candidates = []
+    for position, activity in enumerate(_object_list(payload.get("desired_assignments"))):
+        record = evidence.get((activity.get("title"), activity.get("variant")))
+        if record is None or not isinstance(record.get("scores"), list):
+            continue
+        scores = record["scores"]
+        decision = evaluate_mastery(scores)
+        if record.get("status") == "mastered" or decision.should_advance:
+            continue
+        latest = scores[-1] if scores else None
+        if decision.status is MasteryStatus.PROVISIONAL:
+            tier, reason = 0, "Close to mastery: one qualifying 90%+ attempt."
+        elif latest is not None and latest >= 80:
+            tier, reason = 1, "Strong recent score; practice toward mastery."
+        elif latest is None:
+            tier, reason = 2, "Unattempted next assigned activity; adds variety."
+        else:
+            tier, reason = 3, "Needs further practice; lower priority than near-mastery work."
+        qualifying = next(
+            score for score in range(90, 101) if evaluate_mastery((*scores, score)).should_advance
+        )
+        goal = (
+            "Another 90%+ result establishes mastery."
+            if qualifying == 90
+            else "100% establishes mastery; otherwise two consecutive 90%+ results are needed."
+        )
+        candidates.append(
+            (
+                (tier, -(latest or 0), position),
+                {
+                    **activity,
+                    "latest_score": latest,
+                    "reason": reason,
+                    "mastery_goal": goal,
+                },
+            )
+        )
+    return [
+        recommendation for _, recommendation in sorted(candidates, key=lambda item: item[0])[:3]
+    ]
+
+
+def _recommendation_lines(payload: dict[str, object]) -> list[str]:
+    recommendations = recommend_next_lessons(payload)
+    if not recommendations:
+        return ["None; recommendations require a successfully verified queue and score evidence."]
+    return [
+        f"{index}. {_lesson(item)} — "
+        f"{str(item['latest_score']) + '%' if item['latest_score'] is not None else 'not attempted'}. "
+        f"{item['reason']} {item['mastery_goal']}"
+        for index, item in enumerate(recommendations, 1)
+    ]
 
 
 def append_sync_report(path: Path, payload: dict[str, object]) -> None:
@@ -111,6 +171,10 @@ def render_sync_report(payload: dict[str, object]) -> str:
         "",
         *_quarantine_lines(quarantines),
         "",
+        "### Do next (advisory)",
+        "",
+        *_recommendation_lines(payload),
+        "",
         "### Desired queue",
         "",
         *([f"- {_lesson(item)}" for item in desired] if desired else ["No lessons selected."]),
@@ -213,6 +277,9 @@ def render_terminal_summary(payload: dict[str, object], *, color: bool = False) 
             "",
             _paint("ACTIVE QUARANTINES", "magenta", color),
             *_terminal_quarantines(quarantines, color=color),
+            "",
+            _paint("DO NEXT (ADVISORY)", "bold", color),
+            *_recommendation_lines(payload),
             "",
             _paint(
                 f"{'LAST VERIFIED QUEUE' if live_after_interruption else 'ASSIGNED NOW'} "

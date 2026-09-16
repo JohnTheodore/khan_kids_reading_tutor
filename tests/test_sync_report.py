@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from khan_kids.sync_report import (
+    recommend_next_lessons,
     render_sync_report,
     render_terminal_summary,
     terminal_color_enabled,
@@ -15,6 +16,48 @@ from khan_kids.sync_report import (
 
 
 class SyncReportTests(unittest.TestCase):
+    def test_do_next_ranks_near_mastery_then_strong_score_then_variety(self) -> None:
+        lessons = ["Blend", "Words", "New", "Sounds", "Provisional", "Mastered"]
+        scores = [[78], [88], [], [78], [96], [100]]
+        payload = {
+            "student": "Student A",
+            "status": "no_op",
+            "generated_at": "2026-09-16",
+            "desired_assignments": [{"title": title, "variant": "Main"} for title in lessons],
+            "score_evidence": [
+                {"title": title, "variant": "Main", "scores": attempts}
+                for title, attempts in zip(lessons, scores, strict=True)
+            ],
+        }
+        original = repr(payload)
+        recommendations = recommend_next_lessons(payload)
+        self.assertEqual(
+            [item["title"] for item in recommendations], ["Provisional", "Words", "New"]
+        )
+        self.assertIn("Another 90%+", recommendations[0]["mastery_goal"])
+        self.assertIn("100%", recommendations[1]["mastery_goal"])
+        self.assertEqual(recommendations, recommend_next_lessons(payload))
+        self.assertEqual(repr(payload), original)
+        for render in (render_sync_report, render_terminal_summary):
+            report = render(payload)
+            self.assertIn("ADVISORY", report.upper())
+            self.assertIn("1. Provisional", report)
+
+    def test_do_next_excludes_unverified_and_missing_or_durable_mastery_evidence(self) -> None:
+        payload = {
+            "status": "review_required",
+            "desired_assignments": [{"title": "Lesson", "variant": "Main"}],
+            "score_evidence": [{"title": "Lesson", "variant": "Main", "scores": [96]}],
+        }
+        for status in ("review_required", "interrupted", "applying"):
+            payload["status"] = status
+            self.assertEqual(recommend_next_lessons(payload), [])
+        payload["status"] = "no_op"
+        payload["score_evidence"][0]["status"] = "mastered"
+        self.assertEqual(recommend_next_lessons(payload), [])
+        payload["score_evidence"] = []
+        self.assertEqual(recommend_next_lessons(payload), [])
+
     def test_report_names_mastery_uncheck_and_promotion(self) -> None:
         payload = {
             "status": "applied",

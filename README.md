@@ -717,6 +717,14 @@ The workflow reads `wm user-rotation` before starting and restores exactly
 For the usual one-command operation, run without an address or student; the
 private device configuration supplies both:
 
+Successful sync reports include an advisory **Do next** section ranking up to
+three lessons from the verified assignments: provisional mastery first, then
+strong recent scores (80–89%), then unattempted activities in curriculum order,
+then lower-scoring practice. Each shows its latest score, reason, and the result
+needed for mastery, using the existing mastery evaluator. Recommendations do
+not change assignments and are withheld for review-only or interrupted runs.
+The structured result stores them in `next_lesson_recommendations`.
+
 ```bash
 ./khan-mastery-sync
 ```
