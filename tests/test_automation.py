@@ -21,6 +21,29 @@ from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_supplied_navigation_root_cannot_bypass_state_validation(self) -> None:
+        device, automation = _automation()
+        with self.assertRaisesRegex(AutomationError, "does not match"):
+            automation.ensure_assignments_report(root=_assignment_screen(), state="teacher_roster")
+        device.tap_rect.assert_not_called()
+
+    def test_all_progress_navigation_reuses_fresh_assignments_state(self) -> None:
+        _, automation = _automation()
+        report = _assignment_screen()
+        progress = _screen_with_text(("Class Report: All Progress", Rect(100, 100, 600, 160)))
+        automation._wait_for_navigation_state = Mock(return_value=(report, "assignments_report"))
+        automation._tap_navigation_control = Mock(return_value=progress)
+        self.assertIs(automation.ensure_all_progress_report(), progress)
+        automation._wait_for_navigation_state.assert_called_once_with()
+
+    def test_all_progress_navigation_does_not_switch_away_when_already_there(self) -> None:
+        _, automation = _automation()
+        progress = _screen_with_text(("Class Report: All Progress", Rect(100, 100, 600, 160)))
+        automation._wait_for_navigation_state = Mock(return_value=(progress, "all_progress_report"))
+        automation._tap_navigation_control = Mock()
+        self.assertIs(automation.ensure_all_progress_report(), progress)
+        automation._tap_navigation_control.assert_not_called()
+
     def test_roster_only_students_screen_is_not_tapped_by_coordinate(self) -> None:
         device, automation = _automation()
         root = ET.Element("hierarchy")
@@ -263,7 +286,9 @@ class AutomationTests(unittest.TestCase):
 
         self.assertEqual([result.title for result in results], ["Lower", "Upper"])
         automation.ensure_assignments_report.assert_called_once_with()
-        automation._scroll_to_top.assert_called_once_with()
+        automation._scroll_to_top.assert_called_once_with(
+            root=automation._filter_assignments_to_student.return_value
+        )
         device.swipe.assert_not_called()
 
     def test_bulk_assignment_reuses_one_all_progress_pass_for_a_grade(self) -> None:
@@ -294,7 +319,7 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual([result.title for result in results], ["First", "Second"])
         automation._open_all_progress.assert_called_once_with()
         automation._select_grade.assert_called_once_with("Preschool (Age 4)", root=progress)
-        automation._scroll_to_top.assert_called_once_with()
+        automation._scroll_to_top.assert_called_once_with(root=progress)
         self.assertEqual(
             automation._open_report_variant.call_args_list,
             [

@@ -26,6 +26,7 @@ from khan_kids.planner import (
     build_queue_plan,
     snapshot_fingerprint,
 )
+from khan_kids.progress import ProgressReporter
 from khan_kids.quarantine import (
     LessonQuarantine,
     append_low_score_quarantines,
@@ -250,7 +251,7 @@ def _validate_action_result(
             raise AutomationError(f"Plan addition has an invalid grade: {action.key!r}")
 
 
-def main() -> None:
+def main(progress: ProgressReporter | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="ADB serial, usually IP:port")
     parser.add_argument("--student", required=True)
@@ -327,7 +328,7 @@ def main() -> None:
             curriculum_path=args.curriculum,
         )
 
-    timing = TimingRecorder()
+    timing = TimingRecorder(progress.emit if progress else None)
     device = AndroidDevice(args.serial, timing=timing)
     history_cache = HistoryCache.load(cache_path, student=args.student, today=args.today)
     output_payload: dict[str, object]
@@ -425,6 +426,7 @@ def main() -> None:
         "cache_hits": history_cache.hits,
         "cache_misses": history_cache.misses,
         **timing_snapshot,
+        **(progress.snapshot() if progress else {}),
     }
     write_json_atomic(output_plan_path, output_payload)
     append_performance_report(
@@ -645,6 +647,10 @@ def _apply_reviewed_plan(
                     action,
                     state="verified",
                     verified_queue=current_keys,
+                )
+                automation.device.timing.progress(
+                    f"Verified {action.kind}: {action.title} — {action.variant}; "
+                    f"live queue {len(current_keys)}"
                 )
                 write_json_atomic(plan_path, payload)
 
@@ -903,8 +909,8 @@ def _history_lookup_for_run(args: argparse.Namespace, history_cache: HistoryCach
 
 def cli() -> None:
     try:
-        with exclusive_workflow_lock(WORKFLOW_LOCK_PATH):
-            main()
+        with exclusive_workflow_lock(WORKFLOW_LOCK_PATH), ProgressReporter(sys.stderr) as progress:
+            main(progress)
     except Exception as error:
         incident_line = ""
         interrupted_payload = (

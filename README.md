@@ -714,9 +714,6 @@ first visibly flashes that stale angle before the landscape write arrives.
 The workflow reads `wm user-rotation` before starting and restores exactly
 `free` or the prior `lock N` mode during cleanup.
 
-For the usual one-command operation, run without an address or student; the
-private device configuration supplies both:
-
 Successful sync reports include an advisory **Do next** section ranking up to
 three lessons from the verified assignments: provisional mastery first, then
 strong recent scores (80–89%), then unattempted activities in curriculum order,
@@ -725,9 +722,30 @@ needed for mastery, using the existing mastery evaluator. Recommendations do
 not change assignments and are withheld for review-only or interrupted runs.
 The structured result stores them in `next_lesson_recommendations`.
 
+For the usual one-command operation, run without an address or student; the
+private device configuration supplies both:
+
 ```bash
 ./khan-mastery-sync
 ```
+
+The workflow streams phase milestones, completed score-history reads, and
+verified assignment actions to stderr with flushing, plus a ten-second
+heartbeat during longer operations. JSON stdout remains machine-readable.
+Performance payloads include `max_silent_seconds`, measured from workflow
+startup (device discovery precedes this reporter). Progress never issues device
+commands or exposes credentials or raw UI text. A heartbeat is not evidence
+that an assignment was saved; only verified action messages establish that.
+
+Fresh UI roots are passed through navigation and scrolling helpers rather
+than immediately read again. They are never used as a substitute for fresh
+post-gesture or post-Save reads. Full mastery score scans, every post-Save queue
+verification, and the final fixed-point scan remain mandatory.
+
+Run `./tools/run-python tools/audit_code_duplication.py` to check production
+and test Python files for substantial exact cross-file repeated blocks and
+function bodies. This is a regression aid, not a proof that all semantic
+duplication is absent; shared policy and transport code still require review.
 
 This scans and plans once, then applies and verifies any changes in the same
 device session. If the queue already matches the mastery plan, it records a

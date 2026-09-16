@@ -86,8 +86,15 @@ class KhanKidsAutomation:
                 f"{screen}; expected landscape [0,0][2560,1600]"
             )
 
-    def ensure_assignments_report(self) -> ET.Element:
-        root, state = self._wait_for_navigation_state()
+    def ensure_assignments_report(
+        self, *, root: ET.Element | None = None, state: str | None = None
+    ) -> ET.Element:
+        if root is None or state is None:
+            root, state = self._wait_for_navigation_state()
+        else:
+            self._validate_screen(root)
+            if self._navigation_state(root) != state:
+                raise AutomationError("Supplied navigation state does not match its fresh root")
         if state == "assignments_report":
             return root
         if state == "all_progress_report":
@@ -428,9 +435,7 @@ class KhanKidsAutomation:
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
         prior_signature: tuple[tuple[str, str, str], ...] | None = None
         for page in range(80):
-            rows = parse_assignment_rows(
-                root, self.student, roster=(self.student,), layout=self.layout
-            )
+            rows = self._assignment_rows(root)
             signature = tuple(row.identity for row in rows)
             if signature == prior_signature:
                 break
@@ -466,17 +471,10 @@ class KhanKidsAutomation:
                         f"{history.title}/{history.variant} vs {row.title}/{row.variant}"
                     )
                 histories[row.identity] = history
+                self.device.timing.progress(f"Read score history: {row.title} — {row.variant}")
                 self._close_score_dialog(modal)
             prior_signature = signature
-            self.device.swipe(
-                self.layout.safe_scroll_x,
-                1380,
-                self.layout.safe_scroll_x,
-                680,
-                SCROLL_DURATION_MS,
-            )
-            self._assignments_at_top = False
-            root = self.root(f"assignments-{page + 1:03d}")
+            root = self._next_assignment_page(f"assignments-{page + 1:03d}")
         else:
             raise AutomationError("Assignments report did not reach the bottom within 80 pages")
         activities = [(row.title, row.variant) for row in active_rows.values()]
@@ -558,7 +556,7 @@ class KhanKidsAutomation:
         for grade, title, variant in requested:
             if grade != active_grade:
                 root = self._select_grade(grade, root=root)
-                root = self._scroll_to_top()
+                root = self._scroll_to_top(root=root)
                 active_grade = grade
             root = self._open_report_variant(title, variant, root=root, reset_to_top=False)
             self._validate_assignment_dialog(root, title, variant)
@@ -585,7 +583,7 @@ class KhanKidsAutomation:
 
     def _assignment_report_top(self) -> ET.Element:
         root = self._filter_assignments_to_student(self.ensure_assignments_report())
-        return root if self._assignments_at_top else self._scroll_to_top()
+        return root if self._assignments_at_top else self._scroll_to_top(root=root)
 
     def _assignment_rows(self, root: ET.Element) -> list[AssignmentRow]:
         return parse_assignment_rows(
@@ -607,7 +605,10 @@ class KhanKidsAutomation:
         return self.root(capture_name)
 
     def _open_all_progress(self) -> ET.Element:
-        root = self.ensure_assignments_report()
+        root, state = self._wait_for_navigation_state()
+        if state == "all_progress_report":
+            return root
+        root = self.ensure_assignments_report(root=root, state=state)
         after = self._tap_navigation_control(
             root,
             source_state="assignments_report",
@@ -622,9 +623,6 @@ class KhanKidsAutomation:
 
     def ensure_all_progress_report(self) -> ET.Element:
         """Reach All Progress through guarded navigation without changing report data."""
-        root, state = self._wait_for_navigation_state()
-        if state == "all_progress_report":
-            return root
         return self._open_all_progress()
 
     def select_grade_subject(self, grade: str, subject: str) -> ET.Element:
@@ -986,8 +984,8 @@ class KhanKidsAutomation:
             description="score dialog closed",
         )
 
-    def _scroll_to_top(self) -> ET.Element:
-        root = self.device.scroll_to_top(self.layout.safe_scroll_x)
+    def _scroll_to_top(self, *, root: ET.Element | None = None) -> ET.Element:
+        root = self.device.scroll_to_top(self.layout.safe_scroll_x, root=root)
         self._validate_screen(root)
         self._assignments_at_top = True
         return root

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -19,13 +19,21 @@ class _Metric:
 class TimingRecorder:
     """Collect named durations without recording arguments or UI content."""
 
-    def __init__(self) -> None:
+    def __init__(self, progress: Callable[[str], None] | None = None) -> None:
         self._metrics: defaultdict[str, _Metric] = defaultdict(_Metric)
         self.started_at = time.monotonic()
+        self._progress = progress
+
+    def progress(self, message: str) -> None:
+        if self._progress is not None:
+            self._progress(message)
 
     @contextmanager
     def span(self, name: str) -> Iterator[None]:
         started = time.monotonic()
+        visible = name.startswith(("startup.", "phase.", "teardown."))
+        if visible:
+            self.progress(f"Starting {name}")
         try:
             yield
         finally:
@@ -34,6 +42,8 @@ class TimingRecorder:
             metric.count += 1
             metric.total_seconds += elapsed
             metric.max_seconds = max(metric.max_seconds, elapsed)
+            if visible:
+                self.progress(f"Finished {name} ({elapsed:.1f}s)")
 
     def snapshot(self) -> dict[str, object]:
         return {

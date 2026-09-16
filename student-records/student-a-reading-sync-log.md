@@ -3680,3 +3680,374 @@ Not recorded.
 | adb.swipe | 1 | 0.485 | 0.485 | 0.485 |
 | startup.connected | 1 | 0.026 | 0.026 | 0.026 |
 | phase.plan_queue | 1 | 0.017 | 0.017 | 0.017 |
+
+## 2026-09-16T15:01:05-04:00 — no_op
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 10
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+- Beginning Sounds 1 — Basic: 96% on 2026-09-16
+- Blend Sounds 2 — Practice 2: 78% on 2026-09-16
+- Words with a — Main: 88% on 2026-09-16
+- Short Vowel Sound e — Main: 78% on 2026-09-16
+
+### Mastered
+
+None this run.
+
+### Verified unchecks
+
+None.
+
+### Verified promotions
+
+None.
+
+### Verified additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Beginning Sounds 1 — Basic — 96%. Close to mastery: one qualifying 90%+ attempt. Another 90%+ result establishes mastery.
+2. Words with a — Main — 88%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Make New Words — Practice 1 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Words with a — Main
+- Short Vowel Sound i — Practice 1
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound e — Main
+- Short Vowel Sound u — Practice 1
+- Words with b & d — Main
+- Beginning Sounds 1 — Basic
+- Rhyming — Basic
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Basic
+- Rhyming — Basic
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Practice 2: not_mastered (78%)
+- Make New Words — Practice 1: not_mastered (not attempted)
+- Words with a — Main: not_mastered (88%)
+- Short Vowel Sound i — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound e — Main: not_mastered (78%)
+- Short Vowel Sound o — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound u — Practice 1: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: no_op
+- UI backend: uiautomator2
+- Wall time: 39.741 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| phase.review_assignments | 1 | 24.435 | 24.435 | 24.435 |
+| workflow.scan_assignments | 1 | 24.435 | 24.435 | 24.435 |
+| ui.hierarchy | 35 | 20.66 | 0.59 | 1.586 |
+| wait.score dialog | 4 | 5.877 | 1.469 | 1.693 |
+| wait.stable Khan navigation state | 2 | 4.991 | 2.495 | 4.624 |
+| startup.launch | 1 | 4.853 | 4.853 | 4.853 |
+| adb.other | 12 | 4.339 | 0.362 | 1.304 |
+| teardown.switch_user | 1 | 3.711 | 3.711 | 3.711 |
+| wait.score dialog closed | 4 | 3.352 | 0.838 | 1.589 |
+| adb.tap | 14 | 2.944 | 0.21 | 0.285 |
+| adb.keyevent | 14 | 2.533 | 0.181 | 0.231 |
+| wait.teacher_roster after Class Report back | 1 | 1.509 | 1.509 | 1.509 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.432 | 1.432 | 1.432 |
+| wait.profile_chooser after Switch User | 1 | 1.385 | 1.385 | 1.385 |
+| wait.parent password dialog | 1 | 1.345 | 1.345 | 1.345 |
+| startup.ui_backend | 1 | 1.322 | 1.322 | 1.322 |
+| wait.teacher roster after login | 1 | 1.085 | 1.085 | 1.085 |
+| adb.settings | 5 | 1.073 | 0.215 | 0.299 |
+| adb.swipe | 1 | 0.507 | 0.507 | 0.507 |
+| startup.connected | 1 | 0.026 | 0.026 | 0.026 |
+| phase.plan_queue | 1 | 0.011 | 0.011 | 0.011 |
+
+## 2026-09-16T15:20:02-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 4
+- Desired queue size: 10
+- Assignment changes: 2
+
+### New scores
+
+- Beginning Sounds 1 — Basic: 94% on 2026-09-16 (history: 96% → 94%)
+- Make New Words — Practice 1: 83% on 2026-09-16 (history: 83%)
+- Words with a — Main: 38% on 2026-09-16 (history: 88% → 38%)
+- Short Vowel Sound e — Main: 84% on 2026-09-16 (history: 78% → 84%)
+
+### Score controls read
+
+- Beginning Sounds 1 — Basic: 94% on 2026-09-16, 96% on 2026-09-16
+- Blend Sounds 2 — Practice 2: 78% on 2026-09-16
+- Make New Words — Practice 1: 83% on 2026-09-16
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+- Short Vowel Sound e — Main: 84% on 2026-09-16, 78% on 2026-09-16
+
+### Mastered
+
+- Beginning Sounds 1 — Basic
+  - Scores: 96% → 94%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Beginning Sounds 1 — Main
+
+### Applied unchecks
+
+- Beginning Sounds 1 — Basic
+  - Scores: 96% → 94%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Beginning Sounds 1 — Main
+
+### Applied promotions
+
+- Beginning Sounds 1 — Basic → Beginning Sounds 1 — Main
+
+### Applied additions
+
+- Beginning Sounds 1 — Main: Next difficulty after Beginning Sounds 1 — Basic met the mastery rule.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Short Vowel Sound e — Main — 84%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Make New Words — Practice 1 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Short Vowel Sound i — Practice 1 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Words with a — Main
+- Short Vowel Sound i — Practice 1
+- Short Vowel Sound e — Main
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with b & d — Main
+- Beginning Sounds 1 — Main
+- Rhyming — Basic
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Main
+- Rhyming — Basic
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Practice 2: not_mastered (78%)
+- Make New Words — Practice 1: not_mastered (83%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Short Vowel Sound i — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound e — Main: not_mastered (78%, 84%)
+- Short Vowel Sound o — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound u — Practice 1: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 85.408 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 68 | 51.125 | 0.752 | 2.16 |
+| workflow.scan_assignments | 4 | 40.952 | 10.238 | 26.487 |
+| phase.review_assignments | 1 | 26.487 | 26.487 | 26.487 |
+| phase.add_and_verify | 1 | 23.329 | 23.329 | 23.329 |
+| startup.launch | 1 | 9.364 | 9.364 | 9.364 |
+| phase.remove_and_verify | 1 | 9.128 | 9.128 | 9.128 |
+| wait.stable Khan navigation state | 7 | 8.394 | 1.199 | 4.522 |
+| phase.fixed_point_verify | 1 | 6.625 | 6.625 | 6.625 |
+| wait.score dialog | 5 | 5.773 | 1.155 | 1.443 |
+| adb.tap | 25 | 5.655 | 0.226 | 0.322 |
+| adb.other | 14 | 4.861 | 0.347 | 1.336 |
+| wait.score dialog closed | 5 | 4.771 | 0.954 | 1.486 |
+| adb.swipe | 9 | 4.559 | 0.507 | 0.558 |
+| adb.keyevent | 19 | 4.17 | 0.219 | 0.32 |
+| teardown.switch_user | 1 | 3.933 | 3.933 | 3.933 |
+| wait.assignments_report after Assignments tab | 1 | 3.909 | 3.909 | 3.909 |
+| wait.assignment saved | 2 | 3.724 | 1.862 | 1.902 |
+| wait.lesson variant 'Beginning Sounds 1'/'Main' after expand lesson 'Beginning Sounds 1' | 1 | 2.839 | 2.839 | 2.839 |
+| adb.screenshot | 4 | 2.685 | 0.671 | 0.701 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.918 | 1.918 | 1.918 |
+| wait.teacher_roster after Class Report back | 1 | 1.586 | 1.586 | 1.586 |
+| wait.all_progress_report after All Progress tab | 1 | 1.44 | 1.44 | 1.44 |
+| wait.profile_chooser after Switch User | 1 | 1.382 | 1.382 | 1.382 |
+| startup.ui_backend | 1 | 1.323 | 1.323 | 1.323 |
+| wait.teacher roster after login | 1 | 1.14 | 1.14 | 1.14 |
+| wait.assignment dialog | 2 | 0.979 | 0.49 | 0.806 |
+| adb.settings | 5 | 0.809 | 0.162 | 0.194 |
+| wait.parent password dialog | 1 | 0.758 | 0.758 | 0.758 |
+| startup.connected | 1 | 0.027 | 0.027 | 0.027 |
+| phase.plan_queue | 1 | 0.026 | 0.026 | 0.026 |
+
+## 2026-09-16T15:24:37-04:00 — no_op
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 10
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+- Blend Sounds 2 — Practice 2: 78% on 2026-09-16
+- Make New Words — Practice 1: 83% on 2026-09-16
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+- Short Vowel Sound e — Main: 84% on 2026-09-16, 78% on 2026-09-16
+
+### Mastered
+
+None this run.
+
+### Verified unchecks
+
+None.
+
+### Verified promotions
+
+None.
+
+### Verified additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Short Vowel Sound e — Main — 84%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Make New Words — Practice 1 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Short Vowel Sound i — Practice 1 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Words with a — Main
+- Short Vowel Sound i — Practice 1
+- Short Vowel Sound e — Main
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with b & d — Main
+- Beginning Sounds 1 — Main
+- Rhyming — Basic
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Main
+- Rhyming — Basic
+
+### Mastery holds in the desired queue
+
+- Blend Sounds 2 — Practice 2: not_mastered (78%)
+- Make New Words — Practice 1: not_mastered (83%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Short Vowel Sound i — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound e — Main: not_mastered (78%, 84%)
+- Short Vowel Sound o — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound u — Practice 1: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: no_op
+- UI backend: uiautomator2
+- Wall time: 43.21 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| phase.review_assignments | 1 | 22.998 | 22.998 | 22.998 |
+| workflow.scan_assignments | 1 | 22.998 | 22.998 | 22.998 |
+| ui.hierarchy | 31 | 19.054 | 0.615 | 1.369 |
+| startup.launch | 1 | 9.301 | 9.301 | 9.301 |
+| wait.score dialog | 4 | 4.883 | 1.221 | 1.58 |
+| adb.other | 14 | 4.784 | 0.342 | 1.338 |
+| wait.stable Khan navigation state | 2 | 4.756 | 2.378 | 4.474 |
+| adb.keyevent | 19 | 4.201 | 0.221 | 0.33 |
+| teardown.switch_user | 1 | 3.618 | 3.618 | 3.618 |
+| adb.tap | 14 | 2.984 | 0.213 | 0.256 |
+| wait.score dialog closed | 4 | 2.702 | 0.675 | 0.784 |
+| startup.ui_backend | 1 | 1.775 | 1.775 | 1.775 |
+| wait.teacher_roster after Class Report back | 1 | 1.531 | 1.531 | 1.531 |
+| wait.parent password dialog | 1 | 1.392 | 1.392 | 1.392 |
+| wait.profile_chooser after Switch User | 1 | 1.335 | 1.335 | 1.335 |
+| adb.settings | 5 | 1.22 | 0.244 | 0.35 |
+| wait.teacher roster after login | 1 | 1.205 | 1.205 | 1.205 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.175 | 1.175 | 1.175 |
+| adb.swipe | 2 | 1.061 | 0.53 | 0.582 |
+| startup.connected | 1 | 0.022 | 0.022 | 0.022 |
+| phase.plan_queue | 1 | 0.013 | 0.013 | 0.013 |

@@ -224,8 +224,9 @@ class AndroidDevice:
         start_y: int = 520,
         end_y: int = 1450,
         duration_ms: int = 250,
+        root: ET.Element | None = None,
     ) -> ET.Element:
-        root = self.hierarchy()
+        root = root if root is not None else self.hierarchy()
         prior_signature = self._window_signature(root)
         for _ in range(gestures):
             self.swipe(x, start_y, x, end_y, duration_ms)

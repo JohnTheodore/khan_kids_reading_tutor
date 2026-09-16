@@ -13,6 +13,17 @@ from khan_kids.adb import AndroidDevice, AutomationError, run_command
 
 
 class AndroidDeviceTests(unittest.TestCase):
+    def test_scroll_to_top_reuses_supplied_root_but_reads_after_gesture(self) -> None:
+        device = AndroidDevice("test-device")
+        root = ET.fromstring('<hierarchy><node text="top" bounds="[0,0][100,100]"/></hierarchy>')
+        with (
+            patch.object(device, "hierarchy", return_value=root) as hierarchy,
+            patch.object(device, "swipe") as swipe,
+        ):
+            self.assertIs(device.scroll_to_top(1200, root=root), root)
+        hierarchy.assert_called_once_with()
+        swipe.assert_called_once()
+
     def _run_awake_session(
         self, rotation_state: bytes, *, fail: bool = False
     ) -> tuple[AndroidDevice, object]:
