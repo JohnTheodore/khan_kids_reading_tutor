@@ -4,26 +4,25 @@ Tools, curriculum data, and Android automation for turning the Khan Academy
 Kids teacher interface into a mastery-gated reading path and durable progress
 record.
 
-The project's primary goal is to help Student A reach independent reading as
-directly as possible while preserving mastery at the prerequisite steps. It is
-not an ELA-completion project. The reusable route is documented in
-[`reading-path.md`](reading-path.md), and every material route change is
-explained in [`curriculum-decisions.md`](curriculum-decisions.md).
+This family project helps Student A reach independent reading while preserving
+mastery at prerequisite steps; it is not an ELA-completion project or an official
+Khan Academy product. The Android teacher UI supplies the lesson inventory and
+scores. A shared Python workflow maintains ten assignments, verifies changes,
+and records attempts and decisions durably.
 
-This repository documents a family project, not an official Khan Academy
-product. It converts the visible teacher UI into a reproducible workflow: index
-the lesson library, capture scores, choose a small science-of-reading-aligned
-queue, apply mastery promotions, maintain instructional diversity, and preserve
-an append-only record of every decision.
+See [`reading-path.md`](reading-path.md) for the current route and
+[`curriculum-decisions.md`](curriculum-decisions.md) for its rationale.
 
 > [!WARNING]
-> This snapshot contains children's names, performance data, and Android
-> accessibility dumps. **Do not publish or fork it publicly as-is.**
-> Create a private copy, replace the names in the parser, and keep personal
-> captures out of version control.
+> This repository is public. Student names have been replaced with aliases, but
+> dated scores, learning trajectories, and captured accessibility XML remain.
+> These records are pseudonymized, not fully anonymous. Keep your own captures
+> and real-name mapping private. The project's MIT license does not automatically
+> cover Khan's captured materials; see [privacy and licensing](#privacy-safety-and-limitations).
 
 ## Contents
 
+- [Quick start](#quick-start)
 - [What we accomplished](#what-we-accomplished)
 - [Repository outputs](#repository-outputs)
 - [How the system works](#how-the-system-works)
@@ -38,6 +37,23 @@ an append-only record of every decision.
 - [Test the tools](#test-the-tools)
 - [Privacy, safety, and limitations](#privacy-safety-and-limitations)
 - [Troubleshooting](#troubleshooting)
+- [Project status and license](#project-status-and-license)
+
+## Quick start
+
+The automation is calibrated for a Pixel Tablet at 2560×1600 in landscape,
+running Khan Kids 9.0.1. Validate other layouts before permitting assignment changes.
+
+1. [Set up the host tools](#set-up-an-ubuntu-control-computer) and run `uv sync --frozen`.
+2. [Configure private identities and credentials](#private-student-identities).
+3. [Pair and configure the tablet](#connect-the-android-device). After a tablet
+   reboot, physically unlock it and re-enable Wireless debugging.
+4. Preview with `./khan-reading-sync --student 'Student A'`, then run
+   `./khan-mastery-sync` to apply and verify the mastery queue for the configured student.
+
+The default commands discover the configured tablet; an IP address is normally
+unnecessary. Cloning this repository does not configure your device, credentials,
+or student mapping. Do not use the archived family records as your own baseline.
 
 ## What we accomplished
 
@@ -85,6 +101,7 @@ several variants.
 | [`curriculum-decisions.md`](curriculum-decisions.md) | Append-only rationale for selecting, deferring, or reordering lesson families |
 | [`INCIDENTS.md`](INCIDENTS.md) | Append-only operational incident record and corrective actions |
 | [`performance-audit-2026-09-10.md`](performance-audit-2026-09-10.md) | Baseline bottleneck analysis, implemented optimizations, and measured speedups |
+| [`performance-update-2026-09-16.md`](performance-update-2026-09-16.md) | Later profiling results and startup/navigation improvements |
 | [`reading-ela-performance.csv`](reading-ela-performance.csv) | One row per assignable activity, suitable for a spreadsheet or analysis |
 | [`ordering-related-lessons.md`](ordering-related-lessons.md) | Reading-order analysis and proposed instructional sequence |
 | [`student-a-next-reading-lessons-science-of-reading.md`](student-a-next-reading-lessons-science-of-reading.md) | Research-backed, Khan-only next-lesson sequence tailored to Student A's scores |
@@ -109,15 +126,15 @@ To keep current state separate from historical evidence:
 - `curriculum-decisions.md` is an append-only rationale log; later entries
   supersede earlier operational decisions.
 - the attempt and assignment-action CSVs under `student-records/` are the
-  permanent event records; `student-a-reading-sync-log.md` is the generated run
-  history.
+  permanent event records; `student-records/student-a-reading-sync-log.md` is
+  the generated run history.
 - dated research and assignment documents preserve their original snapshots;
   they are not instructions for the current queue.
 
 Image checks create temporary screenshots under ignored `private/`, with
 owner-only permissions and exception-safe cleanup. Crawlers no longer retain
-page screenshots, and no captured images are included in the repository. The retained
-XML is sufficient to rebuild the current catalogs and score archive.
+page screenshots, and no captured images are included in the repository. The
+retained XML is sufficient to rebuild the current catalogs and score archive.
 
 Blank result cells are retained as `not_attempted`; they are never treated as a
 score of zero. Lesson descriptions marked “inferred” are interpretations of
@@ -146,8 +163,9 @@ the operator can watch every interaction. Android Debug Bridge (`adb`) supplies
 touch gestures, screenshots, and accessibility-tree dumps. The Python scripts
 deduplicate overlapping captures and preserve the report hierarchy.
 
-No unofficial Khan API, account scraping endpoint, or app modification is used.
-The scripts operate the same on-device teacher UI that a person can see.
+The scripts use the visible on-device teacher UI, not an unofficial Khan API or
+app modification. UI-based capture still requires consideration of Khan's terms;
+using the visible interface is not itself permission to redistribute its data.
 
 ## Convert Khan Kids to a Class Account
 
@@ -377,7 +395,7 @@ Khan Kids is foreground.
 
 Local credentials live in the Git-ignored `.secrets.json` file:
 
-```bash
+```json
 {
   "android_pin": "...",
   "khan_parent_password": "..."
@@ -489,9 +507,9 @@ serial="$(tools/run-tablet-workflow connect \
 
 tools/run-python tools/khan_report_archive_crawl.py \
   --serial "$serial" \
-  --student Student C \
-  --forbid-student Student A \
-  --forbid-student Student B \
+  --student 'Student C' \
+  --forbid-student 'Student A' \
+  --forbid-student 'Student B' \
   --secrets-file private/student-c-secrets.local.json \
   --output private/student-c/archive-pass-1.local \
   --capture-histories
@@ -505,9 +523,9 @@ Restrict a pilot to one combination with, for example:
 ```bash
 tools/run-python tools/khan_report_archive_crawl.py \
   --serial "$serial" \
-  --student Student C \
-  --forbid-student Student A \
-  --forbid-student Student B \
+  --student 'Student C' \
+  --forbid-student 'Student A' \
+  --forbid-student 'Student B' \
   --secrets-file private/student-c-secrets.local.json \
   --grade kindergarten \
   --subject ela \
@@ -524,7 +542,7 @@ parser code. Build private normalized records with:
 ```bash
 tools/run-python tools/build_reading_report_archive.py \
   private/student-c/archive-pass-1.local \
-  --student Student C \
+  --student 'Student C' \
   --output private/student-c/records.local
 ```
 
@@ -535,7 +553,7 @@ the history-bearing pass for detailed score dialogs:
 tools/run-python tools/build_reading_report_archive.py \
   private/student-c/archive-pass-2.local \
   --history-source private/student-c/archive-pass-1.local \
-  --student Student C \
+  --student 'Student C' \
   --output private/student-c/records.local
 ```
 
@@ -615,330 +633,319 @@ LLM.
 
 ## Run the mastery workflow
 
-Create the locked Python environment as described above. Its persistent UI
-transport is much faster than invoking Android's legacy hierarchy dumper for
-every screen.
+Use the locked environment and private configuration described above. The shared
+workflow can wake/unlock the tablet, enter the parent password, review scores,
+and navigate Teacher Tools. It reuses an already-open supported teacher screen
+only after two matching live reads; unknown screens and open modals retain the
+cold-start route. It does not navigate a child's lesson view.
 
-The command can wake the tablet, unlock Android, start a fresh Khan Kids app
-session, select the parent profile, enter the parent password, and safely
-navigate from the teacher roster to Class Reports. Mastery sync deliberately
-does not inspect or navigate the child lesson view: its fresh start establishes
-the profile chooser as the only supported entry route to the parent/teacher
-workflow.
+### Review and apply
 
-Android can briefly report the lock screen, launcher, or notification shade
-while waking and launching Khan Kids. Startup waits for two matching lock-state
-reads, makes at most one PIN attempt, launches through ActivityManager's
-wait-capable mode, and requires Khan Kids to hold foreground focus for two
-reads. The React Native accessibility tree must then expose an approved semantic
-screen before navigation. Unknown states still time out without tapping.
-
-On successful completion, mastery sync stays inside the running Khan Kids app:
-it uses the app's own **Back** control to return from Class Reports to Teacher
-Tools, selects **Switch User**, and verifies the profile chooser. It does not
-stop or relaunch Khan Kids during teardown. Both image-backed controls are used
-only after their surrounding screen and exact bounds have been validated. Each
-transition must produce two consecutive reads of the expected destination. One
-shared transition guard covers forward report navigation, lesson expansion,
-assignment Save, and teardown. If Khan drops a tap or its accessibility tree is
-late, the guard re-reads the source screen and retries up to three times,
-allowing 12 seconds per attempt. It stops immediately if any unexpected screen
-appears.
-
-Run a read-only review with:
+Preview without changing assignments:
 
 ```bash
-./khan-reading-sync --serial "$KHAN_SERIAL" --student Student A
+./khan-reading-sync --student 'Student A'
 ```
 
-When Android may be PIN-locked, the default `.secrets.json` is used
-automatically. To select another protected file explicitly:
+The protected `.secrets.json` is loaded automatically when needed. Override it
+with `--secrets-file /secure/local/khan-secrets.json`, or specify the current
+transport with `--serial "$KHAN_SERIAL"` for diagnostics.
+
+Review writes a proposed plan, not assignment changes. Apply that exact plan with:
 
 ```bash
 ./khan-reading-sync \
-  --serial "$KHAN_SERIAL" \
-  --student Student A \
-  --secrets-file /secure/local/khan-secrets.json
+  --student 'Student A' \
+  --apply-plan private/student-a-reading-plan.json
 ```
 
-The default review:
+Apply mode repeats the live scan and refuses stale assignment, score, catalog,
+or curriculum snapshots. After an interruption, generate a fresh review plan;
+reconciliation proposes only the remaining difference.
 
-- filters Assignments to the named child;
-- reads each changed or uncached scored activity's full history and safely
-  reuses an exact same-day cache match;
-- appends newly observed attempts without duplicating prior rows;
-- evaluates `Basic → Main → Practice 1 → Practice 2` using the documented
-  mastery policy;
-- reserves up to eight positions for mastery-path lessons whose prerequisites
-  are complete;
-- normally limits configured groups of similar lessons, currently short-vowel/
-  CVC-middle work, to three active choices, but admits the next approved choice
-  when needed to reach the ten-assignment target;
-- fills the remaining positions from a curated foundational-reading stretch pool,
-  including vetted Beginning Sounds 1 and Rhyming maintenance reserves;
-- requires exactly ten eligible desired lessons before changing any assignment;
-  otherwise reports the shortfall and leaves the live queue untouched;
-- pins every active stretch family until its first attempt, preserves a
-  below-70% result as deferred, and permits a later retry only after supporting
-  mastery evidence changes;
-- excludes any student-specific lesson family with an active dated quarantine,
-  then refills the queue from the same approved reading curriculum;
-- automatically starts a 14-day family quarantine when a newly captured fourth
-  or later attempt leaves that lesson variant below 70%; an expired quarantine
-  is not restarted without another new attempt;
-- computes the exact difference between the live and desired queues;
-- writes a compact reviewed plan to `private/student-a-reading-plan.json`; and
-- appends a human-readable run report to
-  `student-records/student-a-reading-sync-log.md`.
-
-Temporary family quarantines live in
-`student-records/<student>-lesson-quarantines.csv`. Each row records a start
-date, the first date the family may be considered again, and the evidence-based
-reason. The end date is exclusive: a row with `eligible_date` 2026-10-11 is
-excluded through 2026-10-10. Matching is by exact lesson-family title, so all
-available variants of that family are withheld without affecting similarly
-named families. Expired rows remain as history and stop affecting plans
-automatically.
-
-Screenshots used to distinguish checked from unchecked boxes live only in a
-temporary directory and are deleted when the command exits. The optional
-Android PIN and Khan parent password may be kept in the owner-private,
-Git-ignored `.secrets.json` described above. They are loaded lazily, never
-written to reports, and never passed as complete command-line arguments.
-The command temporarily prevents sleep and restores the tablet's prior screen
-timeout, plugged-in stay-awake setting, and rotation mode on success or
-failure. Orientation locking uses Android WindowManager's single
-`wm user-rotation lock 3` operation. Do not replace it with consecutive writes
-to `accelerometer_rotation` and `user_rotation`: when auto-rotate is enabled,
-the stored fallback angle may still be portrait, and disabling auto-rotate
-first visibly flashes that stale angle before the landscape write arrives.
-The workflow reads `wm user-rotation` before starting and restores exactly
-`free` or the prior `lock N` mode during cleanup.
-
-Successful sync reports include an advisory **Do next** section ranking up to
-three lessons from the verified assignments: provisional mastery first, then
-strong recent scores (80–89%), then unattempted activities in curriculum order,
-then lower-scoring practice. Each shows its latest score, reason, and the result
-needed for mastery, using the existing mastery evaluator. Recommendations do
-not change assignments and are withheld for review-only or interrupted runs.
-The structured result stores them in `next_lesson_recommendations`.
-
-For the usual one-command operation, run without an address or student; the
-private device configuration supplies both:
+For the usual one-session sync, the private device configuration supplies the
+student and device:
 
 ```bash
 ./khan-mastery-sync
 ```
 
-The workflow streams phase milestones, completed score-history reads, and
-verified assignment actions to stderr with flushing, plus a ten-second
-heartbeat during longer operations. JSON stdout remains machine-readable.
-Performance payloads include `max_silent_seconds`, measured from workflow
-startup (device discovery precedes this reporter). Progress never issues device
-commands or exposes credentials or raw UI text. A heartbeat is not evidence
-that an assignment was saved; only verified action messages establish that.
+This scans, plans, applies, and verifies in one session. A matching queue is a
+verified no-op, without a redundant apply scan. `khan-mastery-sync` adds `--sync`
+to the shared reading workflow; it contains no separate implementation.
 
-Startup may reuse an already-foreground Khan Kids session only after two live
-reads confirm the same supported screen; an unknown screen or open modal keeps
-the cold-restart behavior. Teacher-roster navigation checks for a dropped tap
-after three seconds and retries only from its freshly verified source. A
-loading screen receives the remaining original wait budget without another
-tap. Score-dialog closing uses the same bounded guarded transitions.
+### Queue policy
 
-Fresh UI roots are passed through navigation and scrolling helpers rather
-than immediately read again. They are never used as a substitute for fresh
-post-gesture or post-Save reads. Full mastery score scans, every post-Save queue
-verification, and the final fixed-point scan remain mandatory.
+The planner:
 
-Wake avoids another wake keyevent and its one-second settle delay when Android
-power state explicitly reports `mWakefulness=Awake`. Unknown or sleeping states
-retain the original wake behavior. Rotation skips its settle delay only when
-the prior user-rotation mode is already `lock 3`; changed modes retain the wait
-and exact restoration. Lock-state and screen-size guards remain unchanged.
+- evaluates `Basic → Main → Practice 1 → Practice 2` using the
+  [mastery policy](mastery-learning-policy.md);
+- reserves up to eight positions for prerequisite-ready mastery-path lessons;
+- normally limits similar lesson groups to three active choices, relaxing that
+  diversity limit only when needed to reach ten approved assignments;
+- fills remaining positions from the curated foundational-reading stretch pool,
+  including vetted Beginning Sounds 1 and Rhyming maintenance reserves;
+- pins unattempted stretch families, defers below-70% results, and permits a
+  retry only after supporting mastery evidence changes;
+- excludes active student-specific family quarantines and refills from the same
+  approved curriculum; and
+- requires exactly ten eligible desired lessons before changing assignments,
+  otherwise reporting a review-required shortfall and withholding changes.
 
-Compressed hierarchy output was tested read-only: the sampled screen had the
-same 7,917-byte payload in both modes, and compression was slower in that sample.
-The production backend therefore remains uncompressed. Its optional Python
-compression pilot checks labeled and unlabeled control signatures against a
-full dump and falls back on mismatch. A matching initial screen is not proof of
-compatibility across all screens; the pilot is not enabled by normal commands.
+Ten assignments is a successful-sync invariant, not a guarantee during a
+capacity-limited remove/add transition or while the device is unavailable.
+See [the current reading path](reading-path.md) for queue and stretch details.
 
-Run `./tools/run-python tools/audit_code_duplication.py` to check production
-and test Python files for substantial exact cross-file repeated blocks and
-function bodies. This is a regression aid, not a proof that all semantic
-duplication is absent; shared policy and transport code still require review.
+Quarantines live in `student-records/<student>-lesson-quarantines.csv`. A new
+fourth-or-later attempt below 70% starts a 14-day family quarantine. Expired rows
+remain as history and are not restarted without another new attempt.
+An `eligible_date` of 2026-10-11 excludes the exact family through 2026-10-10.
 
-This scans and plans once, then applies and verifies any changes in the same
-device session. If the queue already matches the mastery plan, it records a
-verified no-op and stops without a redundant apply scan. An eight- or nine-item
-desired plan is never applied or called a verified no-op. The ten-item rule is
-a successful-sync invariant, not a promise that Khan Kids will display ten
-during a capacity-limited remove/add transition or while the tablet is
-unavailable. If safe eligible lessons are exhausted, the report is
-review-required and any changes are withheld. Every run writes
-secret-safe per-step timing data. A mastery sync always opens every available
-colored score control in Student A's Assignments column and records the complete
-displayed history; it never trusts the same-day cache. Review-only runs may
-reuse score histories when the visible lesson, variant, assignment date, and
-score are unchanged; use `--full-score-scan` to disable that review cache too.
-Use `--ui-backend legacy-adb` only as a diagnostic fallback. The current queue and
-stretch policy are described in [`reading-path.md`](reading-path.md).
+### Scores, idempotency, and verification
 
-Queue reconciliation is idempotent: a verified mastery action is durable and
-cannot regress merely because its predecessor is no longer assigned and its
-live score dialog is unavailable. Complete live histories are reconciled by
-occurrence count, so two identical scores on the same date remain two attempts
-without being appended again on the next scan. The assignment-action ledger
-records each actual mutation with a unique timestamp. An operating-system lock
-allows only one reading workflow to use the tablet and its local records at a
-time; a concurrent invocation fails before opening the app.
+Mastery sync opens every available colored score control in the target student's
+Assignments column and records the full displayed history. It never relies on
+the same-day cache. Review-only runs can reuse an unchanged history; use
+`--full-score-scan` to disable that review cache.
 
-Every workflow failure from `khan-mastery-sync` also appends a distinct,
-secret-safe entry to [`INCIDENTS.md`](INCIDENTS.md) before returning a nonzero
-status. Automatic diagnostics redact common device-address, pairing-code, and
-local-home-path forms. A failure remains fail-closed: the incident is a record
-for diagnosis, not permission to continue from an unrecognized screen. If the
-data phase completed before teardown failed, its saved outcome and full terminal
-report remain authoritative; the error and incident explicitly identify the
-later teardown failure, and timing data is still persisted.
+Khan displays dates and percentages but no stable attempt ID or timestamp.
+Occurrence-aware persistence preserves two identical same-day scores as two
+attempts without appending them again on an unchanged scan. Blank results are
+never interpreted as zero. Durable mastery cannot regress simply because its
+predecessor is no longer assigned or its live dialog disappears.
 
-Before changing the queue, the workflow atomically writes an operation journal
-containing the desired-state fingerprint and every planned action. It adds a
-replacement before removing its predecessor whenever capacity permits. At a
-full queue it alternates one removal with one addition, so an interruption can
-leave at most one unmatched removal instead of applying every removal first.
-After every Save it captures the complete live queue, verifies the individual
-change, and checkpoints the journal. Success requires a second, independent
-fixed-point scan matching the complete desired set. Performance reports expose
-each mutation-and-verification phase separately.
+Queue reconciliation is idempotent for unchanged available evidence. Repeated
+runs still append reports and timings. Khan can reveal delayed scores even when
+no lesson was played between runs; new evidence can legitimately change the queue.
+An operating-system lock prevents concurrent workflows from opening the app or
+mutating the same local records.
 
-Every successful run ends with a readable terminal report containing:
+Before changing assignments, the workflow atomically journals the desired state
+and planned actions. It adds replacements first when capacity permits; at full
+capacity it alternates one removal with one addition. Every Save is independently
+verified against the complete live queue and checkpointed. Success requires a
+second fixed-point scan matching the complete desired set. Promotions are
+reported as applied only after their removal and replacement were saved and verified.
 
-- a visually dominant “Changes Since Last Sync” summary;
-- newly observed scores and the relevant score history;
-- every score control opened and its complete displayed attempt history;
-- lessons that met the mastery rule;
-- assignments unchecked and the evidence-based reason for each removal;
-- assignments added and why each is the appropriate next rung or stretch item;
-- all lessons in the resulting queue, with core/stretch role and mastery
-  status; and
-- verification outcome and total duration.
+### Navigation and failure recovery
 
-The report also names every active quarantine, its last excluded date, its
-reconsideration date, and its reason.
+Startup requires matching lock-state and foreground reads and allows at most
+one PIN attempt. Shared transition guards recheck the source before retrying a
+dropped tap, stop on unexpected screens, and require two destination reads.
+Normal teardown uses the app's Back and Switch User controls to verify the
+profile chooser without stopping or relaunching Khan Kids.
 
-Review-only output labels changes as proposed and not yet applied. Sync output
-labels changes as applied only after exact post-write verification. For scripts
-that consume the older compact payload, add `--json`.
+The command restores the prior screen timeout, plugged-in stay-awake setting,
+and rotation mode on success or failure. Landscape locking uses the atomic
+`wm user-rotation lock 3` operation; separate writes to `accelerometer_rotation`
+and `user_rotation` can briefly expose a stale portrait angle. Cleanup restores
+exactly `free` or the original `lock N` mode.
 
-Interactive terminals color new scores yellow, mastery green, removals magenta,
-additions blue, and unchanged queue rows dim. Symbols preserve the same meaning
-when color is unavailable. Color defaults to `auto`, respects the `NO_COLOR`
-environment variable, and can be controlled explicitly with
-`--color always` or `--color never`.
+Workflow failures append a distinct, secret-safe entry to [INCIDENTS.md](INCIDENTS.md)
+and return a nonzero status. An incident never authorizes continuing from an
+unrecognized screen. If teardown fails after the data phase, the saved outcome
+and full report remain authoritative; the incident identifies that later failure.
+Interruption reports distinguish saved from verified operations and include the
+last recoverable queue, missing/unexpected assignments, and duration.
 
-Review the JSON plan. Apply that exact plan with:
+### Reports and next-lesson suggestions
+
+The default readable report includes:
+
+- a prominent changes-since-last-sync summary and newly observed scores;
+- opened score controls and their complete displayed histories;
+- mastery found, assignments unchecked, and assignments added;
+- reasons and score evidence for every change;
+- the complete resulting queue, core/stretch roles, and mastery status; and
+- active quarantines, verification outcome, and duration.
+
+Review labels changes as proposed. Sync labels them as applied only after
+verification. Symbols preserve meaning without terminal color: 🟢 mastered,
+🔵 added, 🟡 new score/hold, 🟣 unchecked/deferred, and ⚪ unchanged.
+Color respects `NO_COLOR`; override with `--color always` or `--color never`.
+
+Successful syncs also suggest up to three **Do next** lessons from the verified
+queue: provisional mastery, strong recent scores (80–89%), unattempted activities
+in curriculum order, then lower-scoring practice. Each includes score evidence
+and the result needed for mastery. Suggestions never change assignments and
+are withheld for review-only or interrupted runs.
+
+Add `--json` for structured output, including `next_lesson_recommendations`.
+Default paths are student-derived; use `--attempts`, `--actions`, `--report`,
+`--plan`, and `--max-actions` to override them. Run
+`./khan-reading-sync --help` for all options. Wrappers work from other directories
+when invoked by absolute path.
+
+### Progress and profiling
+
+Milestones, completed history reads, and verified actions stream to stderr,
+with a ten-second heartbeat during longer work. With `--json`, stdout remains
+machine-readable. A heartbeat is not evidence that an assignment was saved.
+Performance payloads contain per-step timings and `max_silent_seconds`, measured
+from workflow startup after device discovery.
+
+Record an optional private cProfile file:
 
 ```bash
-./khan-reading-sync \
-  --serial "$KHAN_SERIAL" \
-  --student Student A \
-  --apply-plan private/student-a-reading-plan.json
+KHAN_PROFILE_OUTPUT="$PWD/private/mastery-sync.prof" ./khan-mastery-sync
+./tools/run-python -m pstats private/mastery-sync.prof
 ```
 
-Apply mode first repeats the live scan. It refuses to act if the assignments,
-scores, catalog, or curriculum differ from the reviewed snapshot. It also
-validates that the actions produce the desired queue, that every addition is in
-the approved curriculum, and that the queue remains within its configured
-limit. Each successful Save is logged and journaled immediately, independently
-verified against the live queue, and followed by fixed-point verification. If a
-run is interrupted, generate a new review plan; live-state reconciliation
-proposes only the remaining difference. The interruption report records saved
-versus verified operations, the last recoverable live queue, missing and
-unexpected assignments, and duration. Promotions are reported as applied only
-when both their removal and replacement addition were actually saved.
-
-The default output paths are derived from the student name. Use `--attempts`,
-`--actions`, `--report`, `--plan`, and `--max-actions` to customize the run.
-`khan-mastery-sync` is the one-session sync alias for the same shared workflow;
-it adds `--sync` and contains no separate implementation. Run
-`./khan-reading-sync --help` for all options. Both wrappers resolve the
-repository location first, so they can be invoked by absolute path from another
-working directory.
-
-Khan's report provides dates and percentages but no attempt timestamp or
-stable attempt ID. The workflow therefore reconciles the multiplicity of each
-lesson/variant/date/percentage tuple against the complete live history. Two
-identical displayed attempts are stored as two occurrences, while rescanning
-that unchanged pair adds nothing. The command never interprets a blank result
-as zero.
+The production backend uses uncompressed persistent hierarchy reads. Fresh roots
+are reused only before gestures; post-Save and fixed-point verification always
+read live state. Use `--ui-backend legacy-adb` only as a diagnostic fallback.
+See [the baseline audit](performance-audit-2026-09-10.md) and
+[the later update](performance-update-2026-09-16.md) for measured results.
 
 ## Test the tools
 
-The automated test suite covers mastery decisions, date and report parsing,
-catalog lookup, duplicate-safe records, workflow planning, and graphical
-checkbox recognition:
+The automated suite covers mastery, report/date parsing, catalog lookup,
+duplicate-safe records, workflow planning, graphical checkbox recognition,
+privacy gates, and private screenshot cleanup:
 
 ```bash
 uv run --frozen python -m compileall -q tools tests
 uv run --frozen python -m unittest discover -s tests -v
 uv run --frozen ruff check .
 uv run --frozen ruff format --check .
+./tools/run-python tools/audit_code_duplication.py
 ```
 
 ImageMagick is required for the checkbox test. The GitHub Actions workflow in
-`.github/workflows/tests.yml` installs it and runs all four checks on pushes and
-pull requests. Live UI validation still requires the calibrated Android tablet;
-unit tests cannot guarantee compatibility with a future Khan Kids redesign.
+`.github/workflows/tests.yml` installs it and runs lint, formatting, and tests on
+pushes and pull requests, alongside the dedicated privacy job. The duplication
+audit detects substantial exact cross-file blocks and function bodies; it does
+not prove that all semantic duplication is absent. Live UI validation still
+requires the calibrated tablet and is separate from these checks.
 
 ## Privacy, safety, and limitations
 
-### Protect children's data
+### Private student identities
 
-- Keep `private/`, raw screenshots, XML dumps, reports, email addresses,
-  passwords, device addresses, and pairing codes out of public commits.
-- Never put a Khan Kids password or wireless-debugging pairing code in a script.
-- Pair only on a trusted local network. For persistent access, approve only the
-  dedicated home network and never expose the tablet's ADB port or the host ADB
-  server port through router forwarding.
-- Review screenshots as well as text files; images can expose names and scores.
-- Obtain any consent required before processing data for children other than
-  your own.
+Published records use Student A, Student B, and Student C. Save real tablet names
+only in Git-ignored `private/student-aliases.local.json`, for example:
 
-A suitable local `.gitignore` for a new private analysis area is:
-
-```gitignore
-private/
-*.local.csv
-*.local.json
-*.local.xml
-*.local.png
+```json
+{
+  "REAL_DISPLAY_NAME": "Student A",
+  "REAL_SECOND_DISPLAY_NAME": "Student B"
+}
 ```
 
-This does not retroactively remove files already committed. Use Git history
-rewriting or start a clean repository if personal data has entered history.
+Replace the placeholders with the exact names displayed on your tablet. Include
+every child on the account roster; aliases must have the form `Student A`.
+Protect the file:
+
+```bash
+chmod 600 private/student-aliases.local.json
+```
+
+The local tablet configuration may retain the real default student name.
+Normal sync and explicit `--student` inputs resolve through the private map;
+quote aliases containing spaces in shell commands.
+
+UI hierarchy capture fails before device I/O if the mapping is missing or empty.
+Unmapped student inputs are rejected. Accessibility attributes and text are
+anonymized before parsing or saving XML; records, reports, and incident student
+identities use aliases. Supported score and student-selection views reject
+unknown identity labels, but other UI text still depends on complete mappings.
+The map is not a general-purpose detector of unknown people's names.
+
+Public aliases remain usable for offline analysis without a tablet mapping.
+Do not overwrite this project's archived records with another child's data;
+choose explicit private output paths for your own work.
+
+### Commit, push, and CI gates
+
+For maintainers with access to this repository's GitHub secrets, configure the
+local/CI fingerprints and install the hooks on each clone:
+
+```bash
+./tools/run-python tools/configure_student_privacy.py
+git config core.hooksPath .githooks
+```
+
+The configuration command targets `JohnTheodore/khan_kids_reading_tutor`.
+Fork maintainers must adapt that target to their repository. It updates
+`KHAN_PRIVACY_KEY` and `KHAN_PRIVACY_FINGERPRINTS` and saves an ignored,
+owner-private backup. Only keyed fingerprints and their key are supplied to CI,
+not plaintext student names. Rerun it after changing the private mapping;
+local hooks reject stale configuration.
+
+- The pre-commit hook scans staged contents and filenames.
+- The pre-push hook scans every commit reachable from outgoing refs, including
+  commit metadata and files renamed or removed in later commits.
+- The dedicated CI `privacy` job scans full checked-out history and fails if
+  secrets are missing, invalid, or mismatched.
+- Image captures are rejected by extension and binary signature, including
+  renamed images and forced Git additions.
+
+Run either audit manually:
+
+```bash
+./tools/run-python tools/audit_student_privacy.py
+./tools/run-python tools/audit_student_privacy.py --history
+```
+
+The index audit excludes unstaged/untracked changes; stage intended changes
+first. Reports print violation counts, not private names. Hooks are bypassable,
+and CI detects leaks after upload, not before. The scanner detects configured
+names, not every possible identity in arbitrary prose or images.
+
+Fork pull requests do not receive these secrets and fail closed. Do not use
+`pull_request_target` to expose secrets to untrusted code.
+CI jobs alone do not enforce a merge gate. This repository is now public, so
+[GitHub branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+is available without the private-repository plan upgrade. Require the `privacy`
+and `test` checks to enforce merge protection; those requirements are not
+currently configured.
+
+### Screenshots and credentials
+
+No captured screenshots are committed or needed as repository fixtures.
+Checkbox/expansion checks use temporary screenshots under ignored `private/`,
+with owner-only permissions and exception-safe cleanup. Crawlers no longer
+retain page screenshots. Direct screenshot calls outside `private/` are
+refused. Images are not anonymized; abrupt process termination may leave private
+temporary files that need manual cleanup. Tests generate synthetic images at runtime.
+
+Keep credentials, device addresses, pairing codes, and your own captures out of
+public commits. The optional Android PIN and Khan password belong only in the
+protected local secrets file described [above](#open-khan-kids-safely).
+Pair only on a trusted network; never forward tablet or host ADB ports to the
+internet. Obtain any consent required before processing other children's data.
+
+### Published records and third-party material
+
+Aliases do not make dated scores and learning trajectories fully anonymous.
+This public repository intentionally retains its pseudonymized records and
+captured XML/catalog data; publication is not a declaration that all capture
+reuse is permitted. Khan's [Kids terms](https://www.khanacademy.org/kids/terms-of-service)
+include content-redistribution and scraping/copying restrictions (§§8–9).
+Review applicable rights and permissions separately from the project's MIT license.
+
+Deleting a file does not remove it from Git history. History rewrites also do
+not guarantee erasure from hosting caches, backups, or other people's clones.
+Before publishing sensitive history, verify old commit IDs are unavailable and
+use the host's sensitive-data removal process when needed.
 
 ### Technical limitations
 
 - Coordinates and column bounds are device-, orientation-, roster-, and
-  app-version-specific.
-- Khan Kids does not provide a multi-assignment transaction. The workflow limits
-  exposure by checkpointing and verifying every Save and alternating removals
-  with replacements; a process or device failure can still interrupt one pair.
-  Generate a fresh review to reconcile that final difference from live state.
-- Android's UI hierarchy omits some graphical text and does not expose reliable
-  checkbox state for every React Native control.
-- The library does not provide prose descriptions for most lessons. Some targets
-  in the generated catalog are explicitly inferred from titles and standards.
-- The All Progress report can repeat content across grades.
-- Khan Kids updates may invalidate the navigation constants without warning.
-- Captures are a point-in-time archive, not a continuously synchronized mirror.
+  app-version-specific. Unit tests cannot validate a future layout.
+- Khan provides no multi-assignment transaction. Checkpointing and alternating
+  removals/replacements limit interruption exposure, but a failure can still
+  leave an unmatched pair. Generate a fresh review to reconcile live state.
+- The UI hierarchy omits some graphical text and checkbox states; narrow image
+  checks remain necessary. Routine automation is procedural Python, not LLM vision.
+- Lesson targets may be inferred from titles and standards, not Khan-authored
+  descriptions. All Progress can repeat the same content across grades.
+- Khan can expose scores late. A capture is a point-in-time archive, not a
+  continuously synchronized database or diagnostic assessment.
 - This project is not affiliated with or endorsed by Khan Academy.
 
-Stop a crawler immediately if the visible screen differs from the expected
-Library or Class Report. The capture scripts are designed to avoid lesson cards,
-but no coordinate-driven UI automation can guarantee safety after a layout
-change.
+Stop immediately if the visible screen differs from the expected state.
+Recalibrate after a layout change before resuming any assignment operation.
 
 ## Troubleshooting
 
@@ -987,64 +994,12 @@ unchanged raw captures.
 
 ## Project status and license
 
-### Private student identity mapping
+This is an active family research and automation project, calibrated to one
+tablet/app layout rather than a general-purpose supported product. Dated captures,
+research, and assignment documents preserve historical evidence; use the
+[sources of truth](#sources-of-truth) for current policy.
 
-Public files use Student A, Student B, and Student C. Keep real tablet names
-only in Git-ignored `private/student-aliases.local.json`, mapping real display
-names to public aliases. The local tablet configuration can retain its real
-default student name: normal `./khan-mastery-sync` and explicit `--student`
-inputs resolve through this mapping. Accessibility text is anonymized before
-parsing or saving XML; scores, reports, incident identities, and record filenames
-use aliases. Screenshots may still contain real names and must stay private.
-
-UI hierarchy capture now fails before device I/O if that mapping is missing or
-empty. Unmapped student inputs are rejected rather than exported unchanged;
-public aliases remain usable for offline work. Include every child shown in the
-account roster in the private mapping. Aliases must use the form `Student A`.
-The map cannot automatically recognize an unknown child's name.
-Before committing or publishing, run `./tools/run-python tools/audit_student_privacy.py`
-to check staged/indexed contents and filenames against the private map. It fails
-if the map is missing and reports only counts, not children's names. Run it after
-staging changes; unstaged and untracked files are not included.
-
-Install the fail-closed local commit/push gates on each clone:
-`git config core.hooksPath .githooks`. Hooks scan the Git index before committing
-and every commit reachable from outgoing refs before pushing, including commit
-messages and renamed/removed historical files. Image captures are rejected by
-extension and binary signature; Git ignore rules alone are not the security gate.
-Local gates require the private alias map and CI fingerprint configuration.
-After adding/changing mapped names, run
-`./tools/run-python tools/configure_student_privacy.py` to refresh GitHub's
-`KHAN_PRIVACY_KEY` and `KHAN_PRIVACY_FINGERPRINTS` secrets. Only keyed name
-fingerprints and their key are supplied to CI, not plaintext names. Missing
-secrets fail the dedicated `privacy` job; fork PRs cannot receive those secrets
-and therefore fail closed. Do not switch to `pull_request_target` to bypass this.
-
-Hooks are bypassable. CI detects leaks after upload, not before. The current
-GitHub plan cannot enforce branch protection for this private repository; upgrade
-to a supported plan before claiming `privacy` is a required server-side merge
-gate. The scanner detects configured names, not every person's name in arbitrary
-prose.
-Supported score-history and student-selection views also reject unknown identity
-labels before persisting XML; other UI text still depends on complete mappings.
-Screenshots are never anonymized; direct screenshot calls outside
-`private/` are refused. Normal image checks clean up on exceptions, but abrupt
-process termination can leave ignored private temporary images.
-
-History rewrites do not purge GitHub's cached/unreachable commits. Before any
-visibility change, request sensitive-data removal through GitHub Support and
-verify that pre-sanitization commits can no longer be retrieved.
-
-Aliases do not anonymize dated scores or trajectories. This repository has not
-been made public; captured third-party material still requires separate review.
-
-This is an active family research and automation project. The captured catalog
-is a point-in-time snapshot, while the mastery workflow and student records are
-updated as new attempts occur. The tools remain a calibrated reference
-implementation rather than a stable general-purpose end-user application.
-
-The original source code and project documentation are available under the
-[MIT License](LICENSE). That license does not grant rights to Khan Academy's
-names, trademarks, app assets, or other third-party material, and it does not
-override privacy rights in the captured children's data. Remove private and
-third-party capture artifacts before redistributing a copy.
+Original source code and project documentation are licensed under
+[MIT](LICENSE). This does not grant rights to Khan's trademarks, app assets, or
+other third-party material, or override privacy rights in children's records.
+Review captured material separately before redistributing it.
