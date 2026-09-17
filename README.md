@@ -11,9 +11,28 @@ This tutor keeps ten reading assignments ready, checks scores, and advances
 lessons when your child shows mastery. It also recommends which assigned
 lessons to try next.
 
+**Less digital babysitting. More learning to read.**
+
+## Why we built this
+
 Khan Kids' [Learning Path](https://khankids.zendesk.com/hc/en-us/articles/360048828572-Learn-more-about-the-Learning-Path)
 adapts to your child but rotates across subjects, rather than offering a
-documented learn-to-read-only mode. If reading is your priority, selecting and
+documented learn-to-read-only mode. Its overall interface encourages exploring
+the broader app, not staying on a focused reading track.
+
+For our family, much of that broader experience feels like edutainment: too much
+stimulation and too many ways to stay entertained without practicing reading.
+We wanted a reading tool, not a glorified babysitter.
+
+But we see real value in the work of the people behind Khan Kids' phonics and
+learn-to-read lessons. What we value is their emphasis on skills central to the
+science of reading: connecting letters to sounds, phonemic awareness, blending,
+and decoding. This tutor puts that work front and center, prioritizing those
+lessons and practice toward mastery while heavily de-emphasizing entertainment
+and unrelated activities. That is the core value of this project—not simply
+automating clicks, but making actual reading practice the point of using the app.
+
+If reading is your priority, selecting and
 maintaining your own assignments takes work: our ELA capture contains **2,956
 assignable activity placements** across Pre-K–2, including variants and lessons
 repeated across grades—not 2,956 unique titles. This tutor automates sifting
