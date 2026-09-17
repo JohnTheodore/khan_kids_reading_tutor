@@ -48,7 +48,9 @@ running Khan Kids 9.0.1. Validate other layouts before permitting assignment cha
 2. [Configure private identities and credentials](#private-student-identities).
 3. [Pair and configure the tablet](#connect-the-android-device). After a tablet
    reboot, physically unlock it and re-enable Wireless debugging.
-4. Preview with `./khan-reading-sync --student 'Student A'`, then run
+4. **Strongly recommended:** [enable assignments-first access](#strongly-recommended-assignments-first-access)
+   in Khan Kids Teacher Settings before handing the tablet to the child.
+5. Preview with `./khan-reading-sync --student 'Student A'`, then run
    `./khan-mastery-sync` to apply and verify the mastery queue for the configured student.
 
 The default commands discover the configured tablet; an IP address is normally
@@ -206,6 +208,45 @@ Official references:
 - [Set up a Class Account](https://khankids.zendesk.com/hc/en-us/articles/360042193551-Module-1-Setting-up-a-Class-Account)
 - [Teacher Tools overview](https://khankids.zendesk.com/hc/en-us/articles/360041862972-All-about-Teacher-Tools-in-Khan-Academy-Kids)
 - [Assigning lessons](https://khankids.zendesk.com/hc/en-us/articles/360042194831-Module-3-Assigning-lessons)
+
+### Strongly recommended: assignments-first access
+
+For this guided mastery path, enable **Show students Assignments first** before
+the child's first session. Without this setting, the assignment queue does not
+stop a child from choosing unrelated activities elsewhere in the app.
+
+1. Tap the teacher's bear avatar and enter the teacher password.
+2. Open **Teacher Settings** in the top-left corner.
+3. Turn **Show students Assignments first** **ON**.
+4. Return to the intended child's profile and verify that other app areas are
+   unavailable while that child has incomplete assignments.
+
+Khan requires assignment completion before opening the other areas; after all
+assignments are complete, those areas unlock. This is an **assignments-first**
+gate, not a permanent assignments-only lock or enforcement of this project's
+score-based mastery policy. Maintaining ten assignments does not by itself
+keep other areas locked once Khan marks those assignments complete.
+See [Khan's student-access instructions](https://khankids.zendesk.com/hc/en-us/articles/17031195532059--NEW-Manage-student-access-to-areas-of-the-app).
+
+This remains a manual onboarding step. Current commands neither enable nor
+verify this setting. Optional Create/Videos restrictions are separate choices;
+they should not be silently changed along with assignments-first access.
+
+#### Safe first-run automation
+
+A future, explicitly requested setup action should reuse the shared device,
+credential, identity, navigation, and verification helpers rather than creating
+a second automation stack. Before implementing it, capture and validate the
+Teacher Settings screen and its readable ON/OFF state on the supported app build.
+There are currently no verified settings captures in this repository.
+
+The setup action must read the current value, leave an already-ON setting
+unchanged, enable only this setting when OFF, and verify ON from fresh UI reads
+and after reopening Settings. Unknown controls or ambiguous state must stop
+without tapping. Synthetic tests should cover ON no-op, OFF-to-ON, wrong screen,
+and failed persistence. Routine mastery sync should not silently change teacher
+settings. Validate child-side blocking separately before claiming onboarding
+enforcement is verified.
 
 ### Class mode is not the paid web dashboard
 

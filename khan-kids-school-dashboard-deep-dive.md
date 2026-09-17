@@ -28,7 +28,7 @@ The free Class Account is unusually relevant to a reading-only setup. Its in-app
 - Basic, Main, Practice 1, and Practice 2 lesson variants; and
 - assignment and progress reports.
 
-Khan also provides teacher settings to hide the Create and Videos tabs and require students to complete assignments first. See Khan's [Teacher Tools overview](https://khankids.zendesk.com/hc/en-us/articles/360041862972-All-about-Teacher-Tools-in-Khan-Academy-Kids), [assignment guide](https://khankids.zendesk.com/hc/en-us/articles/360042194831-Module-3-Assigning-lessons), and [student-access settings](https://khankids.zendesk.com/hc/en-us/articles/17031195532059--NEW-Manage-student-access-to-areas-of-the-app).
+Khan also provides teacher settings to hide the Create and Videos tabs and require students to complete assignments first. Enabling the assignments-first setting is strongly recommended for this project's guided reading path; the [README setup checklist](README.md#strongly-recommended-assignments-first-access) is the canonical procedure and documents its limits. See Khan's [Teacher Tools overview](https://khankids.zendesk.com/hc/en-us/articles/360041862972-All-about-Teacher-Tools-in-Khan-Academy-Kids), [assignment guide](https://khankids.zendesk.com/hc/en-us/articles/360042194831-Module-3-Assigning-lessons), and [student-access settings](https://khankids.zendesk.com/hc/en-us/articles/17031195532059--NEW-Manage-student-access-to-areas-of-the-app).
 
 ## What the paid web dashboard adds
 
@@ -47,4 +47,3 @@ Publicly funded Pre-K programs may qualify for Khan's announced free pilot for t
 Convert to the free Class Account if you are comfortable changing the account's mode. It delivers the features most useful here—complete lesson visibility, previews, sequencing variants, assignments, and stronger restrictions—without needing the paid website. Then automate the teacher interface on Android.
 
 One caution: Khan documents conversion *to* Class Account but does not document a self-service conversion back to Parent Account. If reversibility matters, ask Khan support first or test Class mode with a separate account before converting the account containing your child's progress.
-
