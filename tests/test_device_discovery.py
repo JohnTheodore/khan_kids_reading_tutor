@@ -43,7 +43,9 @@ class DeviceDiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "device.json"
             path.write_text(
-                json.dumps({"student": "Student A", "hardware_serial": "bad value", "model": "Pixel"})
+                json.dumps(
+                    {"student": "Student A", "hardware_serial": "bad value", "model": "Pixel"}
+                )
             )
             with self.assertRaisesRegex(DeviceDiscoveryError, "unsupported"):
                 DeviceConfig.load(path)

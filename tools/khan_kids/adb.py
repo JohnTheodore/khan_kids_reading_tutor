@@ -9,6 +9,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
+from .student_identity import anonymize_text, load_aliases
 from .timing import TimingRecorder
 from .ui import Rect
 from .ui_backend import UiBackendError, UiHierarchyBackend, create_ui_backend
@@ -62,6 +63,7 @@ class AndroidDevice:
         self.settle_seconds = settle_seconds
         self.timing = timing or TimingRecorder()
         self.ui_backend: UiHierarchyBackend | None = None
+        self.student_aliases = load_aliases()
 
     @property
     def ui_backend_name(self) -> str:
@@ -114,6 +116,9 @@ class AndroidDevice:
         self._set_setting("system", "screen_off_timeout", "2147483647")
 
     def wake(self) -> None:
+        state = self.command("shell", "dumpsys", "power", capture=True).decode(errors="replace")
+        if "mWakefulness=Awake" in state:
+            return
         self.command("shell", "input", "keyevent", "KEYCODE_WAKEUP")
         time.sleep(self.settle_seconds)
 
@@ -193,7 +198,8 @@ class AndroidDevice:
             # landscape angle arrives.
             self.command("shell", "wm", "user-rotation", "lock", "3")
             self.command("shell", "wm", "set-ignore-orientation-request", "false")
-            time.sleep(self.settle_seconds)
+            if restore_rotation != ("shell", "wm", "user-rotation", "lock", "3"):
+                time.sleep(self.settle_seconds)
             yield
 
     def _rotation_restore_command(self) -> tuple[str, ...]:
@@ -280,6 +286,11 @@ class AndroidDevice:
                     else:
                         raw = self.ui_backend.dump_hierarchy()
                     root = ET.fromstring(raw)
+                    if self.student_aliases:
+                        for node in root.iter():
+                            for key, value in node.attrib.items():
+                                node.set(key, anonymize_text(value, self.student_aliases))
+                        raw = ET.tostring(root, encoding="utf-8")
                 return (root, raw) if include_raw else root
             except (ET.ParseError, UiBackendError, AutomationError) as error:
                 last_error = error

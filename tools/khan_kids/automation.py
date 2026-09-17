@@ -136,6 +136,19 @@ class KhanKidsAutomation:
         self._assignments_at_top = True
         return root
 
+    def ready_for_sync(self) -> bool:
+        """Reuse only an independently confirmed supported foreground screen."""
+        try:
+            states = [self._navigation_state(self.live_root()) for _ in range(2)]
+        except AutomationError:
+            return False
+        return states[0] == states[1] and states[0] in {
+            "profile_chooser",
+            "teacher_roster",
+            "assignments_report",
+            "all_progress_report",
+        }
+
     def return_to_profile_chooser(self) -> ET.Element:
         """Leave Teacher view through Khan's UI, retrying dropped navigation taps."""
         root, state = self._wait_for_navigation_state()
@@ -220,15 +233,30 @@ class KhanKidsAutomation:
                     f"{source_name!r}"
                 )
             self.device.tap_rect(control(root))
+            self.device.timing.progress(
+                f"Opening {target_name}: {control_name}, attempt {_attempt + 1}"
+            )
+            first_wait = (
+                min(timeout, 3.0) if _attempt == 0 and source_name == "teacher_roster" else timeout
+            )
             try:
                 return self._wait_for_stable_root(
                     target,
                     description=f"{target_name} after {control_name}",
-                    timeout=timeout,
+                    timeout=first_wait,
                     persist=False,
                 )
             except AutomationError:
                 root = self.live_root()
+            if first_wait < timeout and not source(root) and not target(root):
+                # A transition may still be loading. Never tap it; retain the
+                # original readiness deadline before declaring an unexpected state.
+                return self._wait_for_stable_root(
+                    target,
+                    description=f"{target_name} still loading after {control_name}",
+                    timeout=timeout - first_wait,
+                    persist=False,
+                )
             if target(root):
                 confirmation = self.live_root()
                 if target(confirmation):
@@ -239,6 +267,7 @@ class KhanKidsAutomation:
                 raise AutomationError(
                     f"{control_name} reached unexpected navigation state {state!r}"
                 )
+            self.device.timing.progress(f"Source screen still verified; retrying {control_name}")
         raise AutomationError(
             f"{control_name} remained on {source_name!r} after "
             f"{GUARDED_TRANSITION_ATTEMPTS} guarded attempts"
@@ -971,17 +1000,23 @@ class KhanKidsAutomation:
         return after
 
     def _close_score_dialog(self, root: ET.Element) -> None:
-        screen = _screen_rect(root)
-        self.device.tap(int(screen.right * 0.66), int(screen.bottom * 0.30))
-        self._wait_for_root(
-            lambda candidate: (
-                is_assignment_report(candidate)
-                and not any(
-                    item.text == f"{self.student}'s Lesson Scores"
-                    for item in visible_nodes(candidate)
-                )
+        title = f"{self.student}'s Lesson Scores"
+        self._tap_until_root_target(
+            root,
+            source=lambda candidate: title in text_set(candidate),
+            target=lambda candidate: (
+                is_assignment_report(candidate) and title not in text_set(candidate)
             ),
-            description="score dialog closed",
+            control=lambda candidate: Rect(
+                int(_screen_rect(candidate).right * 0.66),
+                int(_screen_rect(candidate).bottom * 0.30),
+                int(_screen_rect(candidate).right * 0.66) + 1,
+                int(_screen_rect(candidate).bottom * 0.30) + 1,
+            ),
+            source_name="score_dialog",
+            target_name="assignments_report",
+            control_name="score dialog close",
+            timeout=6,
         )
 
     def _scroll_to_top(self, *, root: ET.Element | None = None) -> ET.Element:

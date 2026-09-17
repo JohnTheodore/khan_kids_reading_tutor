@@ -26,6 +26,7 @@ from khan_kids.report_archive import (
     report_outline_rows,
     report_rows,
 )
+from khan_kids.student_identity import public_student
 from khan_kids.ui import near, text_set, visible_nodes
 
 
@@ -309,6 +310,9 @@ def main() -> None:
         default="uiautomator2",
     )
     args = parser.parse_args()
+    args.student = public_student(args.student)
+    args.roster = [public_student(name) for name in args.roster] if args.roster else None
+    args.forbid_student = [public_student(name) for name in args.forbid_student]
 
     if args.repair_empty_histories and not args.capture_histories:
         parser.error("--repair-empty-histories requires --capture-histories")

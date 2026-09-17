@@ -714,3 +714,36 @@ assignment drift.
 - Completed assignment actions: none recorded.
 - Live queue after interruption: unavailable.
 - Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-16-AUTO-155144-441822 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-16 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for score dialog closed`
+
+### Resolution update
+
+The score-modal close path previously performed one tap and one wait, unlike
+guarded navigation. It now reuses the existing bounded transition guard: retry
+only while the target student's score dialog remains visible, and stop on an
+unexpected screen. The next full live sync read all five available score
+histories and verified the unchanged ten-item queue. No assignment mutation
+occurred during the failed sample or the recovery run. Status: resolved in
+code and verified live; monitor future modal-close behavior. This failure does
+not establish whether warm startup caused the Khan-side close interruption.
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.

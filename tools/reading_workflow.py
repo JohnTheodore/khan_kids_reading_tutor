@@ -42,6 +42,7 @@ from khan_kids.records import (
     write_json_atomic,
 )
 from khan_kids.reports import AssignmentSnapshot
+from khan_kids.student_identity import public_student
 from khan_kids.sync_report import (
     append_performance_report,
     append_sync_report,
@@ -298,6 +299,7 @@ def main(progress: ProgressReporter | None = None) -> None:
         help="colorize readable output (default: auto; NO_COLOR disables auto color)",
     )
     args = parser.parse_args()
+    args.student = public_student(args.student)
     if sum(bool(value) for value in (args.plan, args.apply_plan, args.sync)) > 1:
         parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
     if args.max_actions < 1:
@@ -342,12 +344,6 @@ def main(progress: ProgressReporter | None = None) -> None:
             tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary,
         ):
             credentials = local_secrets_provider(args.secrets_file)
-            with timing.span("startup.launch"):
-                ensure_khan_kids_open(
-                    device,
-                    pin_provider=lambda: credentials().android_pin,
-                    fresh_start=True,
-                )
             device.enable_ui_backend(args.ui_backend)
             automation = KhanKidsAutomation(
                 device,
@@ -357,6 +353,13 @@ def main(progress: ProgressReporter | None = None) -> None:
                 parent_password_provider=lambda: credentials().khan_parent_password,
                 history_lookup=_history_lookup_for_run(args, history_cache),
             )
+            with timing.span("startup.launch"):
+                ensure_khan_kids_open(
+                    device,
+                    pin_provider=lambda: credentials().android_pin,
+                    fresh_start=True,
+                    reuse_ready=automation.ready_for_sync,
+                )
             with timing.span("phase.review_assignments"):
                 snapshot = automation.scan_assignments(
                     today=args.today, include_score_histories=True
@@ -923,7 +926,7 @@ def cli() -> None:
             try:
                 incident_id = append_failed_sync_incident(
                     INCIDENT_LOG_PATH,
-                    student=_argument_value("--student") or "unknown",
+                    student=public_student(_argument_value("--student") or "unknown"),
                     error=incident_error,
                     payload=interrupted_payload,
                 )
@@ -958,6 +961,7 @@ def _interrupted_payload_from_arguments() -> dict[str, object] | None:
     student = _argument_value("--student")
     if student is None:
         return None
+    student = public_student(student)
     selected = _argument_value("--apply-plan") or _argument_value("--plan")
     path = (
         Path(selected)

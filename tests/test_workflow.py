@@ -505,7 +505,9 @@ class WorkflowTests(unittest.TestCase):
 
     def test_reviewed_plan_accepts_catalog_validated_stretch_activities(self) -> None:
         snapshot = AssignmentSnapshot((), ())
-        scores = read_attempt_scores(Path("student-records/student-a-lesson-attempts.csv"), "Student A")
+        scores = read_attempt_scores(
+            Path("student-records/student-a-lesson-attempts.csv"), "Student A"
+        )
         plan = build_queue_plan(self.curriculum, scores, set())
         payload = self._plan_payload(
             snapshot,

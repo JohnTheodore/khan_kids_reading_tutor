@@ -737,10 +737,30 @@ startup (device discovery precedes this reporter). Progress never issues device
 commands or exposes credentials or raw UI text. A heartbeat is not evidence
 that an assignment was saved; only verified action messages establish that.
 
+Startup may reuse an already-foreground Khan Kids session only after two live
+reads confirm the same supported screen; an unknown screen or open modal keeps
+the cold-restart behavior. Teacher-roster navigation checks for a dropped tap
+after three seconds and retries only from its freshly verified source. A
+loading screen receives the remaining original wait budget without another
+tap. Score-dialog closing uses the same bounded guarded transitions.
+
 Fresh UI roots are passed through navigation and scrolling helpers rather
 than immediately read again. They are never used as a substitute for fresh
 post-gesture or post-Save reads. Full mastery score scans, every post-Save queue
 verification, and the final fixed-point scan remain mandatory.
+
+Wake avoids another wake keyevent and its one-second settle delay when Android
+power state explicitly reports `mWakefulness=Awake`. Unknown or sleeping states
+retain the original wake behavior. Rotation skips its settle delay only when
+the prior user-rotation mode is already `lock 3`; changed modes retain the wait
+and exact restoration. Lock-state and screen-size guards remain unchanged.
+
+Compressed hierarchy output was tested read-only: the sampled screen had the
+same 7,917-byte payload in both modes, and compression was slower in that sample.
+The production backend therefore remains uncompressed. Its optional Python
+compression pilot checks labeled and unlabeled control signatures against a
+full dump and falls back on mismatch. A matching initial screen is not proof of
+compatibility across all screens; the pilot is not enabled by normal commands.
 
 Run `./tools/run-python tools/audit_code_duplication.py` to check production
 and test Python files for substantial exact cross-file repeated blocks and
@@ -965,6 +985,19 @@ bounds do not match the current roster layout. Update both and rebuild from the
 unchanged raw captures.
 
 ## Project status and license
+
+### Private student identity mapping
+
+Public files use Student A, Student B, and Student C. Keep real tablet names
+only in Git-ignored `private/student-aliases.local.json`, mapping real display
+names to public aliases. The local tablet configuration can retain its real
+default student name: normal `./khan-mastery-sync` and explicit `--student`
+inputs resolve through this mapping. Accessibility text is anonymized before
+parsing or saving XML; scores, reports, incident identities, and record filenames
+use aliases. Screenshots may still contain real names and must stay private.
+
+Aliases do not anonymize dated scores or trajectories. This repository has not
+been made public; captured third-party material still requires separate review.
 
 This is an active family research and automation project. The captured catalog
 is a point-in-time snapshot, while the mastery workflow and student records are

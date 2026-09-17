@@ -13,6 +13,44 @@ from khan_kids.adb import AndroidDevice, AutomationError, run_command
 
 
 class AndroidDeviceTests(unittest.TestCase):
+    def test_wake_skips_command_and_sleep_when_already_awake(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "command", return_value=b"mWakefulness=Awake") as command,
+            patch("khan_kids.adb.time.sleep") as sleep,
+        ):
+            device.wake()
+        self.assertEqual(command.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_unknown_wake_state_retains_wakeup_and_settling(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "command", return_value=b"unknown") as command,
+            patch("khan_kids.adb.time.sleep") as sleep,
+        ):
+            device.wake()
+        self.assertEqual(command.call_args.args, ("shell", "input", "keyevent", "KEYCODE_WAKEUP"))
+        sleep.assert_called_once_with(device.settle_seconds)
+
+    def test_existing_landscape_lock_skips_rotation_settle_only(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "_setting", side_effect=["120000", "0"]),
+            patch.object(device, "_set_setting"),
+            patch.object(
+                device,
+                "_rotation_restore_command",
+                return_value=("shell", "wm", "user-rotation", "lock", "3"),
+            ),
+            patch.object(device, "keep_awake"),
+            patch.object(device, "command"),
+            patch("khan_kids.adb.time.sleep") as sleep,
+            device.awake_session(),
+        ):
+            pass
+        sleep.assert_not_called()
+
     def test_scroll_to_top_reuses_supplied_root_but_reads_after_gesture(self) -> None:
         device = AndroidDevice("test-device")
         root = ET.fromstring('<hierarchy><node text="top" bounds="[0,0][100,100]"/></hierarchy>')

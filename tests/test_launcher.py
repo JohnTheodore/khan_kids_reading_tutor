@@ -45,6 +45,17 @@ class FakeDevice:
 
 
 class LauncherTests(unittest.TestCase):
+    def test_ready_foreground_can_be_reused_without_force_stop(self) -> None:
+        device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
+        result = ensure_khan_kids_open(device, fresh_start=True, reuse_ready=lambda: True)
+        self.assertFalse(result.launched)
+        self.assertNotIn(("force_stop", KHAN_KIDS_PACKAGE), device.calls)
+
+    def test_unready_foreground_retains_cold_start(self) -> None:
+        device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
+        result = ensure_khan_kids_open(device, fresh_start=True, reuse_ready=lambda: False)
+        self.assertTrue(result.launched)
+
     def test_already_open_device_is_not_unlocked_or_relaunched(self) -> None:
         device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
 

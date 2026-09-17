@@ -39,6 +39,7 @@ def ensure_khan_kids_open(
     *,
     pin_provider: PinProvider | None = None,
     fresh_start: bool = False,
+    reuse_ready: Callable[[], bool] | None = None,
 ) -> LaunchResult:
     """Wake, unlock once, and wait for Khan Kids to become stably foreground."""
     device.wake()
@@ -55,6 +56,8 @@ def ensure_khan_kids_open(
             ) from error
         unlocked = True
 
+    if fresh_start and reuse_ready is not None and device.foreground_package() == KHAN_KIDS_PACKAGE:
+        fresh_start = not reuse_ready()
     if fresh_start:
         device.force_stop(KHAN_KIDS_PACKAGE)
     launched = fresh_start or device.foreground_package() != KHAN_KIDS_PACKAGE

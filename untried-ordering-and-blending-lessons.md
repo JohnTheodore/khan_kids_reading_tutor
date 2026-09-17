@@ -1,6 +1,6 @@
 # Untried Khan Kids lessons for ordering and blending
 
-**Audience:** Student A's parent  
+**Audience:** Student A's parent
 **Updated:** September 11, 2026  
 **Archive:** Khan Kids Android 9.0.1, captured September 8, 2026
 

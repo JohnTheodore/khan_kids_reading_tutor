@@ -21,6 +21,47 @@ from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_early_roster_check_waits_without_retapping_loading_screen(self) -> None:
+        device, automation = _automation()
+        roster = _roster_screen()
+        report = _assignment_screen()
+        automation._wait_for_navigation_state = Mock(return_value=(roster, "teacher_roster"))
+        automation._wait_for_stable_root = Mock(side_effect=(AutomationError("loading"), report))
+        automation.live_root = Mock(return_value=_screen_with_text())
+        self.assertIs(automation.ensure_assignments_report(), report)
+        device.tap_rect.assert_called_once()
+        self.assertEqual(
+            [item.kwargs["timeout"] for item in automation._wait_for_stable_root.call_args_list],
+            [3.0, 9.0],
+        )
+
+    def test_score_close_does_not_retry_from_unexpected_screen(self) -> None:
+        device, automation = _automation()
+        dialog = _screen_with_text(("Student A's Lesson Scores", Rect(100, 100, 600, 160)))
+        automation._wait_for_stable_root = Mock(side_effect=AutomationError("timeout"))
+        automation.live_root = Mock(return_value=_screen_with_text())
+        with self.assertRaisesRegex(AutomationError, "unexpected navigation"):
+            automation._close_score_dialog(dialog)
+        device.tap_rect.assert_called_once()
+
+    def test_score_close_retries_dropped_tap_only_from_same_dialog(self) -> None:
+        device, automation = _automation()
+        dialog = _screen_with_text(("Student A's Lesson Scores", Rect(100, 100, 600, 160)))
+        report = _assignment_screen()
+        automation._wait_for_stable_root = Mock(side_effect=(AutomationError("dropped"), report))
+        automation.live_root = Mock(return_value=dialog)
+        automation._close_score_dialog(dialog)
+        self.assertEqual(device.tap_rect.call_count, 2)
+
+    def test_warm_reuse_requires_two_matching_supported_screens(self) -> None:
+        _, automation = _automation()
+        automation.live_root = Mock(side_effect=(_chooser_screen(), _chooser_screen()))
+        self.assertTrue(automation.ready_for_sync())
+        automation.live_root = Mock(side_effect=(_chooser_screen(), _assignment_screen()))
+        self.assertFalse(automation.ready_for_sync())
+        automation.live_root = Mock(return_value=_screen_with_text())
+        self.assertFalse(automation.ready_for_sync())
+
     def test_supplied_navigation_root_cannot_bypass_state_validation(self) -> None:
         device, automation = _automation()
         with self.assertRaisesRegex(AutomationError, "does not match"):
@@ -80,6 +121,10 @@ class AutomationTests(unittest.TestCase):
 
         self.assertIs(automation.ensure_assignments_report(), report)
         self.assertEqual(device.tap_rect.call_count, 2)
+        self.assertEqual(
+            [item.kwargs["timeout"] for item in automation._wait_for_stable_root.call_args_list],
+            [3.0, 12],
+        )
 
     def test_navigation_waits_for_two_stable_profile_chooser_reads(self) -> None:
         device, automation = _automation()
