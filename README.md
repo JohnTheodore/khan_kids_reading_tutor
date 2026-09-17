@@ -996,6 +996,20 @@ inputs resolve through this mapping. Accessibility text is anonymized before
 parsing or saving XML; scores, reports, incident identities, and record filenames
 use aliases. Screenshots may still contain real names and must stay private.
 
+UI hierarchy capture now fails before device I/O if that mapping is missing or
+empty. Unmapped student inputs are rejected rather than exported unchanged;
+public aliases remain usable for offline work. Include every child shown in the
+account roster in the private mapping. Aliases must use the form `Student A`.
+The map cannot automatically recognize an unknown child's name.
+Before committing or publishing, run `./tools/run-python tools/audit_student_privacy.py`
+to check staged/indexed contents and filenames against the private map. It fails
+if the map is missing and reports only counts, not children's names. Run it after
+staging changes; unstaged and untracked files are not included.
+
+History rewrites do not purge GitHub's cached/unreachable commits. Before any
+visibility change, request sensitive-data removal through GitHub Support and
+verify that pre-sanitization commits can no longer be retrieved.
+
 Aliases do not anonymize dated scores or trajectories. This repository has not
 been made public; captured third-party material still requires separate review.
 

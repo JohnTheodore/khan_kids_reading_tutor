@@ -9,7 +9,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
-from .student_identity import anonymize_text, load_aliases
+from .student_identity import anonymize_text, load_aliases, require_aliases
 from .timing import TimingRecorder
 from .ui import Rect
 from .ui_backend import UiBackendError, UiHierarchyBackend, create_ui_backend
@@ -275,6 +275,7 @@ class AndroidDevice:
     def _hierarchy_root(
         self, *, attempts: int, include_raw: bool = False
     ) -> ET.Element | tuple[ET.Element, bytes]:
+        require_aliases(self.student_aliases)
         remote = "/sdcard/khan-kids-window.xml"
         last_error: Exception | None = None
         for attempt in range(attempts):
@@ -290,6 +291,12 @@ class AndroidDevice:
                         for node in root.iter():
                             for key, value in node.attrib.items():
                                 node.set(key, anonymize_text(value, self.student_aliases))
+                            for field in ("text", "tail"):
+                                value = getattr(node, field)
+                                if value:
+                                    setattr(
+                                        node, field, anonymize_text(value, self.student_aliases)
+                                    )
                         raw = ET.tostring(root, encoding="utf-8")
                 return (root, raw) if include_raw else root
             except (ET.ParseError, UiBackendError, AutomationError) as error:
