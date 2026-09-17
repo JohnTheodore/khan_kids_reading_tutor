@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
+
+from .ui import visible_nodes
 
 ALIAS_PATH = Path(__file__).resolve().parents[2] / "private/student-aliases.local.json"
 
@@ -49,3 +52,25 @@ def anonymize_text(text: str, aliases: dict[str, str]) -> str:
     return re.sub(
         pattern, lambda match: lookup[match.group().casefold()], text, flags=re.IGNORECASE
     )
+
+
+def validate_identity_view(root: ET.Element, aliases: dict[str, str]) -> None:
+    """Reject unknown identities in supported score and student-selection views."""
+    allowed = set(aliases.values())
+    items = visible_nodes(root)
+    for item in items:
+        match = re.fullmatch(r"(.+?)(?:'s|’s) Lesson Scores", item.text)
+        if match and match[1] not in allowed:
+            raise ValueError("Score dialog student has no configured private alias")
+    if "Select Students" not in {item.text for item in items}:
+        return
+    labels = [item for item in items if item.text in allowed and item.rect.top > 400]
+    if not labels:
+        raise ValueError("Student selection has no configured identity labels")
+    for item in items:
+        if (
+            item.rect.top > 400
+            and item.text not in allowed | {"Done", "Select Students", "All Students"}
+            and any(abs(item.rect.left - label.rect.left) < 30 for label in labels)
+        ):
+            raise ValueError("Student selection contains an unconfigured identity label")

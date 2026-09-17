@@ -114,8 +114,9 @@ To keep current state separate from historical evidence:
 - dated research and assignment documents preserve their original snapshots;
   they are not instructions for the current queue.
 
-The crawlers create PNG screenshots locally for live validation, but captured
-PNGs are ignored by Git and are not included in the repository. The retained
+Image checks create temporary screenshots under ignored `private/`, with
+owner-only permissions and exception-safe cleanup. Crawlers no longer retain
+page screenshots, and no captured images are included in the repository. The retained
 XML is sufficient to rebuild the current catalogs and score archive.
 
 Blank result cells are retained as `not_attempted`; they are never treated as a
@@ -128,11 +129,11 @@ the visible title and standard, not prose supplied by Khan Kids.
 Khan Kids Class Account on Android
         │
         ├── Teacher library: Letters / Reading
-        │       └── screenshots + UI hierarchy XML
+        │       └── UI hierarchy XML
         │               └── Letters JSON and Markdown catalog
         │
         └── Students → Class Reports → All Progress → ELA
-                └── screenshots + UI hierarchy XML
+                └── UI hierarchy XML
                         └── ELA JSON, Markdown, and performance CSV
                                 └── mastery and diversity planner
                                         ├── eight core positions
@@ -1005,6 +1006,30 @@ Before committing or publishing, run `./tools/run-python tools/audit_student_pri
 to check staged/indexed contents and filenames against the private map. It fails
 if the map is missing and reports only counts, not children's names. Run it after
 staging changes; unstaged and untracked files are not included.
+
+Install the fail-closed local commit/push gates on each clone:
+`git config core.hooksPath .githooks`. Hooks scan the Git index before committing
+and every commit reachable from outgoing refs before pushing, including commit
+messages and renamed/removed historical files. Image captures are rejected by
+extension and binary signature; Git ignore rules alone are not the security gate.
+Local gates require the private alias map and CI fingerprint configuration.
+After adding/changing mapped names, run
+`./tools/run-python tools/configure_student_privacy.py` to refresh GitHub's
+`KHAN_PRIVACY_KEY` and `KHAN_PRIVACY_FINGERPRINTS` secrets. Only keyed name
+fingerprints and their key are supplied to CI, not plaintext names. Missing
+secrets fail the dedicated `privacy` job; fork PRs cannot receive those secrets
+and therefore fail closed. Do not switch to `pull_request_target` to bypass this.
+
+Hooks are bypassable. CI detects leaks after upload, not before. The current
+GitHub plan cannot enforce branch protection for this private repository; upgrade
+to a supported plan before claiming `privacy` is a required server-side merge
+gate. The scanner detects configured names, not every person's name in arbitrary
+prose.
+Supported score-history and student-selection views also reject unknown identity
+labels before persisting XML; other UI text still depends on complete mappings.
+Screenshots are never anonymized; direct screenshot calls outside
+`private/` are refused. Normal image checks clean up on exceptions, but abrupt
+process termination can leave ignored private temporary images.
 
 History rewrites do not purge GitHub's cached/unreachable commits. Before any
 visibility change, request sensitive-data removal through GitHub Support and

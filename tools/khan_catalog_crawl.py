@@ -90,7 +90,6 @@ def crawl_grade(
         if grade != "All" and grade not in {item.text for item in text}:
             raise RuntimeError(f"Grade selector no longer shows {grade!r}")
 
-        device.screenshot(png_path)
         signature = lesson_signature(root)
         if signature == prior_signature:
             # This duplicate is useful for proving that the bottom was reached, but it

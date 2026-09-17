@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
-from .student_identity import anonymize_text, load_aliases, require_aliases
+from .student_identity import anonymize_text, load_aliases, require_aliases, validate_identity_view
 from .timing import TimingRecorder
 from .ui import Rect
 from .ui_backend import UiBackendError, UiHierarchyBackend, create_ui_backend
@@ -297,6 +298,7 @@ class AndroidDevice:
                                     setattr(
                                         node, field, anonymize_text(value, self.student_aliases)
                                     )
+                        validate_identity_view(root, self.student_aliases)
                         raw = ET.tostring(root, encoding="utf-8")
                 return (root, raw) if include_raw else root
             except (ET.ParseError, UiBackendError, AutomationError) as error:
@@ -307,10 +309,25 @@ class AndroidDevice:
         ) from last_error
 
     def screenshot(self, destination: Path) -> None:
+        private = Path(__file__).resolve().parents[2] / "private"
+        if not destination.resolve().is_relative_to(private.resolve()):
+            raise ValueError("Raw screenshots must stay under the repository private directory")
         destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.touch(mode=0o600, exist_ok=True)
+        destination.chmod(0o600)
         destination.write_bytes(
             self.command("exec-out", "screencap", "-p", timeout=20, capture=True)
         )
+
+    @contextmanager
+    def private_screenshot(self) -> Iterator[Path]:
+        """Capture for one image check, cleaning up even when capture or analysis fails."""
+        private = Path(__file__).resolve().parents[2] / "private"
+        private.mkdir(mode=0o700, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="screenshot-", dir=private) as temporary:
+            path = Path(temporary) / "screen.png"
+            self.screenshot(path)
+            yield path
 
 
 def _command_metric(args: Sequence[str]) -> str:

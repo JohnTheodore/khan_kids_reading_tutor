@@ -72,14 +72,13 @@ def expand_visible(
         if "Class Report: All Progress" not in text_set(root):
             raise AutomationError("Expected an All Progress report")
         rows = report_outline_rows(root)
-        image = scratch / "expansion.png"
-        device.screenshot(image)
-        targets = [
-            row
-            for row in collapsed_rows(rows, image)
-            if (str(row["text"]), int(row["y"])) not in ignored
-            and str(row["text"]) not in not_expandable
-        ]
+        with device.private_screenshot() as image:
+            targets = [
+                row
+                for row in collapsed_rows(rows, image)
+                if (str(row["text"]), int(row["y"])) not in ignored
+                and str(row["text"]) not in not_expandable
+            ]
         if not targets:
             return root, rows
         before = tuple((row["text"], tuple(row["bounds"])) for row in rows)
@@ -212,7 +211,6 @@ def crawl_report(
     for page_number in range(300):
         root, _ = expand_visible(device, scratch, not_expandable)
         root = device.dump(destination / f"page-{page_number:03d}.xml")
-        device.screenshot(destination / f"page-{page_number:03d}.png")
         rows = report_rows(root, roster)
         signature = tuple((row["text"], tuple(row["bounds"])) for row in rows)
         if signature == prior_signature:

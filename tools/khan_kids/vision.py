@@ -7,7 +7,7 @@ from enum import StrEnum
 from pathlib import Path
 from shutil import which
 
-from .adb import AutomationError, run_command
+from .adb import AndroidDevice, AutomationError, run_command
 from .ui import Rect
 
 
@@ -26,6 +26,11 @@ class CheckboxReading:
 def checkbox_center(student_label: Rect) -> tuple[int, int]:
     """Return the checkbox center relative to a roster label in assignment dialogs."""
     return (student_label.left - 190, (student_label.top + student_label.bottom) // 2)
+
+
+def read_checkboxes(device: AndroidDevice, labels: dict[str, Rect]) -> dict[str, CheckboxReading]:
+    with device.private_screenshot() as screenshot:
+        return {student: read_checkbox(screenshot, label) for student, label in labels.items()}
 
 
 def read_checkbox(

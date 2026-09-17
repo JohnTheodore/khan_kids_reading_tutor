@@ -22,7 +22,7 @@ from .reports import (
     parse_score_history,
 )
 from .ui import Rect, UiText, find_text, near, node_rect, text_set, visible_nodes
-from .vision import CheckboxReading, CheckboxState, read_checkbox
+from .vision import CheckboxReading, CheckboxState, read_checkboxes
 
 SCROLL_DURATION_MS = 300
 REPORT_BACK_RECT = Rect(38, 38, 171, 171)
@@ -723,9 +723,7 @@ class KhanKidsAutomation:
         if "Select Students" not in text_set(modal):
             raise AutomationError("Student filter dialog did not open")
         labels = _dialog_student_labels(modal, self.roster)
-        before_path = self.scratch / "student-filter-before.png"
-        self.device.screenshot(before_path)
-        readings = {student: read_checkbox(before_path, label) for student, label in labels.items()}
+        readings = read_checkboxes(self.device, labels)
         for student, reading in readings.items():
             desired = CheckboxState.CHECKED if student == self.student else CheckboxState.UNCHECKED
             if reading.state is not desired:
@@ -762,11 +760,9 @@ class KhanKidsAutomation:
         self, labels: dict[str, Rect], *, timeout: float = 4
     ) -> dict[str, CheckboxReading]:
         deadline = time.monotonic() + timeout
-        path = self.scratch / "student-filter-after.png"
         readings: dict[str, CheckboxReading] = {}
         while time.monotonic() < deadline:
-            self.device.screenshot(path)
-            readings = {student: read_checkbox(path, label) for student, label in labels.items()}
+            readings = read_checkboxes(self.device, labels)
             if all(
                 reading.state
                 is (CheckboxState.CHECKED if student == self.student else CheckboxState.UNCHECKED)
@@ -913,9 +909,7 @@ class KhanKidsAutomation:
 
     def _change_checkbox(self, root: ET.Element, *, desired: CheckboxState, prefix: str) -> None:
         labels = _dialog_student_labels(root, self.roster)
-        before_path = self.scratch / f"{prefix}-before.png"
-        self.device.screenshot(before_path)
-        before = {student: read_checkbox(before_path, label) for student, label in labels.items()}
+        before = read_checkboxes(self.device, labels)
         target = before[self.student]
         expected_before = (
             CheckboxState.UNCHECKED if desired is CheckboxState.CHECKED else CheckboxState.CHECKED
@@ -926,11 +920,9 @@ class KhanKidsAutomation:
                 f"expected {expected_before.value}"
             )
         self.device.tap(*target.center)
-        after_path = self.scratch / f"{prefix}-after.png"
         deadline = time.monotonic() + 4
         while True:
-            self.device.screenshot(after_path)
-            after = {student: read_checkbox(after_path, label) for student, label in labels.items()}
+            after = read_checkboxes(self.device, labels)
             if after[self.student].state is desired or time.monotonic() >= deadline:
                 break
             time.sleep(0.1)
@@ -955,11 +947,9 @@ class KhanKidsAutomation:
         root = root or self.root(f"{prefix}-dialog")
         self._validate_assignment_dialog(root, title, variant)
         labels = _dialog_student_labels(root, self.roster)
-        screenshot = self.scratch / f"{prefix}.png"
-        self.device.screenshot(screenshot)
         states = {
-            student: read_checkbox(screenshot, label).state.value
-            for student, label in labels.items()
+            student: reading.state.value
+            for student, reading in read_checkboxes(self.device, labels).items()
         }
         screen = _screen_rect(root)
         self.device.tap(int(screen.right * 0.883), int(screen.bottom * 0.065))

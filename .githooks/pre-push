@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec ./tools/run-python tools/audit_student_privacy.py --outgoing

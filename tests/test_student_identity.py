@@ -1,20 +1,108 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from audit_student_privacy import audit
+from audit_student_privacy import audit, audit_history, fingerprints, is_image, name_matcher
 from khan_kids.adb import AndroidDevice
-from khan_kids.student_identity import anonymize_text, public_student
+from khan_kids.student_identity import anonymize_text, public_student, validate_identity_view
 
 
 class StudentIdentityTests(unittest.TestCase):
+    def test_unknown_score_identity_and_picker_label_are_rejected(self) -> None:
+        aliases = {"Actual Child": "Student A"}
+        score = ET.fromstring(
+            '<hierarchy><node text="Unmapped Child\'s Lesson Scores" bounds="[0,0][100,100]"/></hierarchy>'
+        )
+        picker = ET.fromstring(
+            '<hierarchy><node text="Select Students" bounds="[0,0][100,100]"/><node text="Student A" bounds="[500,500][900,600]"/><node text="Unmapped Child" bounds="[500,700][900,800]"/></hierarchy>'
+        )
+        for root in (score, picker):
+            with self.assertRaises(ValueError):
+                validate_identity_view(root, aliases)
+
+    def setUp(self) -> None:
+        self.environment = patch.dict(os.environ, {"GITHUB_ACTIONS": "false"})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
+    def test_ci_keyed_matching_and_missing_configuration(self) -> None:
+        key = "synthetic-secret"
+        name = "example-child"
+        with patch.dict(
+            os.environ,
+            {
+                "GITHUB_ACTIONS": "true",
+                "KHAN_PRIVACY_KEY": key,
+                "KHAN_PRIVACY_FINGERPRINTS": json.dumps(fingerprints({name: "Student A"}, key)),
+            },
+        ):
+            matches = name_matcher()
+            self.assertTrue(matches("EXAMPLE-CHILD's scores"))
+            self.assertFalse(matches("Student A's scores"))
+            with (
+                patch.dict(os.environ, {"KHAN_PRIVACY_KEY": "wrong-key"}),
+                self.assertRaises(ValueError),
+            ):
+                name_matcher()
+        with (
+            patch.dict(
+                os.environ,
+                {"GITHUB_ACTIONS": "true", "KHAN_PRIVACY_KEY": "", "KHAN_PRIVACY_FINGERPRINTS": ""},
+            ),
+            self.assertRaises(ValueError),
+        ):
+            name_matcher()
+
+    def test_images_rejected_even_with_renamed_files(self) -> None:
+        self.assertTrue(is_image("capture.PNG", b""))
+        self.assertTrue(is_image("capture.txt", b"\x89PNG\r\n\x1a\n"))
+        self.assertTrue(is_image("capture.txt", b"RIFF1234WEBP"))
+        self.assertFalse(is_image("code.py", b"print('safe')"))
+
+    def test_history_scan_catches_sensitive_blob_not_present_at_tip(self) -> None:
+        with (
+            patch("audit_student_privacy.load_aliases", return_value={"Actual Child": "Student A"}),
+            patch(
+                "audit_student_privacy.subprocess.check_output",
+                side_effect=[
+                    b"new\nold\n",
+                    b"safe message",
+                    b"",
+                    b"safe message",
+                    b"100644 blob abc\tcapture.txt\0",
+                    b"Actual Child",
+                ],
+            ),
+        ):
+            self.assertEqual(audit_history(["HEAD"]), ["abc"])
+
+    def test_private_screenshot_cleanup_on_analysis_failure(self) -> None:
+        device = AndroidDevice("test-device")
+        with patch.object(device, "command", return_value=b"synthetic-image"):
+            with self.assertRaises(RuntimeError), device.private_screenshot() as path:
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+                self.assertTrue(
+                    path.is_relative_to(Path(__file__).resolve().parents[1] / "private")
+                )
+                raise RuntimeError("analysis failed")
+            self.assertFalse(path.exists())
+
+    def test_screenshot_refuses_public_destination_before_device_io(self) -> None:
+        device = AndroidDevice("test-device")
+        with patch.object(device, "command") as command:
+            with self.assertRaises(ValueError):
+                device.screenshot(Path("public-capture.png"))
+            command.assert_not_called()
+
     def test_index_audit_detects_names_in_paths_and_contents(self) -> None:
         entries = b"100644 abc 0\tActual Child.txt\0" + b"100644 def 0\tpublic.txt\0"
         with (
