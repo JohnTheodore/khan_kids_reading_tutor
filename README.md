@@ -5,8 +5,21 @@ This tutor keeps ten reading assignments ready, checks scores, and advances
 lessons when your child shows mastery. It also recommends which assigned
 lessons to try next.
 
+Khan Kids' [Learning Path](https://khankids.zendesk.com/hc/en-us/articles/360048828572-Learn-more-about-the-Learning-Path)
+adapts to your child but rotates across subjects, rather than offering a
+documented learn-to-read-only mode. If reading is your priority, selecting and
+maintaining your own assignments takes work: our ELA capture contains **2,956
+assignable activity placements** across Pre-K–2, including variants and lessons
+repeated across grades—not 2,956 unique titles. This tutor automates sifting
+through that inventory, selecting appropriate reading lessons, and updating the
+queue, making a focused reading routine faster and more convenient to manage.
+
 Your child learns in Khan Kids. You run a command on your computer after a
 session; the tutor reviews progress and updates the assignments for you.
+Run it manually, schedule it with cron or a systemd timer, or have another
+automation call it after a learning session. Scheduled runs need the tablet
+connected and reachable; after a tablet reboot, wireless access still requires
+a physical unlock and re-enabling Wireless debugging.
 
 ## How it helps
 
