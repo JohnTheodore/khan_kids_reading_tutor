@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from khan_kids.sync_report import (
+    build_dashboard_report,
     recommend_next_lessons,
     render_sync_report,
     render_terminal_summary,
@@ -16,6 +17,77 @@ from khan_kids.sync_report import (
 
 
 class SyncReportTests(unittest.TestCase):
+    def test_parent_assigned_mastered_review_is_not_reported_as_hold(self):
+        activity = {"title": "Letters", "variant": "Main"}
+        report = build_dashboard_report(
+            {
+                "student": "Student A",
+                "status": "no_op",
+                "generated_at": "2026-09-17",
+                "desired_assignments": [activity],
+                "observed_assignments": [activity],
+                "score_evidence": [{**activity, "scores": [100], "status": "mastered"}],
+            }
+        )
+        self.assertEqual(report["assigned"][0]["state"], "MASTERED")
+        self.assertEqual(report["recommendations"], [])
+
+    def test_verified_empty_manual_queue_is_zero_not_unknown(self):
+        report = build_dashboard_report(
+            {
+                "student": "Student A",
+                "status": "no_op",
+                "observed_assignments": [],
+                "desired_assignments": [],
+            }
+        )
+        self.assertEqual(report["queue_count"], 0)
+        self.assertTrue(report["queue_verified"])
+
+    def test_dashboard_uses_same_action_evidence_and_never_calls_proposals_verified(self) -> None:
+        remove = {
+            "kind": "remove",
+            "title": "Sounds",
+            "variant": "Main",
+            "reason": "mastered: latest attempt is 100%; promote to Sounds — Practice 1",
+        }
+        add = {
+            "kind": "add",
+            "title": "Sounds",
+            "variant": "Practice 1",
+            "reason": "next difficulty",
+        }
+        payload = {
+            "student": "Student A",
+            "status": "applied",
+            "generated_at": "2026-09-17",
+            "actions": [remove, add],
+            "desired_assignments": [add],
+            "verified_assignments": [add],
+            "observed_assignments": [remove],
+            "score_evidence": [{"title": "Sounds", "variant": "Main", "scores": [100]}],
+        }
+        report = build_dashboard_report(payload)
+        self.assertEqual(report["queue_count"], 1)
+        self.assertEqual(report["added"][0]["scores"], [100])
+        self.assertEqual(report["added"][0]["score_source"], "Sounds — Main")
+        self.assertIn("met the mastery rule", report["added"][0]["reason"])
+        self.assertEqual(report["mastered"][0]["title"], "Sounds")
+        proposed = build_dashboard_report({**payload, "status": "review_required"})
+        self.assertIsNone(proposed["queue_count"])
+        self.assertEqual(proposed["recommendations"], [])
+        self.assertIn("not applied", proposed["outcome"])
+        interrupted = build_dashboard_report(
+            {
+                **payload,
+                "status": "interrupted",
+                "applied": [{"action": "unchecked", "title": "Sounds", "variant": "Main"}],
+            }
+        )
+        self.assertEqual(len(interrupted["unchecked"]), 1)
+        self.assertEqual(interrupted["added"], [])
+        self.assertEqual(interrupted["assigned"], [])
+
     def test_do_next_ranks_near_mastery_then_strong_score_then_variety(self) -> None:
         lessons = ["Blend", "Words", "New", "Sounds", "Provisional", "Mastered"]
         scores = [[78], [88], [], [78], [96], [100]]

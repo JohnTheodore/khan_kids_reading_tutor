@@ -18,6 +18,12 @@ from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.history_cache import HistoryCache
 from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
+from khan_kids.manual_assignments import (
+    ManualAssignments,
+    ManualChange,
+    plan_parent_queue,
+    policy_path,
+)
 from khan_kids.mastery import evaluate_mastery
 from khan_kids.planner import (
     QueueAction,
@@ -46,6 +52,7 @@ from khan_kids.student_identity import public_student
 from khan_kids.sync_report import (
     append_performance_report,
     append_sync_report,
+    build_dashboard_report,
     recommend_next_lessons,
     render_terminal_summary,
     terminal_color_enabled,
@@ -54,7 +61,7 @@ from khan_kids.timing import TimingRecorder
 from khan_kids.workflow import histories_to_attempt_rows, overlay_live_scores
 from khan_kids.workflow_lock import exclusive_workflow_lock
 
-PLAN_VERSION = 3
+PLAN_VERSION = 4
 INCIDENT_LOG_PATH = Path("INCIDENTS.md")
 WORKFLOW_LOCK_PATH = Path("private/.reading-workflow.lock")
 
@@ -83,6 +90,8 @@ def create_plan_payload(
     active_quarantines: tuple[LessonQuarantine, ...] = (),
     mastered_keys: set[tuple[str, str]] | None = None,
     score_scan_mode: str = "cache_eligible",
+    manual_policy: ManualAssignments | None = None,
+    manual_change: ManualChange | None = None,
 ) -> dict[str, object]:
     stretch_keys = {
         activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
@@ -131,6 +140,8 @@ def create_plan_payload(
         "active_quarantines": [record.as_dict() for record in active_quarantines],
         "quarantine_state_sha256": _quarantine_digest(active_quarantines),
         "mastery_state_sha256": _mastery_digest(mastered_keys),
+        **({"manual_state_sha256": manual_policy.digest} if manual_policy else {}),
+        **({"manual_change": manual_change.as_dict()} if manual_change else {}),
         "observed_assignments": [
             {
                 "title": row.title,
@@ -168,6 +179,8 @@ def validate_reviewed_plan(
     curriculum: ReadingCurriculum,
     active_quarantines: tuple[LessonQuarantine, ...] = (),
     mastered_keys: set[tuple[str, str]] | None = None,
+    manual_policy: ManualAssignments | None = None,
+    scores: dict[tuple[str, str], tuple[int, ...]] | None = None,
 ) -> tuple[tuple[Activity, ...], tuple[QueueAction, ...]]:
     _validate_plan_metadata(
         payload,
@@ -192,7 +205,41 @@ def validate_reviewed_plan(
     desired = tuple(Activity.from_dict(item) for item in raw_desired)
     actions = tuple(QueueAction.from_dict(item) for item in raw_actions)
     permitted = curriculum.activities_by_key
-    if len(desired) != curriculum.queue_limit:
+    if manual_policy is not None:
+        if payload.get("manual_state_sha256") != manual_policy.digest:
+            raise AutomationError("Reviewed plan is stale; changed inputs: manual_state_sha256")
+        catalog = CatalogIndex(catalog_path)
+        raw_change = payload.get("manual_change")
+        if raw_change is not None and not isinstance(raw_change, dict):
+            raise AutomationError("Reviewed plan has invalid parent assignment metadata")
+        change = (
+            ManualChange.from_dict(raw_change, catalog) if isinstance(raw_change, dict) else None
+        )
+        expected = plan_parent_queue(
+            curriculum,
+            catalog,
+            scores or {},
+            _assignment_keys(snapshot),
+            manual_policy,
+            quarantined_titles={record.title: record.reason for record in active_quarantines},
+            mastered_keys=mastered_keys,
+            change=change,
+        )
+        if {a.key: a for a in desired} != {a.key: a for a in expected.desired}:
+            raise AutomationError(
+                "Reviewed queue no longer matches the current parent preferences and scores"
+            )
+        parent_keys = {a.key for a in manual_policy.assigned + manual_policy.excluded}
+        if tuple(a for a in actions if a.key in parent_keys) != tuple(
+            a for a in expected.actions if a.key in parent_keys
+        ):
+            raise AutomationError(
+                "Reviewed parent actions no longer match the saved preferences and mastery evidence"
+            )
+        if not change and len(desired) < curriculum.queue_limit:
+            raise AutomationError("Reviewed automatic queue cannot fall below its target")
+        permitted = {a.key: a for a in expected.desired}
+    elif len(desired) != curriculum.queue_limit:
         raise AutomationError(
             f"Reviewed plan must contain exactly {curriculum.queue_limit} assignments; "
             f"found {len(desired)}"
@@ -286,6 +333,10 @@ def main(progress: ProgressReporter | None = None) -> None:
         help="ignore the same-day score-history cache",
     )
     parser.add_argument("--max-actions", type=int, default=20)
+    parser.add_argument("--assignment-action", choices=("assign", "unassign"))
+    parser.add_argument("--assignment-grade")
+    parser.add_argument("--assignment-title")
+    parser.add_argument("--assignment-variant")
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
     parser.add_argument(
         "--json",
@@ -304,6 +355,14 @@ def main(progress: ProgressReporter | None = None) -> None:
         parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
     if args.max_actions < 1:
         parser.error("--max-actions must be positive")
+    assignment_fields = (
+        args.assignment_action,
+        args.assignment_grade,
+        args.assignment_title,
+        args.assignment_variant,
+    )
+    if any(assignment_fields) and (not all(assignment_fields) or not args.sync):
+        parser.error("Parent assignments require --sync and all four --assignment-* fields")
 
     slug = args.student.casefold().replace(" ", "-")
     attempts_path = args.attempts or Path(f"student-records/{slug}-lesson-attempts.csv")
@@ -316,6 +375,22 @@ def main(progress: ProgressReporter | None = None) -> None:
     if args.student not in catalog.roster:
         parser.error(f"{args.student!r} is not in catalog roster {catalog.roster!r}")
     curriculum = ReadingCurriculum.load(args.curriculum, catalog)
+    args.manual_policy_path = policy_path(Path.cwd(), args.student)
+    manual_policy = ManualAssignments.load(args.manual_policy_path, args.student, catalog)
+    args.manual_change = None
+    if args.assignment_action:
+        args.manual_change = ManualChange.from_dict(
+            {
+                "action": args.assignment_action,
+                "grade": args.assignment_grade,
+                "title": args.assignment_title,
+                "variant": args.assignment_variant,
+            },
+            catalog,
+        )
+        manual_policy = manual_policy.changed(args.manual_change)
+        # Save intent before tablet writes: interrupted saves can be reconciled.
+        manual_policy.save(args.manual_policy_path)
     active_quarantines = read_active_quarantines(
         quarantine_path, student=args.student, today=args.today
     )
@@ -470,9 +545,17 @@ def _review_snapshot(
     mastered_keys: set[tuple[str, str]],
 ) -> dict[str, object]:
     with automation.device.timing.span("phase.plan_queue"):
+        manual_policy = None
+        manual_change = getattr(args, "manual_change", None)
+        if getattr(args, "manual_policy_path", None):
+            manual_policy = ManualAssignments.load(args.manual_policy_path, args.student, catalog)
         preferred_grades = {
             key: activity.grade for key, activity in curriculum.activities_by_key.items()
         }
+        if manual_policy:
+            preferred_grades.update(
+                {a.key: a.grade for a in manual_policy.assigned + manual_policy.excluded}
+            )
         attempt_rows = histories_to_attempt_rows(
             snapshot.histories, catalog, preferred_grades=preferred_grades
         )
@@ -505,13 +588,25 @@ def _review_snapshot(
             )
             for record in active_quarantines
         }
-        queue_plan = build_queue_plan(
-            curriculum,
-            scores,
-            current,
-            quarantined_titles=quarantine_reasons,
-            mastered_keys=mastered_keys,
-        )
+        if manual_policy:
+            queue_plan = plan_parent_queue(
+                curriculum,
+                catalog,
+                scores,
+                current,
+                manual_policy,
+                quarantined_titles=quarantine_reasons,
+                mastered_keys=mastered_keys,
+                change=manual_change,
+            )
+        else:
+            queue_plan = build_queue_plan(
+                curriculum,
+                scores,
+                current,
+                quarantined_titles=quarantine_reasons,
+                mastered_keys=mastered_keys,
+            )
         payload = create_plan_payload(
             student=args.student,
             snapshot=snapshot,
@@ -525,12 +620,14 @@ def _review_snapshot(
             new_attempts=appended_rows,
             active_quarantines=active_quarantines,
             mastered_keys=mastered_keys,
+            manual_policy=manual_policy,
+            manual_change=manual_change,
             score_scan_mode=(
                 "live_all_available" if args.sync or args.full_score_scan else "cache_eligible"
             ),
         )
         write_json_atomic(plan_path, payload)
-    if len(queue_plan.desired) != curriculum.queue_limit:
+    if not manual_change and len(queue_plan.desired) < curriculum.queue_limit:
         payload["queue_gap"] = curriculum.queue_limit - len(queue_plan.desired)
         payload["queue_block_reason"] = (
             f"Only {len(queue_plan.desired)} eligible assignments were found for the "
@@ -580,6 +677,16 @@ def _apply_reviewed_plan(
     plan_path = plan_path or args.apply_plan
     if plan_path is None:
         raise AutomationError("A plan path is required for application")
+    manual_policy = None
+    scores = None
+    if getattr(args, "manual_policy_path", None):
+        manual_policy = ManualAssignments.load(args.manual_policy_path, args.student, catalog)
+        attempts_path = args.attempts or Path(
+            f"student-records/{args.student.casefold().replace(' ', '-')}-lesson-attempts.csv"
+        )
+        scores = overlay_live_scores(
+            read_attempt_scores(attempts_path, args.student), snapshot.histories
+        )
     desired, actions = validate_reviewed_plan(
         payload,
         student=args.student,
@@ -589,6 +696,8 @@ def _apply_reviewed_plan(
         curriculum=curriculum,
         active_quarantines=active_quarantines,
         mastered_keys=mastered_keys,
+        manual_policy=manual_policy,
+        scores=scores,
     )
     if len(actions) > args.max_actions:
         raise AutomationError(
@@ -609,7 +718,7 @@ def _apply_reviewed_plan(
         while current_keys != desired_keys:
             missing = desired_keys - current_keys
             unexpected = current_keys - desired_keys
-            if missing and len(current_keys) < curriculum.queue_limit:
+            if missing and len(current_keys) < max(curriculum.queue_limit, len(desired)):
                 action = min(
                     (action_by_key[("add", key)] for key in missing),
                     key=lambda candidate: catalog.order_key(candidate.grade, candidate.title),
@@ -662,7 +771,7 @@ def _apply_reviewed_plan(
                 today=args.today, include_score_histories=False
             )
         fixed_point_keys = _assignment_keys(fixed_point_snapshot)
-        if fixed_point_keys != desired_keys or len(fixed_point_keys) != curriculum.queue_limit:
+        if fixed_point_keys != desired_keys:
             raise AutomationError("Fixed-point verification did not match the desired queue")
     except Exception as error:
         recovery: dict[str, object]
@@ -864,6 +973,7 @@ def _summary(
     payload: dict[str, object], *, plan_path: Path, report_path: Path
 ) -> dict[str, object]:
     return {
+        "dashboard_report": build_dashboard_report(payload),
         "status": payload["status"],
         "student": payload["student"],
         "new_attempt_records": payload.get("new_attempt_records", 0),
@@ -938,6 +1048,15 @@ def cli() -> None:
                 )
         if interrupted_payload is not None:
             detail = f"{render_terminal_summary(interrupted_payload)}\n\nFAILURE: {incident_error}"
+            if "--json" in sys.argv:
+                print(
+                    json.dumps(
+                        {
+                            "dashboard_report": build_dashboard_report(interrupted_payload),
+                            "error": str(incident_error),
+                        }
+                    )
+                )
         else:
             detail = (
                 "Khan Mastery Sync — FAILED\n"

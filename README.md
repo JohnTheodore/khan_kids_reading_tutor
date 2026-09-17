@@ -1,50 +1,13 @@
 # Khan Kids Reading Tutor
 
-We are not affiliated with Khan Academy or Khan Academy Kids. We built this
-independent family project to help our child learn to read, and we make no money
-from it. It's free as in beer and free as in freedom: anyone can use, study,
-modify, and share our code under the [MIT license](LICENSE). Khan's app and
-materials retain their own terms.
+**Master reading with adaptive practice over Khan Kids' phonics lessons—no fluff.**
 
-Give your child a focused learn-to-read path inside Khan Academy Kids.
-This tutor keeps ten reading assignments ready, checks scores, and advances
-lessons when your child shows mastery. It also recommends which assigned
-lessons to try next.
+Ten focused reading assignments, practice until mastery, and a clear recommendation
+for what your child should try next.
 
-**Less digital babysitting. More learning to read.**
-
-## Why we built this
-
-Khan Kids' [Learning Path](https://khankids.zendesk.com/hc/en-us/articles/360048828572-Learn-more-about-the-Learning-Path)
-adapts to your child but rotates across subjects, rather than offering a
-documented learn-to-read-only mode. Its overall interface encourages exploring
-the broader app, not staying on a focused reading track.
-
-For our family, much of that broader experience feels like edutainment: too much
-stimulation and too many ways to stay entertained without practicing reading.
-We wanted a reading tool, not a glorified babysitter.
-
-But we see real value in the work of the people behind Khan Kids' phonics and
-learn-to-read lessons. What we value is their emphasis on skills central to the
-science of reading: connecting letters to sounds, phonemic awareness, blending,
-and decoding. This tutor puts that work front and center, prioritizing those
-lessons and practice toward mastery while heavily de-emphasizing entertainment
-and unrelated activities. That is the core value of this project—not simply
-automating clicks, but making actual reading practice the point of using the app.
-
-If reading is your priority, selecting and
-maintaining your own assignments takes work: our ELA capture contains **2,956
-assignable activity placements** across Pre-K–2, including variants and lessons
-repeated across grades—not 2,956 unique titles. This tutor automates sifting
-through that inventory, selecting appropriate reading lessons, and updating the
-queue, making a focused reading routine faster and more convenient to manage.
-
-Your child learns in Khan Kids. You run a command on your computer after a
-session; the tutor reviews progress and updates the assignments for you.
-Run it manually, schedule it with cron or a systemd timer, or have another
-automation call it after a learning session. Scheduled runs need the tablet
-connected and reachable; after a tablet reboot, wireless access still requires
-a physical unlock and re-enabling Wireless debugging.
+After a lesson session, open the local dashboard, choose your reader, and click
+**Sync progress**. It checks scores and refreshes the assignments for you.
+Routine use runs on your computer and uses no AI tokens.
 
 ## How it helps
 
@@ -64,18 +27,35 @@ Check it against your child's starting point. Variants progress through
 **Basic → Main → Practice 1 → Practice 2**, skipping unavailable rungs.
 These are this project's rules, not Khan's default promotion policy.
 
-## How it works—no AI tokens for daily use
+### Mastery, not just completion
 
-Routine syncs are local Python automation, not an AI conversation. ADB controls
-the tablet, `uiautomator2` reads the app's screen hierarchy and score histories,
-and ImageMagick checks assignment checkboxes in screenshots. Python applies the
-mastery rules, updates assignments, and writes the progress report. Optional
-`scrcpy` lets you watch the tablet on your computer.
+The dashboard combines dated sync attempts with saved All Progress scores for
+every mapped reading lesson. Saved report scores remain labeled as snapshots:
+their capture date is not a lesson date, and they do not count as new weekly
+attempts. A single saved 100% supplies mastery evidence; separate summary cells
+cannot establish two consecutive 90% attempts.
 
-Day-to-day command-line use makes no LLM calls, needs no AI API key, and consumes
-no AI tokens. You can modify the code and reading path yourself or ask an AI
-coding assistant to customize them; using that assistant is separate and may
-consume tokens, but it isn't required to run the tutor.
+During sync, the bar advances through actual workflow stages and fills only
+when the run completes. It has no looping animation or visible percentage;
+it shows stage completion, not an estimate of time remaining.
+
+In our family's use, the Learning Path sometimes felt like **failing forward**:
+harder work appeared before a lesson was secure, rather than requiring another
+attempt after a score such as 70%. Khan does describe its
+[Learning Path as adaptive, with extra practice and easier activities](https://khankids.zendesk.com/hc/en-us/articles/360048828572-Learn-more-about-the-Learning-Path),
+so this is our experience—not a claim that it never revisits a skill.
+
+This tutor makes the mastery gate explicit: practice before promotion, using
+the score rules above, and step back to easier support when appropriate.
+We aim for the [zone of proximal development](https://en.wikipedia.org/wiki/Zone_of_proximal_development):
+work your child can learn to do with support, rather than moving ahead merely
+because an activity was completed. Scores guide assignments; they aren't an
+independent assessment of reading ability.
+
+## Set up once, then just sync
+
+Follow the steps below in order. The current tested setup is a Pixel Tablet and
+a Linux computer; the browser dashboard still needs the local tools installed.
 
 ## What you need
 
@@ -93,10 +73,19 @@ This is a working family project, not a one-click installer for every tablet.
 
 ### Enable Teacher Tools
 
-Use the account containing your child's existing profile. Enter the Parent
-section using the swipe gate, open its account dropdown, and choose
-**Convert to a Class Account**. Complete the prompts, then open the teacher's
-bear avatar with the teacher password.
+Use the account containing your child's existing progress:
+
+1. Open Khan Kids and enter the **Parent** area using its swipe gate.
+2. Tap the **account dropdown**.
+3. Tap **Convert to a Class Account**, then follow the prompts.
+4. Set the teacher profile name to **dad** (lowercase) and save its password.
+5. Open the teacher's **bear avatar**, enter that password, and confirm you see
+   the student roster.
+
+![Illustrated button guide: Class Account, assignments-first, and daily sync](docs/setup-guide.svg)
+
+This is an original button guide, not a screenshot of a child's account.
+Follow the numbered instructions if your app's layout differs.
 
 For the current automation, the teacher profile's display name must be **`dad`**
 (lowercase). Use that name when setting up Teacher Tools; a different teacher
@@ -149,8 +138,20 @@ For an optional live view, install a current
 
 ## 3. Connect the tablet
 
-**USB:** Enable USB debugging under Android Developer options, connect a
-data-capable cable, and approve the computer on the tablet. Check `adb devices`.
+Choose **USB** for the simplest first connection, or **wireless** for cable-free
+daily use.
+
+**USB:**
+
+1. On the tablet, open **Settings → About tablet**.
+2. Tap **Build number** seven times; enter the tablet PIN if asked.
+3. Open **Settings → System → Developer options**.
+4. Turn **USB debugging** on.
+5. Connect a data-capable USB cable to the computer. Disconnect the Pixel Tablet
+   from its charging/audio stand first.
+6. On the tablet, approve **Allow USB debugging?** for your own trusted computer.
+7. On the computer, run `adb devices`. Continue when the tablet appears with
+   status **device**. If it says **unauthorized**, check the tablet for the prompt.
 
 **Wireless:**
 
@@ -279,7 +280,12 @@ Save this as `private/my-family/sync.local.sh`:
 set -euo pipefail
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 family_dir="$repo_dir/private/my-family"
-case "${1:-sync}" in
+mode=sync
+if [[ "${1:-}" == review || "${1:-}" == sync ]]; then
+  mode="$1"
+  shift
+fi
+case "$mode" in
   review)
     workflow=khan-reading-sync
     plan_args=(--plan "$family_dir/reading-plan.json")
@@ -301,7 +307,7 @@ exec "$repo_dir/$workflow" \
   --report "$family_dir/reading-sync-log.md" \
   --quarantines "$family_dir/lesson-quarantines.csv" \
   --history-cache "$family_dir/score-history-cache.json" \
-  "${plan_args[@]}"
+  "${plan_args[@]}" "$@"
 ```
 
 Make it executable:
@@ -338,6 +344,147 @@ When the preview looks right, run:
 ./private/my-family/sync.local.sh
 ```
 
+### Daily use: open the dashboard
+
+After completing setup, run `./khan-dashboard`. It opens your family's reading
+dashboard: each reader's current focus, gains over the last seven days, a map
+from letters through comprehension, and suggested next practice.
+**Sync progress applies changes**, just like the
+command-line launcher; the dashboard does not implement a second mastery policy.
+
+1. Choose your child in **Reader**. The selection stays set when you refresh.
+2. Glance at **Working on** and **The last 7 days**.
+3. Open a reading milestone, then a lesson family, to see exact variants,
+   score dates and mastery evidence. Lessons without recorded scores are in
+   **No recorded scores**; missing evidence does not mean failure.
+4. After a session, click **Sync progress**. **Latest check-in** shows new scores,
+   verified assignment changes and the best next lessons from the ten assignments.
+5. To choose practice yourself, open a lesson and click **Assign** beside its
+   exact variant (Basic, Main, Practice 1 or Practice 2). The tablet saves it
+   now; the dashboard confirms it only after verification. **Unassign** removes
+   that variant and pauses its automatic reassignment until you assign it again.
+
+Each variant shows its own mastery evidence and last verified assignment state.
+Assignment status is a snapshot from the last completed operation, not a live
+tablet connection. Manual additions are protected extras and may take the queue
+above ten. Automatic top-ups pause at ten or more; subsequent syncs retire mastered
+manual lessons and resume filling below ten. Archived reader profiles are read-only.
+Keep the tablet unlocked on the configured account when making changes. Overrides
+are saved locally in owner-private `private/*-manual-assignments.json` files and
+are not published to Git. Controls require the native `khan-mastery-sync` launcher.
+You can assign a mastered variant for review; a later sync may retire it using
+its existing mastery evidence.
+
+The reading map covers 13 categories, including lowercase/uppercase letters,
+blending, CVC words, blends, digraphs, vowel patterns, word parts, fluency and
+comprehension. Progress counts **lesson families with mastery evidence**, not
+unique skills: repeated grade placements and practice variants don't inflate
+it. One non-Basic variant must meet the existing mastery rule for its family
+to have evidence. That does not prove the whole skill is mastered independently.
+Missing evidence means **Not assessed**, not failed. Weekly growth uses actual
+lesson dates, not when a delayed score was discovered; inferred/unknown dates
+are excluded from exact weekly totals.
+
+**Second-grade reading is not certified by app scores.** The dashboard gives
+parent check-in prompts for unfamiliar-word decoding, oral fluency and
+comprehension. It withholds a completion date until a complete reading route
+and adequate evidence exist; the current automated assignment path covers
+only a foundational segment. The full map does not silently expand that path.
+
+Older account histories can be included read-only using
+`private/dashboard-profiles.local.json` (permissions `600`):
+
+```json
+{
+  "Student B": {
+    "attempts": "private/archived-reader/lesson-attempts.csv",
+    "format": "archive",
+    "archived": true
+  }
+}
+```
+
+Use an alias already in your private student mapping and the normalized history
+CSV from the archive exporter. Archived readers cannot launch a sync, and no
+account is switched automatically. Optional `captured_on` records a known
+capture date; absent dates remain unknown. File paths and names stay private.
+Custom sync engines keep their isolated reports and do not read native-family
+history for the reading map.
+
+The service binds only to `127.0.0.1`. An authenticated launch URL opens the UI;
+keep that URL private. Credentials remain in your owner-private local file,
+and student data stays on your computer. The student dropdown shows names from
+your private mapping; sync commands and public records still use anonymous
+student aliases. Names are not embedded in the website assets or source code.
+No GitHub Pages, cloud server, WebUSB,
+or AI API is involved. Initial installation and Android pairing still require
+the setup steps above—the dashboard is not an installation-free website.
+
+Completed setup stays collapsed. The main screen shows score/mastery changes,
+three suggested lessons, and the verified assignment count. Past results survive
+dashboard restarts; custom-launcher results are cached privately per launcher.
+Technical logs are available only in **Connection & setup → Technical details**.
+
+Wireless uses the existing configured device discovery. For a USB-connected
+tablet, enable USB debugging, authorize your computer, and run
+`./khan-dashboard --serial YOUR_USB_SERIAL`. Use `adb devices` to find the serial.
+USB avoids re-enabling Wireless debugging, but zero-interaction reboot recovery
+is not verified on our tablet; unlocking or authorization may still be needed.
+
+New families should use their isolated launcher from step 4:
+`./khan-dashboard --workflow private/my-family/sync.local.sh`.
+The launcher must accept forwarded `--student`, `--json`, and optional `--serial` arguments,
+as the example above does. Custom wrappers can retain their own curriculum and
+record paths. The default dashboard uses the repository's default record paths.
+
+Closing the browser does not cancel a sync. Stop the service with Ctrl+C; it waits
+for an active sync to finish safely. `--no-browser` prints the launch URL without
+opening it, and `--port` selects another local port. The setup checklist inspects
+local files and dependencies, not live tablet connectivity; the engine performs
+the actual connection, account, and queue checks. Unexpected startup screens
+stop without restarting and retain private captures for inspection.
+
+
+### Optional scheduling and background dashboard
+
+Schedule the same isolated launcher with cron; the dashboard need not be open.
+For example, a weekday evening run (replace both absolute paths):
+
+```cron
+0 19 * * 1-5 /absolute/path/to/repo/private/my-family/sync.local.sh >> /absolute/path/to/repo/private/my-family/scheduled-sync.log 2>&1
+```
+
+Keep scheduled logs private and the tablet reachable. The engine's process lock
+prevents overlapping dashboard and scheduled workflows. A scheduler cannot
+bypass Android's post-reboot unlock/debugging requirements.
+
+For an always-available dashboard, an optional **user** systemd service can use
+the following unit (replace the absolute paths). Do not expose it on a LAN or
+put it behind a public proxy:
+
+```ini
+[Unit]
+Description=Local Khan Kids Reading Tutor dashboard
+
+[Service]
+WorkingDirectory=/absolute/path/to/repo
+ExecStart=/absolute/path/to/repo/khan-dashboard --no-browser --workflow /absolute/path/to/repo/private/my-family/sync.local.sh
+KillSignal=SIGINT
+KillMode=process
+TimeoutStopSec=infinity
+
+[Install]
+WantedBy=default.target
+```
+
+Save it as `~/.config/systemd/user/khan-dashboard.service`, run
+`systemctl --user daemon-reload`, then
+`systemctl --user enable --now khan-dashboard`. Find the private launch URL with
+`journalctl --user -u khan-dashboard -n 10`. These stop settings let an active
+sync finish rather than killing it mid-change. No service or cron entry is
+installed automatically. An always-on home computer can run the same engine;
+Raspberry Pi/dependency compatibility still needs testing.
+
 Sync reads current state again, applies the desired queue, and verifies it.
 Every change is checked after Save; a second complete queue scan must match
 before success is reported. The app normally returns to the profile chooser.
@@ -373,9 +520,13 @@ evidence even without a lesson between them.
 
 **Why ten assignments?**
 
-It provides a manageable mix of core and stretch work. Ten is enforced on
-successful completion, not during transitions or interrupted runs. If ten safe
-choices aren't available, the tutor explains why and withholds assignment changes.
+It provides a manageable mix of core and stretch work. Ten is the automatic
+target on successful completion, not during transitions or interrupted runs.
+Parent-assigned extras may exceed ten and are never trimmed just to meet that
+target. A manual unassignment changes only that variant; the next sync can fill
+the gap with another safe lesson. If ten safe choices aren't available, routine
+sync explains why and withholds assignment changes. Parent assignment clicks
+can still make their requested single change without ten eligible choices.
 
 **My child already completed lots of lessons. Will they all be imported?**
 
@@ -421,6 +572,20 @@ uv run --frozen ruff format --check .
 ./tools/run-python tools/audit_code_duplication.py
 ```
 
+Browser checks use a synthetic local server and never connect to a tablet:
+
+```bash
+uv run --with playwright==1.63.0 python -m playwright install chromium
+uv run --with playwright==1.63.0 python tools/check_dashboard_browser.py -v
+```
+
+The browser suite checks both color themes, keyboard and synthesized touch input,
+320–1280px layouts, enlarged text, reader switching, and failure recovery. It
+runs Axe's WCAG A/AA checks; the pinned test-only package is fetched from npm
+and integrity-verified. CI runs these checks too. Set `KHAN_BROWSER_EXECUTABLE`
+to use an existing Chromium installation. See the [dashboard audit](docs/dashboard-audit.md)
+for findings, fixes, and limits of the audit.
+
 ## Your family's data and licensing
 
 Keep your configuration, credentials, and records under ignored `private/`
@@ -432,3 +597,65 @@ Original code and documentation are [MIT licensed](LICENSE). Khan's trademarks,
 app assets, and captured materials have separate rights; see
 [Khan Kids' terms](https://www.khanacademy.org/kids/terms-of-service) before
 redistributing captures. This project is not affiliated with Khan Academy.
+
+## How it works—no AI tokens for daily use
+
+Routine syncs are local Python automation, not an AI conversation. ADB controls
+the tablet, `uiautomator2` reads the app's screen hierarchy and score histories,
+and ImageMagick checks assignment checkboxes in screenshots. Python applies the
+mastery rules, updates assignments, and writes the progress report. Optional
+`scrcpy` lets you watch the tablet on your computer.
+
+Day-to-day dashboard and command-line use make no LLM calls, need no AI API key, and consume
+no AI tokens. You can modify the code and reading path yourself or ask an AI
+coding assistant to customize them; using that assistant is separate and may
+consume tokens, but it isn't required to run the tutor.
+
+
+## Our story
+
+### Why tablet automation?
+
+As a homeschool dad, I wanted the browser-based teacher dashboard rather than
+managing everything on a tablet. I emailed Khan Kids and offered to pay for
+access, but was told I wasn't eligible because I wasn't a teacher. That's my
+experience, not a statement of their current eligibility rules.
+
+So I built this independent app for our family. Its browser dashboard runs
+locally on our computer, and its automation clicks the buttons in Khan Kids'
+Android app on our tablet. It isn't an integration with an official teacher
+web service or a private Khan API.
+
+### Reading, not just entertainment
+
+Khan Kids' [Learning Path](https://khankids.zendesk.com/hc/en-us/articles/360048828572-Learn-more-about-the-Learning-Path)
+adapts to your child but rotates across subjects, rather than offering a
+documented learn-to-read-only mode. Its overall interface encourages exploring
+the broader app, not staying on a focused reading track.
+
+For our family, much of that broader experience feels like edutainment: too much
+stimulation and too many ways to stay entertained without practicing reading.
+We wanted a reading tool, not a glorified babysitter.
+
+But we see real value in the work of the people behind Khan Kids' phonics and
+learn-to-read lessons. What we value is their emphasis on skills central to the
+science of reading: connecting letters to sounds, phonemic awareness, blending,
+and decoding. This tutor puts that work front and center, prioritizing those
+lessons and practice toward mastery while heavily de-emphasizing entertainment
+and unrelated activities. That is the core value of this project—not simply
+automating clicks, but making actual reading practice the point of using the app.
+
+If reading is your priority, selecting and
+maintaining your own assignments takes work: our ELA capture contains **2,956
+assignable activity placements** across Pre-K–2, including variants and lessons
+repeated across grades—not 2,956 unique titles. This tutor automates sifting
+through that inventory, selecting appropriate reading lessons, and updating the
+queue, making a focused reading routine faster and more convenient to manage.
+
+### About this project
+
+We are not affiliated with Khan Academy or Khan Academy Kids. We built this
+independent family project to help our child learn to read, and we make no money
+from it. It's free as in beer and free as in freedom: anyone can use, study,
+modify, and share our code under the [MIT license](LICENSE). Khan's app and
+materials retain their own terms.

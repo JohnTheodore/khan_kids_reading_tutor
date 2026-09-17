@@ -208,6 +208,78 @@ def terminal_color_enabled(mode: str, stream: TextIO) -> bool:
     return "NO_COLOR" not in os.environ and stream.isatty() and os.environ.get("TERM") != "dumb"
 
 
+def build_dashboard_report(payload: dict[str, object]) -> dict[str, object]:
+    """Present the same durable evidence/actions as the terminal, without re-planning."""
+    status = str(payload.get("status", "unknown"))
+    _, removals, additions, mastered = _action_groups(payload)
+    evidence = _evidence_index(payload)
+
+    def change(action: dict[str, object]) -> dict[str, object]:
+        record = evidence.get((action.get("title"), action.get("variant")), {})
+        score_source = _lesson(action)
+        if action.get("kind") == "add":
+            source = next(
+                (item for item in mastered if _promotion_destination(item) == _lesson(action)), None
+            )
+            if source:
+                score_source = _lesson(source)
+                record = evidence.get((source.get("title"), source.get("variant")), {})
+        return {
+            **action,
+            "scores": record.get("scores", []),
+            "score_source": score_source,
+            "reason": _addition_reason(action, mastered)
+            if action.get("kind") == "add"
+            else _friendly_reason(action.get("reason")),
+        }
+
+    assigned = []
+    verified = _object_list(payload.get("verified_assignments")) if status == "applied" else []
+    if status == "no_op":
+        verified = _object_list(payload.get("observed_assignments"))
+    recovery = payload.get("recovery")
+    if status == "interrupted" and isinstance(recovery, dict):
+        verified = _object_list(recovery.get("live_assignments"))
+    for activity in verified:
+        record = evidence.get((activity.get("title"), activity.get("variant")), {})
+        assigned.append(
+            {
+                **activity,
+                "scores": record.get("scores", []),
+                "state": _queue_state(record),
+                "reason": record.get("reason", ""),
+            }
+        )
+    performance = payload.get("performance")
+    queue_verified = status in {"applied", "no_op"} or (
+        status == "interrupted"
+        and isinstance(recovery, dict)
+        and recovery.get("status") == "captured"
+    )
+    return {
+        "student": payload.get("student"),
+        "status": status,
+        "outcome": _outcome(status),
+        "timestamp": payload.get("applied_at")
+        or payload.get("interrupted_at")
+        or payload.get("generated_at"),
+        "duration": performance.get("wall_seconds") if isinstance(performance, dict) else None,
+        "queue_count": len(verified) if queue_verified else None,
+        "queue_verified": queue_verified,
+        "manual_change": payload.get("manual_change"),
+        "desired_count": len(_object_list(payload.get("desired_assignments"))),
+        "new_scores": _object_list(payload.get("new_attempts")),
+        "mastered": [change(item) for item in mastered],
+        "unchecked": [change(item) for item in removals],
+        "added": [change(item) for item in additions],
+        "assigned": assigned,
+        "recommendations": recommend_next_lessons(payload),
+        "quarantines": _object_list(payload.get("active_quarantines")),
+        "error": payload.get("error") or payload.get("queue_block_reason"),
+        "teardown": payload.get("teardown"),
+    }
+
+
 def render_terminal_summary(payload: dict[str, object], *, color: bool = False) -> str:
     """Render the mandatory human-readable result printed after every successful run."""
     status = str(payload.get("status", "unknown"))
@@ -640,6 +712,8 @@ def _addition_reason(addition: dict[str, object], mastered: list[dict[str, objec
 
 
 def _queue_state(record: dict[str, object]) -> str:
+    if record.get("status") == "mastered":
+        return "MASTERED"
     scores = record.get("scores")
     if not isinstance(scores, list) or not scores:
         return "NOT ATTEMPTED"

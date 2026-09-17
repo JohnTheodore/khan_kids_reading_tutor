@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -70,9 +71,12 @@ def build_queue_plan(
     *,
     quarantined_titles: dict[str, str] | None = None,
     mastered_keys: set[tuple[str, str]] | None = None,
+    excluded_keys: set[tuple[str, str]] | None = None,
+    desired_policy: Callable[[tuple[Activity, ...]], tuple[Activity, ...]] | None = None,
 ) -> QueuePlan:
     quarantined_titles = quarantined_titles or {}
     mastered_keys = mastered_keys or set()
+    excluded_keys = excluded_keys or set()
     preliminary = {
         track.track_id: _evaluate_track(track, scores, mastered_keys) for track in curriculum.tracks
     }
@@ -96,6 +100,7 @@ def build_queue_plan(
             and not state.complete
             and state.next_activity is not None
             and state.next_activity.title not in quarantined_titles
+            and state.next_activity.key not in excluded_keys
         ):
             candidates.append((track, state))
             reasons[state.next_activity.key] = _target_reason(track, state)
@@ -115,7 +120,7 @@ def build_queue_plan(
         current,
         complete,
         mastered_keys,
-        excluded={activity.key for activity in core_desired},
+        excluded={activity.key for activity in core_desired} | excluded_keys,
         quarantined_titles=set(quarantined_titles),
         limit=curriculum.queue_limit - len(core_desired),
     )
@@ -150,6 +155,8 @@ def build_queue_plan(
         and state.next_activity is not None
     }
     desired = core_desired + stretch_desired
+    if desired_policy:
+        desired = desired_policy(desired)
     desired_by_key = {activity.key: activity for activity in desired}
     desired_keys = set(desired_by_key)
     configured = {
@@ -187,7 +194,7 @@ def build_queue_plan(
             activity.title,
             activity.variant,
             activity.grade,
-            reasons[activity.key],
+            reasons.get(activity.key, "explicitly selected activity"),
         )
         for activity in desired
         if activity.key not in current

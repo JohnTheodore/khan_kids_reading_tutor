@@ -33,7 +33,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes imagemagick
-          python -m pip install ruff
+          python -m pip install ruff==0.16.6 playwright==1.63.0
       - name: Lint and format check
         run: |
           ruff check .
@@ -42,3 +42,7 @@ jobs:
         run: |
           python -m compileall -q tools tests
           python -m unittest discover -s tests -v
+      - name: Dashboard browser and accessibility regressions
+        run: |
+          python -m playwright install --with-deps chromium
+          python tools/check_dashboard_browser.py -v

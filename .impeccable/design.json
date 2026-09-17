@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T16:30:12Z",
+  "title": "Design System: Reading Tutor",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Sky blue" },
+      "mastered": { "role": "secondary", "displayName": "Leaf green" },
+      "score": { "role": "secondary", "displayName": "Golden score" },
+      "removed": { "role": "secondary", "displayName": "Plum deferred" },
+      "added": { "role": "secondary", "displayName": "Clear blue added" },
+      "canvas": { "role": "neutral", "displayName": "Warm ivory canvas" },
+      "surface": { "role": "neutral", "displayName": "Paper surface" },
+      "soft": { "role": "neutral", "displayName": "Cool soft inset" }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "The principal page heading; system sans-serif, not a display identity." },
+      "supporting": { "displayName": "Supporting evidence", "purpose": "Dates, caveats, variants, and explanatory copy." },
+      "stat": { "displayName": "Statistic", "purpose": "Recorded totals using tabular numbers." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "busy-sync", "value": "spin 1.5s linear infinite", "purpose": "Busy sync icon only; removed under reduced motion." },
+      { "name": "primary-press", "value": "translateY(1px)", "purpose": "Enabled primary active state only; removed under reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "single-column-journey", "value": "1000px" },
+      { "name": "compact-layout", "value": "760px" },
+      { "name": "stacked-milestone-metadata", "value": "600px" },
+      { "name": "full-width-controls", "value": "480px" }
+    ],
+    "focus": { "outline": "3px solid var(--focus)", "outlineOffset": "4px" },
+    "theme": { "mechanism": "prefers-color-scheme: dark", "mapping": "Each semantic CSS custom property is replaced with its corresponding -dark frontmatter value; no manual theme switch is implemented." },
+    "review": { "disposition": "ship at fix-list scope", "scope": "Two mobile readability issues were fixed and scored resolved by the same reviewer.", "verification": "189 unit and 23 browser tests passing; zero tested Axe A/AA and detector findings.", "limits": "No physical assistive-technology, Safari, or Firefox certification.", "shippingRasters": "None" }
+  },
+  "components": [
+    {
+      "name": "Primary action", "kind": "button", "refersTo": "button-primary", "description": "Explicit progress sync with an original authored icon.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Sync progress<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1\"/></svg></button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:44px;padding:12px 18px;border:1px solid transparent;border-radius:10px;background:var(--accent,#176a96);color:var(--on-accent,#fff);font:650 1rem/1.55 system-ui,sans-serif;cursor:pointer}.ds-primary svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.ds-primary:hover:not(:disabled){background:var(--accent-hover,#105374)}.ds-primary:active:not(:disabled){transform:translateY(1px)}.ds-primary:focus-visible{outline:3px solid var(--focus,#2755ad);outline-offset:4px}.ds-primary:disabled{background:var(--soft,#edf4f7);color:var(--muted,#526570);cursor:default}@media(prefers-reduced-motion:reduce){.ds-primary:active:not(:disabled){transform:none}}"
+    },
+    {
+      "name": "Secondary action", "kind": "button", "refersTo": "button-secondary", "description": "Supporting actions without primary fill.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Check setup again</button>",
+      "css": ".ds-secondary{min-height:44px;padding:12px 18px;border:1px solid var(--control-line,#8096a0);border-radius:10px;background:var(--surface,#fff);color:var(--accent,#176a96);font:650 1rem/1.55 system-ui,sans-serif;cursor:pointer}.ds-secondary:hover:not(:disabled){background:var(--soft,#edf4f7)}.ds-secondary:active:not(:disabled){border-color:var(--accent,#176a96)}.ds-secondary:focus-visible{outline:3px solid var(--focus,#2755ad);outline-offset:4px}.ds-secondary:disabled{background:var(--soft,#edf4f7);color:var(--muted,#526570);cursor:default}"
+    },
+    {
+      "name": "Reader select", "kind": "input", "refersTo": "reader-select", "description": "Native reader selection with a persistent label.",
+      "html": "<label class=\"ds-label\" for=\"ds-reader\">Reader</label><select class=\"ds-select\" id=\"ds-reader\"><option>Your reader</option></select>",
+      "css": ".ds-label{display:block;margin-bottom:6px;color:var(--ink,#203e4b);font:650 .875rem/1.55 system-ui,sans-serif}.ds-select{width:100%;min-height:44px;padding:11px 32px 11px 12px;border:1px solid var(--control-line,#8096a0);border-radius:10px;background:var(--surface,#fff);color:var(--ink,#203e4b);font:1rem/1.55 system-ui,sans-serif;text-overflow:ellipsis}.ds-select:focus-visible{outline:3px solid var(--focus,#2755ad);outline-offset:4px}.ds-select:disabled{opacity:.75}"
+    },
+    {
+      "name": "Mastery coverage meter", "kind": "meter", "refersTo": "mastery-meter", "description": "Recorded lesson mastery coverage, not reading-level certification.",
+      "html": "<meter class=\"ds-meter\" min=\"0\" max=\"26\" value=\"0\" aria-label=\"Recorded mastery coverage\"></meter><p>No mastery evidence recorded yet.</p>",
+      "css": ".ds-meter{display:block;width:100%;height:10px;margin-bottom:8px}.ds-meter::-webkit-meter-bar{background:var(--line,#d9e3e5);border:1px solid var(--control-line,#8096a0);border-radius:6px}.ds-meter::-webkit-meter-optimum-value{background:var(--mastered,#326843)}.ds-meter::-moz-meter-bar{background:var(--mastered,#326843)}"
+    },
+    {
+      "name": "Navigation", "kind": "nav", "description": "A quiet setup link with native anchor behavior.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Dashboard\"><span>Local &amp; private</span><a href=\"#ds-setup\">Connection &amp; setup</a></nav><details class=\"ds-nav-target\" id=\"ds-setup\"><summary>Connection &amp; setup</summary></details>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:20px;font:.875rem/1.55 system-ui,sans-serif}.ds-nav span{color:var(--muted,#526570)}.ds-nav a{display:inline-flex;align-items:center;min-height:44px;color:var(--accent,#176a96);text-underline-offset:4px}.ds-nav a:focus-visible,.ds-nav-target summary:focus-visible{outline:3px solid var(--focus,#2755ad);outline-offset:4px}.ds-nav-target{border-block:1px solid var(--line,#d9e3e5);color:var(--ink,#203e4b);font:1rem/1.55 system-ui,sans-serif}.ds-nav-target summary{min-height:44px;padding:16px 4px;font-weight:650;cursor:pointer}.ds-nav-target summary:hover{background:var(--soft,#edf4f7)}@media(max-width:760px){.ds-nav span{display:none}}"
+    },
+    {
+      "name": "Lesson card", "kind": "card", "refersTo": "lesson-card", "description": "Recommendation structure with a rule-separated goal; sample contains no invented score.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-top\"><span>Next practice</span></div><h3>Reading practice</h3><p class=\"ds-variant\">Exact lesson variant</p><p class=\"ds-goal\">Review the recorded evidence for the next step.</p></article>",
+      "css": ".ds-card{padding:20px;border:1px solid var(--line,#d9e3e5);border-radius:12px;background:var(--surface,#fff);color:var(--ink,#203e4b);font:1rem/1.55 system-ui,sans-serif;overflow-wrap:anywhere}.ds-card-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:.875rem;color:var(--muted,#526570)}.ds-card h3{font-size:1.125rem;line-height:1.35;margin:0 0 10px}.ds-variant{color:var(--muted,#526570);font-size:.875rem;margin-top:-5px}.ds-goal{font-size:.875rem;padding-top:14px;margin:14px 0 0;border-top:1px solid var(--line,#d9e3e5)}"
+    },
+    {
+      "name": "Milestone disclosure", "kind": "custom", "description": "Native evidence disclosure with mobile metadata beneath the title.",
+      "html": "<details class=\"ds-milestone\"><summary><span class=\"ds-milestone-title\"><strong>Reading milestone</strong><span class=\"ds-subtitle\">Open for evidence</span></span><span class=\"ds-counts\"><span>Not assessed</span><span>Evidence not yet recorded</span></span></summary><p>No scored evidence recorded for this milestone. Your child may already know these skills.</p></details>",
+      "css": ".ds-milestone{border-top:1px solid var(--line,#d9e3e5);color:var(--ink,#203e4b);font:1rem/1.55 system-ui,sans-serif}.ds-milestone>summary{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:44px;padding:16px 28px 16px 0;position:relative;list-style:none;cursor:pointer;font-weight:650}.ds-milestone>summary::-webkit-details-marker{display:none}.ds-milestone>summary:after{content:'+';position:absolute;right:2px;color:var(--accent,#176a96);font-size:1.25rem}.ds-milestone[open]>summary:after{content:'−'}.ds-milestone-title,.ds-counts{display:flex;flex-direction:column;gap:3px}.ds-milestone-title{min-width:0}.ds-subtitle,.ds-counts{font-size:.875rem;color:var(--muted,#526570)}.ds-counts{text-align:right;flex-shrink:0;overflow-wrap:anywhere;font-weight:400}.ds-counts>span:first-child{font-weight:600}.ds-milestone>p{margin:0 0 16px;font-size:.875rem;color:var(--muted,#526570)}.ds-milestone>summary:hover{background:var(--soft,#edf4f7)}.ds-milestone>summary:focus-visible{outline:3px solid var(--focus,#2755ad);outline-offset:4px}@media(max-width:600px){.ds-milestone>summary{flex-direction:column;align-items:flex-start;gap:8px}.ds-milestone>summary:after{top:16px}.ds-counts{flex-direction:row;flex-wrap:wrap;gap:4px 12px;width:100%;text-align:start}.ds-subtitle{display:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Mastery Map",
+    "overview": "A mastery rubric made warm and approachable: ivory space, blue actions, green evidence, and quiet rules help parents read the journey without interpreting automation logs. The character is friendly and original, gently Khan Kids-adjacent without borrowed artwork or composition.\n\nNative disclosures make evidence inspectable in place. Clear system type and restrained semantic colors keep uncertainty as visible as progress; this interface is a reading map, not a certificate of reading ability.",
+    "keyCharacteristics": ["Warm, flat surfaces with quiet structural rules.", "Semantic color paired with written state and evidence.", "Progressive disclosure through native details and summary.", "Original authored SVG icons; no shipping raster imagery."],
+    "rules": [
+      { "name": "The Evidence Color Rule", "body": "Pair semantic color with text or an authored icon; color alone must not carry mastery, uncertainty, or assignment changes.", "section": "colors" },
+      { "name": "The Quiet Structure Rule", "body": "Use rules and tonal insets to organize evidence rather than introducing decorative elevation.", "section": "elevation" }
+    ],
+    "dos": ["Do pair semantic color with written state and evidence.", "Do retain native disclosures, visible keyboard focus, and minimum 44px control heights.", "Do stack mobile milestone metadata below its title and preserve readable queue columns in a scroll region.", "Do keep missing, uncertain, and stale evidence explicit."],
+    "donts": ["Don't copy Khan characters, artwork, screenshots, or layout.", "Don't replace the original SVG language with mascots or decorative raster imagery.", "Don't imply reading-level certification from lesson mastery or catalog coverage.", "Don't introduce decorative shadows into this flat, rule-led system."]
+  }
+}

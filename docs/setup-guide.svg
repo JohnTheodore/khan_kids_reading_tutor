@@ -1,0 +1,68 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="900"
+  height="310"
+  viewBox="0 0 900 310"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Three steps to a focused reading routine</title>
+  <desc id="desc">
+    Convert to a Class Account, turn Show students Assignments first on in
+    Teacher Settings, then select your reader and click Sync progress in the
+    local dashboard. This is an illustration, not a screenshot.
+  </desc>
+  <rect width="900" height="310" rx="20" fill="#f6f8f1" />
+  <g font-family="system-ui,sans-serif" fill="#203c35">
+    <g transform="translate(22,24)">
+      <rect width="272" height="260" rx="14" fill="white" stroke="#dbe3da" />
+      <text x="20" y="34" font-size="17" font-weight="700">
+        1. Enable Teacher Tools
+      </text>
+      <text x="20" y="76" font-size="14">Parent area → Account dropdown</text>
+      <rect x="18" y="94" width="236" height="58" rx="9" fill="#e8eee0" />
+      <text x="34" y="120" font-size="14" font-weight="600">Convert to a</text>
+      <text x="34" y="141" font-size="14" font-weight="600">Class Account</text>
+      <text x="20" y="192" font-size="14">Name the teacher dad.</text>
+      <text x="20" y="216" font-size="14">Save the teacher password.</text>
+    </g>
+    <g transform="translate(314,24)">
+      <rect width="272" height="260" rx="14" fill="white" stroke="#dbe3da" />
+      <text x="20" y="34" font-size="17" font-weight="700">
+        2. Put assignments first
+      </text>
+      <text x="20" y="76" font-size="14">Teacher avatar → Password</text>
+      <text x="20" y="101" font-size="14" font-weight="600">
+        Teacher Settings
+      </text>
+      <rect x="18" y="119" width="236" height="65" rx="9" fill="#e8eee0" />
+      <text x="30" y="146" font-size="13">Show students</text>
+      <text x="30" y="166" font-size="13">Assignments first</text>
+      <rect x="198" y="138" width="44" height="26" rx="13" fill="#146854" />
+      <circle cx="229" cy="151" r="10" fill="white" />
+      <text x="20" y="216" font-size="14">Turn ON. Check the child view.</text>
+    </g>
+    <g transform="translate(606,24)">
+      <rect width="272" height="260" rx="14" fill="white" stroke="#dbe3da" />
+      <text x="20" y="34" font-size="17" font-weight="700">
+        3. Sync after a session
+      </text>
+      <text x="20" y="76" font-size="14">Open the local dashboard.</text>
+      <rect
+        x="18"
+        y="94"
+        width="236"
+        height="42"
+        rx="9"
+        fill="#fafbf7"
+        stroke="#b4c5b8"
+      />
+      <text x="32" y="120" font-size="14">Select your reader</text>
+      <rect x="18" y="151" width="236" height="46" rx="9" fill="#146854" />
+      <text x="78" y="180" font-size="15" fill="white" font-weight="600">
+        Sync progress
+      </text>
+      <text x="20" y="232" font-size="14">Then try a suggested lesson.</text>
+    </g>
+  </g>
+</svg>

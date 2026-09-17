@@ -91,3 +91,6 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-16,Student A,checked,Beginning Sounds 1,Main,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-16T15:19:49.878926-04:00
 2026-09-17,Student A,unchecked,Short Vowel Sound i,Practice 1,mastered: latest attempt is 100%; promote to Words with i — Main,saved,2026-09-17T08:51:33.950745-04:00
 2026-09-17,Student A,checked,Words with i,Main,first unmastered activity in short_i_cvc_middle,saved; final verification pending,2026-09-17T08:52:07.705683-04:00
+2026-09-17,Student A,unchecked,Short Vowel Sound e,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound e — Practice 1,saved,2026-09-17T11:22:03.357058-04:00
+2026-09-17,Student A,checked,Short Vowel Sound e,Practice 1,first unmastered activity in short_e_cvc_middle,saved; final verification pending,2026-09-17T11:22:37.716468-04:00
+2026-09-17,Student A,checked,Lowercase l,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-17T13:56:41.209866-04:00

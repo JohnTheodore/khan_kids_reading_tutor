@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#176a96" />
+    <title>Reading Tutor · Your family's reading journey</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="icon-sync" viewBox="0 0 24 24">
+        <path
+          d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"
+        />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </symbol>
+      <symbol id="icon-score" viewBox="0 0 24 24">
+        <path d="M5 19V5h14v14ZM8 12h8M8 8h5M8 16h5" />
+      </symbol>
+      <symbol id="icon-remove" viewBox="0 0 24 24">
+        <path d="M5 12h14" />
+      </symbol>
+      <symbol id="icon-add" viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14" />
+      </symbol>
+    </svg>
+    <a class="skip-link" href="#main">Skip to reading progress</a>
+    <header class="topbar">
+      <a class="brand" href="/"
+        ><span class="brand-mark" aria-hidden="true">r.</span
+        ><span>Reading Tutor<small>For Khan Kids</small></span></a
+      >
+      <nav aria-label="Dashboard">
+        <span class="local-badge">Local &amp; private</span
+        ><a id="setup-link" href="#setup">Connection &amp; setup</a>
+      </nav>
+    </header>
+    <main id="main">
+      <noscript
+        ><p class="error-banner">
+          Enable JavaScript to use this dashboard, or run
+          <code>./khan-mastery-sync</code> in your terminal.
+        </p></noscript
+      >
+      <section class="hero" aria-labelledby="sync-title">
+        <div>
+          <h1 id="sync-title">Your reading progress</h1>
+          <p class="lede">
+            See where your child is, what changed this week, and what to
+            practice next.
+          </p>
+        </div>
+        <div class="sync-controls">
+          <div class="student-field">
+            <label for="student">Reader</label
+            ><select id="student"></select>
+          </div>
+          <button
+            id="sync"
+            class="primary"
+            type="button"
+            aria-describedby="sync-help"
+            disabled
+          >
+            Sync progress
+            <svg class="icon" aria-hidden="true"><use href="#icon-sync" /></svg>
+          </button>
+        </div>
+        <p id="sync-help" class="helper">
+          Reviews scores and updates the ten assignments. Keep the tablet
+          unlocked and let the sync finish.
+        </p>
+      </section>
+      <div id="activity" class="activity">
+        <span class="activity-dot" aria-hidden="true"></span>
+        <div>
+          <p id="state" role="status" aria-live="polite">
+            Connecting to your local app…
+          </p>
+          <p id="phase" class="muted" aria-live="polite"></p>
+        </div>
+        <span id="elapsed" class="muted"></span>
+        <div
+          id="sync-indicator"
+          class="sync-indicator"
+          role="progressbar"
+          aria-label="Mastery sync stage completion"
+          aria-valuemin="0"
+          aria-valuemax="1"
+          aria-valuenow="0"
+          hidden
+        >
+          <span id="sync-fill" class="sync-fill"></span>
+        </div>
+      </div>
+      <div id="error" class="error-banner" hidden>
+        <p id="error-message" role="alert"></p>
+        <button id="retry" class="secondary" type="button">
+          Reconnect local app
+        </button>
+        <a id="error-setup" href="#setup">Open troubleshooting</a>
+      </div>
+      <section id="journey" aria-labelledby="journey-title" aria-busy="true">
+        <div class="section-heading">
+          <h2 id="journey-title">The reading journey</h2>
+          <p id="journey-freshness" class="muted"></p>
+        </div>
+        <p id="journey-status" class="muted" role="status">
+          Checking local reading records…
+        </p>
+        <div id="journey-content" hidden>
+          <div class="journey-summary">
+            <div>
+              <h3>Working on</h3>
+              <p id="journey-focus" class="focus-name"></p>
+              <p id="journey-next" class="muted"></p>
+            </div>
+            <div class="weekly">
+              <h3>The last 7 days</h3>
+              <p id="journey-weekly"></p>
+              <p id="journey-window" class="muted"></p>
+            </div>
+          </div>
+          <p id="journey-coverage" class="coverage-note"></p>
+          <meter
+            id="journey-meter"
+            class="mastery-meter"
+            min="0"
+            max="1"
+            value="0"
+            aria-label="Overall recorded lesson mastery coverage"
+          ></meter>
+          <div class="journey-layout">
+            <div>
+              <div class="section-heading">
+                <h3>From letters to independent reading</h3>
+                <span class="muted">Open a milestone for evidence</span>
+              </div>
+              <div id="milestones" class="milestones"></div>
+            </div>
+            <details
+              class="reading-checks"
+              aria-labelledby="reading-checks-title"
+            >
+              <summary id="reading-checks-title">
+                Toward second-grade reading
+              </summary>
+              <p id="reading-level" class="reading-level"></p>
+              <p id="journey-forecast" class="muted"></p>
+              <h4>Confirm away from the app</h4>
+              <ul id="reading-check-list"></ul>
+              <p class="muted">
+                These are parent check-in prompts, not a scored assessment.
+                Completing app lessons is not the same as demonstrating a
+                reading level.
+              </p>
+              <details>
+                <summary>How progress is counted</summary>
+                <p id="coverage-explanation" class="muted"></p>
+                <p class="muted">
+                  100% once, or two consecutive scores of at least 90%,
+                  establishes mastery evidence for a lesson variant. Basic
+                  practice does not complete a lesson family. Unrecorded skills
+                  stay “Not assessed,” never “Failed.”
+                </p>
+                <p id="journey-unmapped" class="muted"></p>
+              </details>
+            </details>
+          </div>
+          <ul id="journey-warnings" class="journey-warnings"></ul>
+        </div>
+      </section>
+      <section id="results" aria-labelledby="results-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="results-title">Reading progress</h2>
+          </div>
+          <p id="result-meta" class="muted">
+            Run a sync after a lesson session.
+          </p>
+        </div>
+        <div id="empty" class="empty-state">
+          <h3 id="empty-title">Ready for the first check-in</h3>
+          <p>
+            Sync after your reader finishes a session.<br />New scores and the
+            best lessons to try next will appear here.
+          </p>
+        </div>
+        <div id="result-content" hidden>
+          <p id="outcome" class="outcome"></p>
+          <div id="daily-practice" class="daily-practice">
+            <section id="recent-mastery" aria-labelledby="recent-mastery-title">
+              <h2 id="recent-mastery-title">Recently mastered</h2>
+              <p class="muted">Exact activity variants · last 7 days</p>
+              <ul id="recent-mastery-list"></ul>
+            </section>
+          </div>
+          <details id="sync-details" class="queue-details">
+            <summary>Last sync details &amp; assignment changes</summary>
+            <dl id="stats" class="stats"></dl>
+            <div class="section-heading">
+              <h3>What changed</h3>
+              <span id="change-note" class="muted"></span>
+            </div>
+            <div id="changes" class="changes-grid"></div>
+            <section id="quarantines" hidden>
+              <h3>Deferred lessons</h3>
+              <ul id="quarantine-list"></ul>
+            </section>
+          </details>
+          <section id="next-practice" aria-labelledby="next-practice-title">
+            <div class="section-heading">
+              <div>
+                <h2 id="next-practice-title">Try these next</h2>
+              </div>
+              <p id="recommendation-note" class="muted">
+                From the last verified assignment queue
+              </p>
+            </div>
+            <div id="recommendations" class="recommendations"></div>
+          </section>
+          <details class="queue-details">
+            <summary>
+              All assigned lessons <span id="queue-count" class="count"></span>
+            </summary>
+            <p class="muted">
+              Last verified queue—not a live tablet view. Manual extras may
+              exceed ten; automatic top-ups resume below ten.
+            </p>
+            <div
+              class="table-wrap"
+              role="region"
+              aria-label="Assigned lesson scores"
+              aria-describedby="queue-scroll-help"
+              tabindex="0"
+            >
+              <table>
+                <caption>
+                  Recorded attempts, oldest to newest. Mastery: 100% once, or
+                  two consecutive scores of 90% or higher.
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Lesson</th>
+                    <th scope="col">Score history</th>
+                    <th scope="col">Next step</th>
+                    <th scope="col">Assignment & mastery</th>
+                  </tr>
+                </thead>
+                <tbody id="queue"></tbody>
+              </table>
+            </div>
+            <p id="queue-scroll-help" class="muted table-hint">
+              On smaller screens, scroll the lesson table sideways to see scores
+              and assignment controls. With a keyboard, focus the table and use
+              the arrow keys.
+            </p>
+          </details>
+        </div>
+      </section>
+      <details id="setup" class="setup-details">
+        <summary id="setup-toggle">
+          <span id="setup-summary">Connection &amp; setup</span
+          ><span class="muted">Manage your local app</span>
+        </summary>
+        <p class="muted">
+          Checks local installation—not live tablet connectivity. The sync
+          verifies the tablet and account.
+        </p>
+        <ul id="checks" class="checklist"></ul>
+        <button id="refresh" class="secondary" type="button">
+          Check setup again
+        </button>
+        <h3>First-time setup</h3>
+        <ol class="setup-steps">
+          <li>
+            Follow the
+            <a
+              href="https://github.com/JohnTheodore/khan_kids_reading_tutor#set-up-once-then-just-sync"
+              target="_blank"
+              rel="noreferrer"
+              >step-by-step setup guide (opens a new tab)</a
+            >
+            to install the local tools.
+          </li>
+          <li>
+            In Khan Kids, convert your account to a Class Account. Name the
+            teacher <code>dad</code>. Open Teacher Settings and enable
+            <strong>Show students Assignments first</strong>.
+          </li>
+          <li>
+            Create your private student mapping and credentials file. Your
+            reader's name stays local; public records use an alias.
+          </li>
+          <li>
+            For wireless, enable Developer options and Wireless debugging, pair
+            ADB, and save the private tablet configuration.
+          </li>
+          <li>
+            For USB, enable USB debugging, connect a data cable, authorize your
+            computer, then launch with <code>--serial YOUR_USB_SERIAL</code>.
+          </li>
+        </ol>
+        <h3>If the tablet disconnects</h3>
+        <p>
+          After reboot, wireless currently needs a physical unlock and Wireless
+          debugging re-enabled. USB normally avoids that toggle, but unattended
+          reboot recovery is not yet verified.
+        </p>
+        <p>
+          If a prize prompt or unfamiliar screen blocks startup, the tutor stops
+          without restarting. Leave it visible for inspection; captures stay in
+          <code>private/startup-blocked-*</code>.
+        </p>
+        <details id="diagnostics" class="diagnostics">
+          <summary>Technical details</summary>
+          <p class="muted">
+            For troubleshooting only—not the progress summary.
+          </p>
+          <pre id="progress" tabindex="0" aria-label="Sync diagnostic log">
+No diagnostics loaded. Details appear here while this section is open.</pre
+          >
+        </details>
+      </details>
+      <footer>
+        <p>Less digital babysitting. More learning to read.</p>
+        <p>Independent family project · Not affiliated with Khan Academy</p>
+      </footer>
+    </main>
+  </body>
+</html>

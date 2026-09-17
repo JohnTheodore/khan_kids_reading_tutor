@@ -186,9 +186,18 @@ def read_mastered_action_keys(path: Path, student: str) -> set[tuple[str, str]]:
 
 def read_attempt_scores(path: Path, student: str) -> dict[tuple[str, str], tuple[int, ...]]:
     """Load chronological score sequences from the append-only attempt record."""
+    grouped: dict[tuple[str, str], list[int]] = {}
+    for row in read_attempt_records(path, student):
+        key = (row["lesson_title"], row["activity_variant"])
+        grouped.setdefault(key, []).append(int(row["score_percent"]))
+    return {key: tuple(scores) for key, scores in grouped.items()}
+
+
+def read_attempt_records(path: Path, student: str) -> list[dict[str, str]]:
+    """Read validated chronological attempts without collapsing occurrences."""
     if not path.exists():
-        return {}
-    grouped: dict[tuple[str, str], list[tuple[date, int, int]]] = {}
+        return []
+    ordered: list[tuple[date, int, dict[str, str]]] = []
     with path.open(newline="") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames != list(ATTEMPT_FIELDS):
@@ -199,11 +208,8 @@ def read_attempt_scores(path: Path, student: str) -> dict[tuple[str, str], tuple
         for order, row in enumerate(reader):
             if row["student"] != student:
                 continue
-            key = (row["lesson_title"], row["activity_variant"])
-            grouped.setdefault(key, []).append(
-                (date.fromisoformat(row["attempt_date"]), order, int(row["score_percent"]))
-            )
-    return {
-        key: tuple(score for _attempt_date, _order, score in sorted(attempts))
-        for key, attempts in grouped.items()
-    }
+            score = int(row["score_percent"])
+            if not 0 <= score <= 100:
+                raise ValueError("Attempt score outside 0–100")
+            ordered.append((date.fromisoformat(row["attempt_date"]), order, row))
+    return [row for _day, _order, row in sorted(ordered)]
