@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from contextlib import nullcontext
@@ -21,6 +22,20 @@ from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_blocked_startup_captures_are_private_and_capture_failure_does_not_escape(self) -> None:
+        device, automation = _automation()
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory)
+            device.dump.side_effect = AutomationError("sensitive details")
+            with patch("khan_kids.automation.tempfile.mkdtemp", return_value=directory):
+                message = automation._capture_blocked_startup()
+            device.screenshot.assert_called_once_with(destination / "screen.png")
+            device.dump.assert_called_once_with(destination / "window.xml")
+            for name in ("screen.png", "window.xml"):
+                self.assertEqual((destination / name).stat().st_mode & 0o777, 0o600)
+            self.assertIn("capture failed: window.xml", message)
+            self.assertNotIn("sensitive details", message)
+
     def test_early_roster_check_waits_without_retapping_loading_screen(self) -> None:
         device, automation = _automation()
         roster = _roster_screen()
@@ -55,17 +70,74 @@ class AutomationTests(unittest.TestCase):
 
     def test_warm_reuse_requires_two_matching_supported_screens(self) -> None:
         _, automation = _automation()
+        automation._capture_blocked_startup = Mock(return_value="Diagnostics saved privately.")
         automation.live_root = Mock(side_effect=(_chooser_screen(), _chooser_screen()))
         self.assertTrue(automation.ready_for_sync())
         automation.live_root = Mock(side_effect=(_chooser_screen(), _assignment_screen()))
-        self.assertFalse(automation.ready_for_sync())
+        with self.assertRaisesRegex(AutomationError, "without restarting"):
+            automation.ready_for_sync()
         automation.live_root = Mock(return_value=_screen_with_text())
-        self.assertFalse(automation.ready_for_sync())
+        with self.assertRaisesRegex(AutomationError, "without restarting"):
+            automation.ready_for_sync()
 
     def test_supplied_navigation_root_cannot_bypass_state_validation(self) -> None:
         device, automation = _automation()
         with self.assertRaisesRegex(AutomationError, "does not match"):
             automation.ensure_assignments_report(root=_assignment_screen(), state="teacher_roster")
+        device.tap_rect.assert_not_called()
+
+    def test_child_assignments_reuses_guarded_navigation_to_chooser(self) -> None:
+        _, automation = _automation()
+        library = _screen_with_text(
+            ("Assignments", Rect(353, 443, 754, 521)),
+            ("Lessons assigned to you by dad", Rect(353, 532, 791, 572)),
+        )
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        automation.live_root = Mock(return_value=library)
+        automation._tap_navigation_control = Mock(side_effect=(home, _chooser_screen()))
+        self.assertTrue(automation.ready_for_sync())
+        calls = automation._tap_navigation_control.call_args_list
+        self.assertEqual(
+            [c.kwargs["target_state"] for c in calls], ["child_home", "profile_chooser"]
+        )
+
+    def test_child_home_skips_back_and_navigation_failure_preserves_prompt(self) -> None:
+        _, automation = _automation()
+        automation._capture_blocked_startup = Mock(return_value="Diagnostics saved privately.")
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        automation.live_root = Mock(return_value=home)
+        automation._tap_navigation_control = Mock(return_value=_chooser_screen())
+        self.assertTrue(automation.ready_for_sync())
+        automation._tap_navigation_control.assert_called_once()
+        automation._tap_navigation_control.side_effect = AutomationError("unexpected screen")
+        with self.assertRaisesRegex(AutomationError, "without restarting"):
+            automation.ready_for_sync()
+        automation._capture_blocked_startup.assert_called_once()
+
+    def test_child_home_does_not_match_arbitrary_student_label(self) -> None:
+        _, automation = _automation()
+        automation._capture_blocked_startup = Mock(return_value="Diagnostics saved privately.")
+        automation.live_root = Mock(
+            return_value=_screen_with_text(("Student A", Rect(100, 100, 500, 160)))
+        )
+        automation._tap_navigation_control = Mock()
+        with self.assertRaisesRegex(AutomationError, "without restarting"):
+            automation.ready_for_sync()
+        automation._tap_navigation_control.assert_not_called()
+
+    def test_child_navigation_requires_exact_image_control_before_tapping(self) -> None:
+        device, automation = _automation()
+        automation._capture_blocked_startup = Mock(return_value="Diagnostics saved privately.")
+        for screen in (
+            _screen_with_text(("Student A", Rect(2169, 42, 2356, 166))),
+            _screen_with_text(
+                ("Assignments", Rect(353, 443, 754, 521)),
+                ("Lessons assigned to you by dad", Rect(353, 532, 791, 572)),
+            ),
+        ):
+            automation.live_root = Mock(return_value=screen)
+            with self.assertRaisesRegex(AutomationError, "without restarting"):
+                automation.ready_for_sync()
         device.tap_rect.assert_not_called()
 
     def test_all_progress_navigation_reuses_fresh_assignments_state(self) -> None:

@@ -45,6 +45,17 @@ class FakeDevice:
 
 
 class LauncherTests(unittest.TestCase):
+    def test_blocked_reuse_never_force_stops_or_launches(self) -> None:
+        device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
+
+        def blocked() -> bool:
+            raise AutomationError("Startup blocked; preserve prompt")
+
+        with self.assertRaisesRegex(AutomationError, "preserve prompt"):
+            ensure_khan_kids_open(device, fresh_start=True, reuse_ready=blocked)
+        self.assertNotIn(("force_stop", KHAN_KIDS_PACKAGE), device.calls)
+        self.assertNotIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
+
     def test_ready_foreground_can_be_reused_without_force_stop(self) -> None:
         device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
         result = ensure_khan_kids_open(device, fresh_start=True, reuse_ready=lambda: True)

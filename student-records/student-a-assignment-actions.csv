@@ -89,3 +89,5 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-15,Student A,checked,Short Vowel Sound u,Practice 1,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_u_cvc_middle,saved; final verification pending,2026-09-15T13:10:02.237874-04:00
 2026-09-16,Student A,unchecked,Beginning Sounds 1,Basic,mastered: two consecutive attempts are at least 90%; promote to Beginning Sounds 1 — Main,saved,2026-09-16T15:19:31.486119-04:00
 2026-09-16,Student A,checked,Beginning Sounds 1,Main,next mastery rung in a rotating stretch slot,saved; final verification pending,2026-09-16T15:19:49.878926-04:00
+2026-09-17,Student A,unchecked,Short Vowel Sound i,Practice 1,mastered: latest attempt is 100%; promote to Words with i — Main,saved,2026-09-17T08:51:33.950745-04:00
+2026-09-17,Student A,checked,Words with i,Main,first unmastered activity in short_i_cvc_middle,saved; final verification pending,2026-09-17T08:52:07.705683-04:00

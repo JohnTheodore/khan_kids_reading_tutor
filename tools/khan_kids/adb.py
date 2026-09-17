@@ -20,7 +20,13 @@ class AutomationError(RuntimeError):
     """Raised when the live app is not in the exact state automation expects."""
 
 
-def run_command(args: Sequence[str], *, timeout: int = 60, capture: bool = False) -> bytes:
+def run_command(
+    args: Sequence[str],
+    *,
+    timeout: int = 60,
+    capture: bool = False,
+    input_data: bytes | None = None,
+) -> bytes:
     try:
         result = subprocess.run(
             list(args),
@@ -28,6 +34,7 @@ def run_command(args: Sequence[str], *, timeout: int = 60, capture: bool = False
             stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             timeout=timeout,
+            input=input_data,
         )
     except FileNotFoundError as error:
         raise AutomationError(f"Command is unavailable: {args[0]}") from error
@@ -148,18 +155,21 @@ class AndroidDevice:
         """Enter a secret one key at a time so it never appears as one process argument."""
         if not secret or not secret.isascii() or not secret.isalnum():
             raise AutomationError("Secret contains unsupported input characters")
+        commands = []
         for character in secret:
             keycode = f"KEYCODE_{character.upper()}"
             if character.isupper():
-                self.command(
-                    "shell",
-                    "input",
-                    "keycombination",
-                    "KEYCODE_SHIFT_LEFT",
-                    keycode,
-                )
+                commands.append(f"input keycombination KEYCODE_SHIFT_LEFT {keycode}")
             else:
-                self.command("shell", "input", "keyevent", keycode)
+                commands.append(f"input keyevent {keycode}")
+        # Stdin avoids both per-key ADB connections and secret-bearing argv.
+        # Fail immediately on a failed key injection; never retry partial input.
+        script = "set -e\n" + "\n".join(commands) + "\nexit\n"
+        with self.timing.span("adb.secret_entry"):
+            try:
+                run_command((*self.prefix, "shell"), input_data=script.encode())
+            except AutomationError:
+                raise AutomationError("Secret key entry failed; refusing to retry") from None
 
     def foreground_package(self) -> str | None:
         state = self.command("shell", "dumpsys", "window", capture=True).decode(errors="replace")

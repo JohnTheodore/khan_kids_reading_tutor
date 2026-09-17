@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Iterable, Iterator
@@ -27,6 +28,7 @@ from .vision import CheckboxReading, CheckboxState, read_checkboxes
 SCROLL_DURATION_MS = 300
 REPORT_BACK_RECT = Rect(38, 38, 171, 171)
 SWITCH_USER_RECT = Rect(2259, 12, 2529, 74)
+CHILD_PROFILE_RECT = Rect(2365, 13, 2548, 196)
 GUARDED_TRANSITION_ATTEMPTS = 3
 GUARDED_TRANSITION_TIMEOUT_SECONDS = 12
 STABLE_TRANSITION_READS = 2
@@ -139,15 +141,72 @@ class KhanKidsAutomation:
     def ready_for_sync(self) -> bool:
         """Reuse only an independently confirmed supported foreground screen."""
         try:
-            states = [self._navigation_state(self.live_root()) for _ in range(2)]
+            roots = [self.live_root() for _ in range(2)]
+            states = [self._navigation_state(root) for root in roots]
+            if states[0] != states[1]:
+                raise AutomationError("Startup screen is still changing")
+            root = roots[-1]
+            state = states[-1]
+            if state == "child_assignments":
+                root = self._tap_until_navigation_target(
+                    root,
+                    source_state=state,
+                    target_state="child_home",
+                    control_rect=REPORT_BACK_RECT,
+                    control_name="Child library back",
+                )
+                state = "child_home"
+            if state == "child_home":
+                self._tap_until_navigation_target(
+                    root,
+                    source_state=state,
+                    target_state="profile_chooser",
+                    control_rect=CHILD_PROFILE_RECT,
+                    control_name="Child profile circle",
+                )
+                return True
+            elif state not in {
+                "profile_chooser",
+                "teacher_roster",
+                "assignments_report",
+                "all_progress_report",
+            }:
+                raise AutomationError("Unrecognized foreground startup screen")
         except AutomationError:
-            return False
-        return states[0] == states[1] and states[0] in {
+            diagnostic = self._capture_blocked_startup()
+            raise AutomationError(
+                "Startup blocked; app left open without restarting. "
+                f"Inspect the screen before retrying. {diagnostic}"
+            ) from None
+        return states[0] in {
             "profile_chooser",
             "teacher_roster",
             "assignments_report",
             "all_progress_report",
         }
+
+    def _capture_blocked_startup(self) -> str:
+        """Retain one owner-private snapshot before any restart could hide a prompt."""
+        private = Path(__file__).resolve().parents[2] / "private"
+        try:
+            private.mkdir(mode=0o700, exist_ok=True)
+            destination = Path(tempfile.mkdtemp(prefix="startup-blocked-", dir=private))
+        except OSError:
+            return "Private diagnostic directory could not be created."
+        failures = []
+        for name, capture in (
+            ("screen.png", self.device.screenshot),
+            ("window.xml", self.device.dump),
+        ):
+            try:
+                path = destination / name
+                path.touch(mode=0o600)
+                capture(path)
+            except Exception:
+                failures.append(name)
+        location = f"private/{destination.name}"
+        suffix = f"; capture failed: {', '.join(failures)}" if failures else ""
+        return f"Diagnostics: {location}{suffix}."
 
     def return_to_profile_chooser(self) -> ET.Element:
         """Leave Teacher view through Khan's UI, retrying dropped navigation taps."""
@@ -354,6 +413,16 @@ class KhanKidsAutomation:
             return "password_dialog"
         if "Assignments" in texts and "All Progress" in texts:
             return "report_tabs"
+        if {"Assignments", "Lessons assigned to you by dad"}.issubset(texts):
+            return "child_assignments"
+        labels = [item for item in visible_nodes(root) if item.text in self.roster]
+        if (
+            len(labels) == 1
+            and labels[0].rect.left > 2100
+            and labels[0].rect.top < 180
+            and not (texts & {"Assignments", "Enter Password", "Students", "Sign Out"})
+        ):
+            return "child_home"
         return None
 
     def _is_teacher_roster(self, root: ET.Element) -> bool:

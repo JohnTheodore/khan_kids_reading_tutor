@@ -178,25 +178,24 @@ class AndroidDeviceTests(unittest.TestCase):
 
     def test_secret_entry_preserves_case_without_exposing_complete_secret(self) -> None:
         device = AndroidDevice("test-device")
-        with patch.object(device, "command") as command:
+        with patch("khan_kids.adb.run_command") as command:
             device.enter_alphanumeric_secret("Ab2")
-
-        calls = [call.args for call in command.call_args_list]
-        self.assertEqual(
-            calls,
-            [
-                (
-                    "shell",
-                    "input",
-                    "keycombination",
-                    "KEYCODE_SHIFT_LEFT",
-                    "KEYCODE_A",
-                ),
-                ("shell", "input", "keyevent", "KEYCODE_B"),
-                ("shell", "input", "keyevent", "KEYCODE_2"),
-            ],
+        command.assert_called_once_with(
+            ("adb", "-s", "test-device", "shell"),
+            input_data=b"set -e\ninput keycombination KEYCODE_SHIFT_LEFT KEYCODE_A\n"
+            b"input keyevent KEYCODE_B\ninput keyevent KEYCODE_2\nexit\n",
         )
-        self.assertFalse(any("Ab2" in argument for call in calls for argument in call))
+        self.assertNotIn("Ab2", str(command.call_args.args))
+
+    def test_secret_entry_failure_is_sanitized_and_not_retried(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch("khan_kids.adb.run_command", side_effect=AutomationError("sensitive")) as run,
+            self.assertRaisesRegex(AutomationError, "refusing to retry") as error,
+        ):
+            device.enter_alphanumeric_secret("Ab2")
+        run.assert_called_once()
+        self.assertNotIn("sensitive", str(error.exception))
 
     def test_secret_entry_rejects_non_alphanumeric_text(self) -> None:
         device = AndroidDevice("test-device")

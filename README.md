@@ -45,6 +45,19 @@ Check it against your child's starting point. Variants progress through
 **Basic → Main → Practice 1 → Practice 2**, skipping unavailable rungs.
 These are this project's rules, not Khan's default promotion policy.
 
+## How it works—no AI tokens for daily use
+
+Routine syncs are local Python automation, not an AI conversation. ADB controls
+the tablet, `uiautomator2` reads the app's screen hierarchy and score histories,
+and ImageMagick checks assignment checkboxes in screenshots. Python applies the
+mastery rules, updates assignments, and writes the progress report. Optional
+`scrcpy` lets you watch the tablet on your computer.
+
+Day-to-day command-line use makes no LLM calls, needs no AI API key, and consumes
+no AI tokens. You can modify the code and reading path yourself or ask an AI
+coding assistant to customize them; using that assistant is separate and may
+consume tokens, but it isn't required to run the tutor.
+
 ## What you need
 
 - Khan Academy Kids with a **Class Account**.
@@ -204,6 +217,14 @@ Create `.secrets.json` in the repository root:
 The PIN is needed only when the tablet is locked. Preserve password capitalization.
 Automatic password entry currently supports ASCII letters and digits; passwords
 containing symbols need a keyboard-entry adaptation before unattended login.
+When Khan Kids is already on a recognized child home or Assignments screen,
+the tutor navigates to the profile picker without restarting the app. Parent
+password key presses share one ADB connection, preserving capitalization and
+keeping the password out of command arguments. Unsupported screens or failed
+navigation stop the sync without restarting, preserving owner-private diagnostic
+captures under `private/startup-blocked-*`. This keeps occasional prize prompts
+available for inspection instead of hiding them with a restart. Once its actual
+layout is verified, a prize-selection handler can be added safely.
 Protect the files:
 
 ```bash
