@@ -1,5 +1,11 @@
 # Khan Kids Reading Tutor
 
+We are not affiliated with Khan Academy or Khan Academy Kids. We built this
+independent family project to help our child learn to read, and we make no money
+from it. It's free as in beer and free as in freedom: anyone can use, study,
+modify, and share our code under the [MIT license](LICENSE). Khan's app and
+materials retain their own terms.
+
 Give your child a focused learn-to-read path inside Khan Academy Kids.
 This tutor keeps ten reading assignments ready, checks scores, and advances
 lessons when your child shows mastery. It also recommends which assigned
