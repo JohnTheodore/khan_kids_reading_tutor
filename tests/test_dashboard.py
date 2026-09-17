@@ -228,22 +228,38 @@ class DashboardTests(unittest.TestCase):
 
 
 class SyncJobTests(unittest.TestCase):
-    def test_manual_worker_reuses_native_command_with_whitelisted_argv(self):
-        root = Path(__file__).resolve().parents[1]
-        job = SyncJob(root, root / "khan-mastery-sync", serial="synthetic-usb")
+    def test_manual_worker_uses_direct_session_without_sync_subprocess(self):
         assignment = {
             "grade": "Kindergarten",
             "title": "Lowercase l",
             "variant": "Main",
             "action": "assign",
         }
-        with patch.object(job, "_run") as run:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("dashboard.CatalogIndex"),
+            patch("dashboard.ManualAssignmentSession") as session,
+            patch("dashboard.subprocess.Popen") as popen,
+        ):
+            root = Path(directory)
+            job = SyncJob(root, root / "khan-mastery-sync", serial="synthetic-usb")
+            session.return_value.__enter__.return_value.apply.return_value = {
+                "student": "Student A",
+                "status": "applied",
+                "manual_change": assignment,
+                "queue_count": 1,
+                "assigned": [{"title": "Lowercase l", "variant": "Main"}],
+            }
             self.assertTrue(job.start("Student A", assignment))
             job.wait()
-            run.assert_called_once_with("Student A", assignment)
-        custom = SyncJob(root, root / "custom-workflow")
-        with self.assertRaises(AutomationError):
-            custom.start("Student A", assignment)
+            session.return_value.__enter__.return_value.apply.assert_called_once_with(
+                "Student A", assignment
+            )
+            popen.assert_not_called()
+            self.assertEqual(job.snapshot()["assignment_requests"][0]["state"], "succeeded")
+            custom = SyncJob(root, root / "custom-workflow")
+            with self.assertRaises(AutomationError):
+                custom.start("Student A", assignment)
 
     def test_manual_success_requires_matching_verified_assignment_result(self):
         assignment = {
@@ -263,28 +279,14 @@ class SyncJobTests(unittest.TestCase):
                     "queue_count": 1,
                     "assigned": [{"title": "Lowercase l", "variant": "Main"}],
                 }
-                process = Mock()
-                process.stdout = io.StringIO(json.dumps({"dashboard_report": report}) + "\n")
-                process.wait.return_value = 0
-                process.__enter__ = Mock(return_value=process)
-                process.__exit__ = Mock(return_value=False)
-                with patch("dashboard.subprocess.Popen", return_value=process) as popen:
-                    job._run("Student A", assignment)
+                with (
+                    patch("dashboard.CatalogIndex"),
+                    patch("dashboard.ManualAssignmentSession") as session,
+                ):
+                    session.return_value.__enter__.return_value.apply.return_value = report
+                    self.assertTrue(job.start("Student A", assignment))
+                    job.wait()
                 self.assertEqual(job.snapshot()["state"], "succeeded" if matches else "failed")
-                argv = popen.call_args.args[0]
-                self.assertEqual(
-                    argv[-8:],
-                    [
-                        "--assignment-action",
-                        "assign",
-                        "--assignment-grade",
-                        "Kindergarten",
-                        "--assignment-title",
-                        "Lowercase l",
-                        "--assignment-variant",
-                        "Main",
-                    ],
-                )
 
     def test_json_report_is_structured_not_added_to_diagnostic_output(self) -> None:
         process = Mock()

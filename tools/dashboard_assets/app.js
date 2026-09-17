@@ -24,6 +24,10 @@ let ready = false,
   lastReport = "";
 let submitted = false;
 let assignmentFeedback = null;
+const assignmentFeedbacks = new Map();
+let teacherSession = "closed",
+  completedRequestsSignature = "";
+let manualRunning = false;
 let completedJourneyKey = "";
 let assignmentControlSequence = 0;
 let displayedReport = null;
@@ -110,8 +114,9 @@ function updateButton() {
       !ready ||
       !connected ||
       authFailed ||
-      running ||
-      submitted ||
+      assignmentPending(
+        button.closest(".assignment-controls").dataset.assignmentKey,
+      ) ||
       retrying ||
       archivedStudents.includes(element("student").value);
   });
@@ -121,6 +126,10 @@ function updateButton() {
     authFailed ||
     running ||
     submitted ||
+    teacherSession !== "closed" ||
+    [...assignmentFeedbacks.values()].some((f) =>
+      ["sending", "queued", "working"].includes(f.state),
+    ) ||
     retrying ||
     !element("student").value;
   if (archivedStudents.includes(element("student").value))
@@ -129,12 +138,20 @@ function updateButton() {
     "sync-help",
     archivedStudents.includes(element("student").value)
       ? "Archived profile: explore preserved reading history. Live syncing is disabled; no account is switched automatically."
-      : "Reviews scores and maintains ten assignments, plus protected manual extras. Keep the tablet unlocked while changes are verified.",
+      : teacherSession === "warm"
+        ? "Teacher view is ready for more manual edits. Mastery sync becomes available after automatic logout."
+        : "Reviews scores and maintains ten assignments, plus protected manual extras. Keep the tablet unlocked while changes are verified.",
   );
   element("student").disabled = running || submitted || retrying;
   element("sync-indicator").hidden = !(running || submitted || progressVisible);
   const fraction = submitted ? 0 : progressFraction;
   element("sync-indicator").setAttribute("aria-valuenow", fraction);
+  element("sync-indicator").setAttribute(
+    "aria-label",
+    manualRunning
+      ? "Assignment update stage completion"
+      : "Mastery sync stage completion",
+  );
   element("sync-fill").style.width = fraction * 100 + "%";
   element("sync-indicator").setAttribute(
     "aria-valuetext",
@@ -148,7 +165,8 @@ function updateButton() {
   );
   element("activity").classList.toggle("sync-active", running || submitted);
   document.body.classList.toggle("busy", running || submitted);
-  const label = running || submitted ? "Syncing… " : "Sync progress ";
+  const label =
+    (running && !manualRunning) || submitted ? "Syncing… " : "Sync progress ";
   if (element("sync").dataset.label !== label) {
     element("sync").replaceChildren(
       document.createTextNode(label),
@@ -193,19 +211,29 @@ function masteryLabel(activity) {
 function assignmentKey(student, title, variant) {
   return JSON.stringify([student, title, variant]);
 }
+function assignmentPending(key) {
+  return ["sending", "queued", "working"].includes(
+    assignmentFeedbacks.get(key)?.state,
+  );
+}
+function rememberAssignmentFeedback(feedback) {
+  assignmentFeedback = feedback;
+  assignmentFeedbacks.set(feedback.key, feedback);
+}
 function paintAssignmentFeedback(controls) {
   const button = controls.querySelector("button[data-assignment]");
   if (!button) return;
   const feedback = controls.querySelector(".assignment-feedback");
-  const current =
-    assignmentFeedback?.key === controls.dataset.assignmentKey
-      ? assignmentFeedback
-      : null;
-  const busy = current?.state === "working";
+  const current = assignmentFeedbacks.get(controls.dataset.assignmentKey);
+  const busy = assignmentPending(controls.dataset.assignmentKey);
   button.textContent = busy
-    ? current.action === "assign"
-      ? "Assigning…"
-      : "Unassigning…"
+    ? current.state === "sending"
+      ? "Queuing…"
+      : current.state === "queued"
+        ? "Queued"
+        : current.action === "assign"
+          ? "Assigning…"
+          : "Unassigning…"
     : button.dataset.label;
   button.setAttribute("aria-busy", String(busy));
   feedback.hidden = !current;
@@ -277,7 +305,11 @@ function assignmentControls(title, variant, showMastery = false) {
     ? "Remove this variant and pause automatic reassignment. Assign it again to resume."
     : "Add this exact variant now. Manual extras can take the queue above ten.";
   button.disabled =
-    !ready || !connected || authFailed || running || submitted || retrying;
+    !ready ||
+    !connected ||
+    authFailed ||
+    assignmentPending(controls.dataset.assignmentKey) ||
+    retrying;
   button.addEventListener("click", () =>
     startWorkflow({
       grade: activity.grade,
@@ -296,16 +328,23 @@ function assignmentControls(title, variant, showMastery = false) {
 }
 async function startWorkflow(assignment = null) {
   if (
-    submitted ||
-    running ||
+    (!assignment && (submitted || running || teacherSession !== "closed")) ||
+    (assignment &&
+      assignmentPending(
+        assignmentKey(
+          element("student").value,
+          assignment.title,
+          assignment.variant,
+        ),
+      )) ||
     !ready ||
     !connected ||
     authFailed ||
     archivedStudents.includes(element("student").value)
   )
     return;
-  submitted = true;
-  assignmentFeedback = assignment
+  if (!assignment) submitted = true;
+  const feedback = assignment
     ? {
         ...assignment,
         key: assignmentKey(
@@ -314,15 +353,16 @@ async function startWorkflow(assignment = null) {
           assignment.variant,
         ),
         accepted: false,
-        state: "working",
+        state: "sending",
         message: "Sending request · waiting for tablet verification…",
       }
     : null;
+  if (feedback) rememberAssignmentFeedback(feedback);
   connectionProblem = jobProblem = "";
   showProblems();
   setText(
     "state",
-    assignment ? "Updating this lesson…" : "Starting your check-in…",
+    assignment ? "Queuing this lesson update…" : "Starting your check-in…",
   );
   setText(
     "phase",
@@ -340,17 +380,21 @@ async function startWorkflow(assignment = null) {
         ...(assignment || {}),
       }),
     });
-    if (assignmentFeedback) assignmentFeedback.accepted = true;
+    if (feedback) {
+      feedback.accepted = true;
+      feedback.state = "queued";
+      feedback.message = "Queued · waiting for the tablet…";
+    }
     await status();
-    submitted = false;
+    if (!assignment) submitted = false;
     updateButton();
     schedulePoll();
   } catch (e) {
-    submitted = false;
+    if (!assignment) submitted = false;
     connected = false;
-    if (assignmentFeedback) {
-      assignmentFeedback.state = "error";
-      assignmentFeedback.message = e.message;
+    if (feedback) {
+      feedback.state = "error";
+      feedback.message = e.message;
     }
     updateButton();
     error(e.message);
@@ -660,6 +704,10 @@ async function latest() {
   }
 }
 function friendlyPhase(last = "") {
+  if (/verify_parent_assignment/.test(last))
+    return "Verifying this assignment on the tablet.";
+  if (/save_parent_assignment|inspect_parent_assignment/.test(last))
+    return "Opening this lesson and saving your assignment change.";
   if (/teardown/.test(last))
     return "Returning the tablet to the profile picker.";
   if (/fixed_point/.test(last))
@@ -670,6 +718,107 @@ function friendlyPhase(last = "") {
     return "Reviewing lesson scores and mastery.";
   if (/plan_queue/.test(last)) return "Choosing the next reading lessons.";
   return "Connecting to the tablet and opening Teacher view.";
+}
+function renderAssignmentRequests(data) {
+  teacherSession = data.teacher_session || "closed";
+  setText(
+    "parent-session",
+    teacherSession === "warm"
+      ? "Teacher view is ready for another assignment. It logs out 60 seconds after the last update."
+      : "",
+  );
+  element("parent-session").hidden = teacherSession !== "warm";
+  if (!Array.isArray(data.assignment_requests)) return false;
+  const known = new Set(
+    data.assignment_requests.map((r) =>
+      assignmentKey(r.student, r.assignment.title, r.assignment.variant),
+    ),
+  );
+  for (const feedback of assignmentFeedbacks.values())
+    if (
+      feedback.accepted &&
+      assignmentPending(feedback.key) &&
+      !known.has(feedback.key)
+    ) {
+      feedback.state = "error";
+      feedback.message =
+        "No current request found. Check the tablet before trying this update again.";
+    }
+  let position = 0;
+  for (const request of data.assignment_requests) {
+    const assignment = request.assignment;
+    const key = assignmentKey(
+      request.student,
+      assignment.title,
+      assignment.variant,
+    );
+    const local = assignmentFeedbacks.get(key);
+    if (request.state === "queued") position++;
+    if (local?.state === "sending" && !local.accepted) continue;
+    const state = {
+      running: "working",
+      queued: "queued",
+      succeeded: "success",
+      failed: "error",
+      blocked: "error",
+    }[request.state];
+    const message =
+      request.state === "queued"
+        ? `Queued · ${position === 1 ? "next" : "position " + position} after the current tablet operation.`
+        : request.state === "running"
+          ? friendlyPhase(data.phase)
+          : request.state === "succeeded"
+            ? (assignment.action === "assign" ? "Assigned" : "Unassigned") +
+              " · verified on tablet."
+            : request.error || "Not applied. Check the tablet before retrying.";
+    const feedback = { ...assignment, key, accepted: true, state, message };
+    assignmentFeedbacks.set(key, feedback);
+    if (
+      data.student === request.student &&
+      data.assignment?.title === assignment.title &&
+      data.assignment?.variant === assignment.variant
+    )
+      assignmentFeedback = feedback;
+  }
+  const requests = data.assignment_requests.filter(
+    (r) => r.student === element("student").value,
+  );
+  const pending = requests.filter((r) =>
+    ["queued", "running"].includes(r.state),
+  );
+  element("assignment-requests").hidden = requests.length === 0;
+  setText(
+    "assignment-requests-summary",
+    pending.length
+      ? `Assignment requests · ${pending.length} in progress or queued`
+      : "Assignment requests · latest updates",
+  );
+  element("assignment-requests-list").replaceChildren(
+    ...(pending.length ? pending : requests.slice(-5)).map((request) => {
+      const row = node("li");
+      row.append(
+        node(
+          "span",
+          "lesson-name",
+          `${request.assignment.title} — ${request.assignment.variant}`,
+        ),
+        node(
+          "span",
+          "muted",
+          `${request.assignment.action === "assign" ? "Assign" : "Unassign"} · ${{ queued: "Queued", running: "Updating on tablet", succeeded: "Verified", failed: "Failed", blocked: "Not applied" }[request.state]}`,
+        ),
+      );
+      return row;
+    }),
+  );
+  const signature = JSON.stringify(
+    requests
+      .filter((r) => !["queued", "running"].includes(r.state))
+      .map((r) => [r.id, r.state]),
+  );
+  const changed = signature !== completedRequestsSignature;
+  completedRequestsSignature = signature;
+  return changed;
 }
 async function status() {
   const sequence = ++statusSequence;
@@ -686,12 +835,15 @@ async function status() {
     );
   connected = true;
   running = data.state === "running";
+  manualRunning = running && !!data.assignment;
   if (submitted && !running && data.state === "idle") {
     updateButton();
     return;
   }
   const selected = data.student === element("student").value;
+  const requestsChanged = renderAssignmentRequests(data);
   if (
+    !Array.isArray(data.assignment_requests) &&
     selected &&
     data.assignment &&
     !(submitted && assignmentFeedback && !assignmentFeedback.accepted)
@@ -702,7 +854,7 @@ async function status() {
       data.assignment.variant,
     );
     if (running || assignmentFeedback?.key === key) {
-      assignmentFeedback = {
+      rememberAssignmentFeedback({
         ...data.assignment,
         key,
         accepted: true,
@@ -711,7 +863,7 @@ async function status() {
           ? friendlyPhase(data.phase)
           : data.report?.error ||
             "The update could not be verified. Reconnect to check before retrying.",
-      };
+      });
       if (
         data.state === "succeeded" &&
         data.report?.queue_count != null &&
@@ -762,7 +914,9 @@ async function status() {
       ? (data.assignment
           ? `${data.assignment.action === "assign" ? "Assigning" : "Unassigning"} ${data.assignment.title} — ${data.assignment.variant} · `
           : "") + friendlyPhase(data.phase)
-      : "Your tablet is checked during each sync.",
+      : selected && data.assignment && data.state === "succeeded"
+        ? "Only your requested variant was checked; no mastery sync was run."
+        : "Your tablet is checked during each sync.",
   );
   if (selected && data.assignment && assignmentFeedback?.state === "success")
     setText(
@@ -786,18 +940,26 @@ async function status() {
   jobProblem =
     data.state === "failed" && selected
       ? data.report?.error ||
-        "The sync stopped before it could finish normally. Leave unexpected screens visible and open troubleshooting for details."
+        (data.assignment
+          ? "The assignment session stopped. Any verified changes remain saved; check the tablet before retrying."
+          : "The sync stopped before it could finish normally. Leave unexpected screens visible and open troubleshooting for details.")
       : "";
   if (running)
-    setText("result-meta", "Sync in progress · previous check-in shown below");
+    setText(
+      "result-meta",
+      manualRunning
+        ? "Assignment update in progress · last verified queue shown below"
+        : "Sync in progress · previous check-in shown below",
+    );
   else if (data.state === "failed" && selected && !data.report)
     setText("result-meta", "Sync stopped · previous check-in shown below");
   showProblems();
   updateButton();
   if (
-    selected &&
-    ["succeeded", "failed"].includes(data.state) &&
-    !(submitted && assignmentFeedback && !assignmentFeedback.accepted)
+    requestsChanged ||
+    (selected &&
+      ["succeeded", "failed"].includes(data.state) &&
+      !(submitted && assignmentFeedback && !assignmentFeedback.accepted))
   ) {
     const key = JSON.stringify([
       data.student,
@@ -805,8 +967,9 @@ async function status() {
       data.assignment,
       data.report,
     ]);
-    if (key !== completedJourneyKey) {
+    if (requestsChanged || key !== completedJourneyKey) {
       completedJourneyKey = key;
+      if (requestsChanged) await latest();
       // Queue evidence is already verified; don't depend on a second request
       // succeeding before the currently open lesson reflects its new state.
       document
@@ -875,7 +1038,15 @@ function schedulePoll() {
   if (authFailed || retrying) return;
   timer = setTimeout(
     poll,
-    document.hidden ? 30000 : running || submitted || !connected ? 1000 : 10000,
+    document.hidden
+      ? 30000
+      : running ||
+          submitted ||
+          teacherSession !== "closed" ||
+          [...assignmentFeedbacks.keys()].some(assignmentPending) ||
+          !connected
+        ? 1000
+        : 10000,
   );
 }
 async function poll() {
@@ -886,9 +1057,10 @@ async function poll() {
     document.body.dataset.state = "offline";
     setText("state", "Local app unavailable. Reconnect to continue.");
     setText("phase", "A sync may still be running on your computer.");
-    if (assignmentFeedback?.state === "working")
-      assignmentFeedback.message =
-        "Connection lost. The tablet may still be working; reconnect to check before retrying.";
+    for (const feedback of assignmentFeedbacks.values())
+      if (["queued", "working"].includes(feedback.state))
+        feedback.message =
+          "Connection lost. The tablet may still be working; reconnect to check before retrying.";
     updateButton();
     error(e.message);
   }

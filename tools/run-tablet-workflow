@@ -4,12 +4,6 @@ set -euo pipefail
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_dir"
 
-platform_tools="$repo_dir/private/android-sdk/platform-tools"
-if [[ -x "$platform_tools/adb" ]]; then
-  PATH="$platform_tools:$PATH"
-  export PATH
-fi
-
 mode="${1:-}"
 if [[ -z "$mode" ]]; then
   printf 'usage: %s {connect|open|sync|mastery} [arguments...]\n' "$0" >&2

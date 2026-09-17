@@ -94,3 +94,8 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-17,Student A,unchecked,Short Vowel Sound e,Main,mastered: latest attempt is 100%; promote to Short Vowel Sound e — Practice 1,saved,2026-09-17T11:22:03.357058-04:00
 2026-09-17,Student A,checked,Short Vowel Sound e,Practice 1,first unmastered activity in short_e_cvc_middle,saved; final verification pending,2026-09-17T11:22:37.716468-04:00
 2026-09-17,Student A,checked,Lowercase l,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-17T13:56:41.209866-04:00
+2026-09-17,Student A,checked,Beginning Sound c,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-17T14:09:15.041475-04:00
+2026-09-17,Student A,unchecked,Beginning Sound c,Practice 2,mastered: latest attempt is 100%,saved,2026-09-17T14:44:58.960856-04:00
+2026-09-17,Student A,unchecked,Lowercase l,Practice 2,mastered: latest attempt is 100%,saved,2026-09-17T14:45:13.724186-04:00
+2026-09-17,Student A,checked,Beginning Sound f,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-17T14:47:13.472890-04:00
+2026-09-17,Student A,checked,Beginning Sound r,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-17T14:49:56.605145-04:00

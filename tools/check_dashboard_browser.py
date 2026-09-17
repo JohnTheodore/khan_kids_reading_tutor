@@ -212,12 +212,31 @@ class DashboardBrowserTests(unittest.TestCase):
         self.assertEqual(self.errors, [], "Unexpected JavaScript exception")
 
     def start_job(self, student: str, assignment: dict | None = None) -> bool:
+        if assignment and "assignment_requests" in self.state:
+            busy = self.state["state"] == "running"
+            self.state["assignment_requests"].append(
+                {
+                    "id": str(len(self.state["assignment_requests"])),
+                    "student": student,
+                    "assignment": assignment,
+                    "state": "queued" if busy else "running",
+                    "error": None,
+                }
+            )
+            self.state["teacher_session"] = "active"
+            if busy:
+                return True
         self.state.update(
             state="running",
             student=student,
             report=None,
             elapsed_seconds=2,
-            output="Starting phase.review_assignments\nSynthetic diagnostic log\n",
+            output=(
+                "Starting phase.save_parent_assignment\n"
+                if assignment and "assignment_requests" in self.state
+                else "Starting phase.review_assignments\n"
+            )
+            + "Synthetic diagnostic log\n",
             assignment=assignment,
         )
         return True
@@ -296,7 +315,7 @@ class DashboardBrowserTests(unittest.TestCase):
             "button", name="Assign Short Vowel Sound a — Main", exact=True
         ).first
         button.click()
-        expect(button).to_have_text("Assigning…")
+        expect(button).to_have_text("Queuing…")
         expect(button).to_have_attribute("aria-busy", "true")
         expect(self.page.locator(".recent-lesson .assignment-feedback")).to_contain_text(
             "Sending request"
@@ -370,6 +389,103 @@ class DashboardBrowserTests(unittest.TestCase):
         self.page.locator(".mastered-lessons .journey-lesson > summary").click()
         expect(self.page.locator("button[data-assignment]")).to_have_count(0)
         expect(self.page.locator(".variant-assignment")).to_contain_text("Read-only archive")
+
+    def test_parent_requests_can_queue_and_first_result_refreshes_during_next_edit(self):
+        self.state["assignment_requests"] = []
+        self.open()
+        self.page.locator(".milestone > summary").click()
+        self.page.locator(".unrecorded-lessons > summary").click()
+        self.page.locator(".unrecorded-lessons .journey-lesson > summary").click()
+        first = self.page.get_by_role(
+            "button", name="Assign Short Vowel Sound a — Main", exact=True
+        ).first
+        second = self.page.get_by_role(
+            "button", name="Assign Short Vowel Sound i — Main", exact=True
+        ).first
+        first.click()
+        expect(first).to_have_text("Assigning…")
+        expect(second).to_be_enabled()
+        second.click()
+        expect(second).to_have_text("Queued")
+        expect(self.page.locator(".unrecorded-lessons .assignment-feedback")).to_contain_text(
+            "next"
+        )
+        self.assertEqual(self.job.start.call_count, 2)
+        expect(first).to_be_disabled()
+        expect(second).to_be_disabled()
+        # First result must update even if the worker has already started the second.
+        report = copy.deepcopy(self.reports["Student A"])
+        report["assigned"][0].update(title="Short Vowel Sound a", variant="Main")
+        report["timestamp"] = "2026-09-17T14:00:00-04:00"
+        self.reports["Student A"] = report
+        self.state["assignment_requests"][0]["state"] = "succeeded"
+        self.state["assignment_requests"][1]["state"] = "running"
+        self.state.update(
+            assignment=self.state["assignment_requests"][1]["assignment"], report=None
+        )
+        self.page.evaluate("poll()")
+        expect(
+            self.page.get_by_role(
+                "button", name="Unassign Short Vowel Sound a — Main", exact=True
+            ).first
+        ).to_be_enabled()
+        expect(second).to_have_text("Assigning…")
+        expect(self.page.locator(".unrecorded-lessons .journey-lesson")).to_have_attribute(
+            "open", ""
+        )
+        self.page.reload()
+        expect(
+            self.page.get_by_role(
+                "button", name="Unassign Short Vowel Sound a — Main", exact=True
+            ).first
+        ).to_be_enabled()
+        self.page.locator("#assignment-requests-summary").click()
+        expect(self.page.locator("#assignment-requests-list")).to_contain_text(
+            "Short Vowel Sound i — Main"
+        )
+
+    def test_warm_teacher_session_allows_assign_but_not_overlapping_sync(self):
+        self.state.update(teacher_session="warm", assignment_requests=[], teacher_idle_seconds=59)
+        self.open()
+        expect(self.page.locator("#parent-session")).to_contain_text("60 seconds")
+        expect(self.page.locator("#sync")).to_be_disabled()
+        expect(
+            self.page.get_by_role(
+                "button", name="Assign Short Vowel Sound a — Main", exact=True
+            ).first
+        ).to_be_enabled()
+        self.state.update(teacher_session="closed", teacher_idle_seconds=None)
+        self.page.evaluate("poll()")
+        expect(self.page.locator("#parent-session")).to_be_hidden()
+        expect(self.page.locator("#sync")).to_be_enabled()
+
+    def test_interrupted_request_queue_shows_failed_and_not_applied_without_replay(self):
+        self.state.update(
+            assignment_requests=[
+                {
+                    "id": "synthetic-error",
+                    "student": "Student A",
+                    "assignment": {
+                        "title": "Short Vowel Sound a",
+                        "variant": "Main",
+                        "grade": "Kindergarten",
+                        "action": "assign",
+                    },
+                    "state": "blocked",
+                    "error": "Not applied: an earlier tablet operation failed.",
+                }
+            ]
+        )
+        self.open()
+        expect(self.page.locator(".recent-lesson .assignment-feedback")).to_contain_text(
+            "Not applied"
+        )
+        expect(
+            self.page.get_by_role(
+                "button", name="Assign Short Vowel Sound a — Main", exact=True
+            ).first
+        ).to_be_enabled()
+        self.job.start.assert_not_called()
 
     def test_assignment_http_error_retains_unverified_state_without_retry(self):
         self.page.route(

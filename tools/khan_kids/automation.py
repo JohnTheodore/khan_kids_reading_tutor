@@ -642,6 +642,44 @@ class KhanKidsAutomation:
         """Assign one lesson; callers must perform final queue verification."""
         return next(self.assign_many(((grade, title, variant),)))
 
+    def set_catalog_assignment(
+        self, grade: str, title: str, variant: str, *, assigned: bool
+    ) -> tuple[ActionResult | None, dict[str, str]]:
+        """Change only the selected student's exact variant, including idempotent removal."""
+        root = self._open_all_progress()
+        root = self._select_grade(grade, root=root)
+        root = self._open_report_variant(title, variant, root=root)
+        self._validate_assignment_dialog(root, title, variant)
+        before = {
+            student: reading.state.value
+            for student, reading in read_checkboxes(
+                self.device, _dialog_student_labels(root, self.roster)
+            ).items()
+        }
+        desired = CheckboxState.CHECKED.value if assigned else CheckboxState.UNCHECKED.value
+        if before[self.student] == desired:
+            self._inspect_open_assignment(title, variant, "parent-no-op", root=root)
+            return None, before
+        result, _ = self._save_catalog_assignment(root, title, variant, assigned=assigned)
+        return result, before
+
+    def _save_catalog_assignment(
+        self, root: ET.Element, title: str, variant: str, *, assigned: bool
+    ) -> tuple[ActionResult, ET.Element]:
+        self._validate_assignment_dialog(root, title, variant)
+        self._change_checkbox(
+            root,
+            desired=CheckboxState.CHECKED if assigned else CheckboxState.UNCHECKED,
+            prefix="assign" if assigned else "unassign",
+        )
+        after = self._save_dialog(expected_report="all_progress")
+        return ActionResult(
+            "checked" if assigned else "unchecked",
+            title,
+            variant,
+            "saved; final verification pending",
+        ), after
+
     def assign_many(self, assignments: Iterable[tuple[str, str, str]]) -> Iterator[ActionResult]:
         """Assign catalog-ordered lessons in one All Progress traversal per grade."""
         requested = tuple(assignments)
@@ -657,10 +695,8 @@ class KhanKidsAutomation:
                 root = self._scroll_to_top(root=root)
                 active_grade = grade
             root = self._open_report_variant(title, variant, root=root, reset_to_top=False)
-            self._validate_assignment_dialog(root, title, variant)
-            self._change_checkbox(root, desired=CheckboxState.CHECKED, prefix="assign")
-            root = self._save_dialog(expected_report="all_progress")
-            yield ActionResult("checked", title, variant, "saved; final verification pending")
+            result, root = self._save_catalog_assignment(root, title, variant, assigned=True)
+            yield result
 
     def _find_assignment(self, title: str, variant: str) -> AssignmentRow:
         root = self._assignment_report_top()

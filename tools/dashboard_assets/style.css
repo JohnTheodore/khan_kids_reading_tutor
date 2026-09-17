@@ -341,6 +341,20 @@
 .assignment-feedback[data-state="error"] {
   color: var(--warning-ink);
 }
+.assignment-requests {
+  margin-block: 16px;
+}
+.assignment-requests summary {
+  color: var(--accent);
+  min-height: 44px;
+  padding-block: 8px;
+}
+.assignment-requests li {
+  padding-block: 8px;
+}
+.assignment-requests li > span {
+  display: block;
+}
 .variant-assignment .assignment-controls {
   justify-content: flex-end;
 }

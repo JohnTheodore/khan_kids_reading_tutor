@@ -23,8 +23,10 @@ from urllib.parse import parse_qs, urlsplit
 from khan_kids.adb import AutomationError
 from khan_kids.catalog import CatalogIndex
 from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError
+from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import read_local_secrets
 from khan_kids.manual_assignments import ManualChange
+from khan_kids.manual_session import ManualAssignmentSession
 from khan_kids.reading_journey import family_journeys
 from khan_kids.records import write_json_atomic
 from khan_kids.student_identity import load_aliases
@@ -33,6 +35,8 @@ from khan_kids.sync_report import build_dashboard_report
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "tools" / "dashboard_assets"
 MAX_OUTPUT_CHARS = 250_000
+PARENT_IDLE_SECONDS = 60
+MAX_PARENT_REQUESTS = 50
 
 
 def sync_progress(output: str, state: str) -> float:
@@ -44,6 +48,10 @@ def sync_progress(output: str, state: str) -> float:
         "Finished phase.review_assignments": 0.4,
         "Finished phase.plan_queue": 0.6,
         "Finished phase.fixed_point_verify": 0.8,
+        "Starting phase.inspect_parent_assignment": 0.2,
+        "Finished phase.inspect_parent_assignment": 0.4,
+        "Finished phase.save_parent_assignment": 0.6,
+        "Finished phase.verify_parent_assignment": 0.8,
         "Starting teardown.": 0.8,
         "Finished teardown.": 0.9,
     }
@@ -140,11 +148,12 @@ def setup_status(root: Path, serial: str | None) -> dict:
 
 
 class SyncJob:
-    """One job at a time; all tablet logic and process exclusion stay in the engine."""
+    """Serialize tablet work; parent edits use a reusable, independent session."""
 
     def __init__(self, root: Path, workflow: Path, serial: str | None = None) -> None:
         self.root, self.workflow, self.serial = root, workflow, serial
         self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
         self.thread: threading.Thread | None = None
         self.state = "idle"
         self.output = ""
@@ -153,6 +162,43 @@ class SyncJob:
         self.student: str | None = None
         self.assignment: dict | None = None
         self.started_at: float | None = None
+        self.manual_worker = False
+        self.warm_deadline: float | None = None
+        self.stopping = False
+        self.requests_path = root / "private/dashboard-assignment-queue.json"
+        self.requests = []
+        if (
+            self.workflow.resolve() == (self.root / "khan-mastery-sync").resolve()
+            and self.requests_path.exists()
+        ):
+            if self.requests_path.stat().st_mode & 0o077:
+                raise AutomationError("Assignment queue requires owner-only permissions")
+            self.requests = json.loads(self.requests_path.read_text())
+            if not isinstance(self.requests, list) or any(
+                not isinstance(request, dict)
+                or set(request) != {"id", "student", "assignment", "state", "error"}
+                or not isinstance(request.get("id"), str)
+                or not isinstance(request.get("student"), str)
+                or not isinstance(request.get("assignment"), dict)
+                or set(request["assignment"]) != {"grade", "title", "variant", "action"}
+                or any(not isinstance(value, str) for value in request["assignment"].values())
+                or request["assignment"]["action"] not in {"assign", "unassign"}
+                or (request.get("error") is not None and not isinstance(request["error"], str))
+                or request.get("state")
+                not in {"queued", "running", "succeeded", "failed", "blocked"}
+                for request in self.requests
+            ):
+                raise AutomationError("Saved assignment queue could not be validated")
+            for request in self.requests:
+                if request["state"] in {"queued", "running"}:
+                    request.update(
+                        state="blocked",
+                        error="Dashboard restarted. Check the tablet before explicitly trying this request again; it was not automatically replayed.",
+                    )
+            self._save_requests()
+
+    def _save_requests(self) -> None:
+        write_json_atomic(self.requests_path, self.requests)
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -164,6 +210,15 @@ class SyncJob:
                 "student": self.student,
                 "assignment": self.assignment,
                 "elapsed_seconds": time.monotonic() - self.started_at if self.started_at else None,
+                "assignment_requests": [dict(request) for request in self.requests],
+                "teacher_session": "warm"
+                if self.warm_deadline is not None
+                else "active"
+                if self.manual_worker
+                else "closed",
+                "teacher_idle_seconds": max(0, int(self.warm_deadline - time.monotonic()))
+                if self.warm_deadline is not None
+                else None,
             }
 
     def journeys(self, students: list[str]) -> dict:
@@ -195,27 +250,177 @@ class SyncJob:
                 assignment, CatalogIndex(self.root / "data/reading-ela-archive.json")
             ).as_dict()
         with self.lock:
+            if self.stopping:
+                return False
+            if assignment:
+                if any(
+                    request["student"] == student
+                    and request["assignment"] == assignment
+                    and request["state"] in {"queued", "running"}
+                    for request in self.requests
+                ):
+                    return True
+                if (
+                    sum(request["state"] in {"queued", "running"} for request in self.requests)
+                    >= MAX_PARENT_REQUESTS
+                ):
+                    return False
+                request = {
+                    "id": secrets.token_hex(12),
+                    "student": student,
+                    "assignment": assignment,
+                    "state": "queued",
+                    "error": None,
+                }
+                previous = self.requests
+                kept = set(
+                    [r["id"] for r in self.requests if r["state"] not in {"queued", "running"}][
+                        -50:
+                    ]
+                )
+                self.requests = [
+                    r
+                    for r in self.requests
+                    if r["state"] in {"queued", "running"} or r["id"] in kept
+                ] + [request]
+                try:
+                    self._save_requests()
+                except OSError:
+                    self.requests = previous
+                    raise
+                if not self.thread or not self.thread.is_alive():
+                    self._start_manual_locked()
+                self.condition.notify_all()
+                return True
             if self.state == "running":
+                return False
+            if self.manual_worker:
                 return False
             self.state, self.output, self.returncode = "running", "", None
             self.report, self.student = None, student
             self.assignment = assignment
             self.started_at = time.monotonic()
-            self.thread = threading.Thread(target=self._run, args=(student, assignment))
+            self.thread = threading.Thread(target=self._run, args=(student,))
             self.thread.start()
         return True
+
+    def _start_manual_locked(self) -> None:
+        self.manual_worker = True
+        self.state = "running"
+        self.warm_deadline = None
+        self.thread = threading.Thread(target=self._run_manual)
+        self.thread.start()
+
+    def _run_manual(self) -> None:
+        current = None
+        try:
+            with self.condition:
+                current = next(r for r in self.requests if r["state"] == "queued")
+                current["state"] = "running"
+                self.student, self.assignment = current["student"], current["assignment"]
+                self.output, self.report = "", None
+                self.started_at = time.monotonic()
+                self._save_requests()
+            with ManualAssignmentSession(self.root, self.serial, self._append) as session:
+                while True:
+                    with self.condition:
+                        queued = current or next(
+                            (r for r in self.requests if r["state"] == "queued"), None
+                        )
+                        if queued is None:
+                            if self.warm_deadline is None:
+                                self.warm_deadline = time.monotonic() + PARENT_IDLE_SECONDS
+                            remaining = self.warm_deadline - time.monotonic()
+                            if remaining <= 0 or self.stopping:
+                                self.warm_deadline = None
+                                break
+                            self.condition.wait(timeout=remaining)
+                            continue
+                        current = queued
+                        current["state"] = "running"
+                        self.state, self.output, self.returncode = "running", "", None
+                        self.student, self.assignment = current["student"], current["assignment"]
+                        self.report = None
+                        self.warm_deadline = None
+                        self.started_at = time.monotonic()
+                        self._save_requests()
+                    report = session.apply(current["student"], current["assignment"])
+                    if not self._valid_assignment_report(
+                        report, current["student"], current["assignment"]
+                    ):
+                        raise AutomationError(
+                            "The parent edit did not return an exact verified assignment result"
+                        )
+                    with self.condition:
+                        self.report = report
+                        current["state"] = "succeeded"
+                        self.state, self.returncode = "succeeded", 0
+                        self._save_requests()
+                        self.warm_deadline = time.monotonic() + PARENT_IDLE_SECONDS
+                        self.condition.notify_all()
+                    current = None
+        except Exception as error:
+            self._append("Parent assignment session stopped. Check the tablet before retrying.\n")
+            with self.condition:
+                if current is not None:
+                    current.update(
+                        state="failed",
+                        error="Assignment could not be verified. Check the tablet before retrying.",
+                    )
+                for request in self.requests:
+                    if request["state"] == "queued":
+                        request.update(
+                            state="blocked",
+                            error="Not applied: an earlier tablet operation failed. Check the tablet before retrying.",
+                        )
+                self.state, self.returncode = "failed", 1
+                self.warm_deadline = None
+                with suppress(OSError):
+                    self._save_requests()
+            with suppress(Exception):
+                journal = (
+                    self.root
+                    / f"private/{(self.student or 'unknown').casefold().replace(' ', '-')}-manual-operation.json"
+                )
+                payload = json.loads(journal.read_text()) if journal.exists() else None
+                append_failed_sync_incident(
+                    self.root / "INCIDENTS.md",
+                    student=self.student or "unknown",
+                    error=error,
+                    payload=payload,
+                )
+        finally:
+            with self.condition:
+                self.manual_worker = False
+                self.warm_deadline = None
+                # Requests received during the bounded logout transition start a new
+                # session only after the previous lock/awake context is released.
+                if any(r["state"] == "queued" for r in self.requests):
+                    self._start_manual_locked()
+
+    @staticmethod
+    def _valid_assignment_report(report: dict, student: str, assignment: dict) -> bool:
+        return bool(
+            report
+            and report.get("student") == student
+            and report.get("manual_change") == assignment
+            and report.get("status") in {"applied", "no_op"}
+            and report.get("queue_count") is not None
+            and any(
+                a.get("title") == assignment["title"] and a.get("variant") == assignment["variant"]
+                for a in report.get("assigned", [])
+            )
+            == (assignment["action"] == "assign")
+        )
 
     def _append(self, text: str) -> None:
         with self.lock:
             self.output = (self.output + text)[-MAX_OUTPUT_CHARS:]
 
-    def _run(self, student: str, assignment: dict | None = None) -> None:
+    def _run(self, student: str) -> None:
         command = [str(self.workflow), "--student", student, "--json"]
         if self.serial:
             command.extend(["--serial", self.serial])
-        if assignment:
-            for field in ("action", "grade", "title", "variant"):
-                command.extend([f"--assignment-{field}", assignment[field]])
         code = 1
         try:
             with subprocess.Popen(
@@ -244,20 +449,6 @@ class SyncJob:
                     not self.report
                     or self.report.get("student") != student
                     or self.report.get("status") not in {"applied", "no_op", "review_required"}
-                    or (
-                        assignment
-                        and (
-                            self.report.get("manual_change") != assignment
-                            or self.report.get("status") not in {"applied", "no_op"}
-                            or self.report.get("queue_count") is None
-                            or any(
-                                a.get("title") == assignment["title"]
-                                and a.get("variant") == assignment["variant"]
-                                for a in self.report.get("assigned", [])
-                            )
-                            != (assignment["action"] == "assign")
-                        )
-                    )
                 ):
                     code = 1
                     self._append(
@@ -278,10 +469,27 @@ class SyncJob:
             with self.lock:
                 self.returncode = code
                 self.state = "succeeded" if code == 0 else "failed"
+                if any(r["state"] == "queued" for r in self.requests):
+                    if code == 0:
+                        self._start_manual_locked()
+                    else:
+                        for request in self.requests:
+                            if request["state"] == "queued":
+                                request.update(
+                                    state="blocked",
+                                    error="Not applied: mastery sync failed. Check the tablet before retrying.",
+                                )
+                        self._save_requests()
 
     def wait(self) -> None:
-        if self.thread:
-            self.thread.join()
+        with self.condition:
+            self.stopping = True
+            self.condition.notify_all()
+        while self.thread:
+            thread = self.thread
+            thread.join()
+            if self.thread is thread:
+                break
 
     def latest_report(self, student: str) -> dict | None:
         # Custom wrappers use only their own cached JSON, never guessed engine paths.

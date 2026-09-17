@@ -3,6 +3,11 @@ set -euo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_dir"
+platform_tools="$repo_dir/private/android-sdk/platform-tools"
+if [[ -x "$platform_tools/adb" ]]; then
+  PATH="$platform_tools:$PATH"
+  export PATH
+fi
 if [[ -n "${KHAN_PROFILE_OUTPUT:-}" && "${1:-}" == tools/reading_workflow.py ]]; then
   set -- -m cProfile -o "$KHAN_PROFILE_OUTPUT" "$@"
 fi

@@ -364,6 +364,16 @@ command-line launcher; the dashboard does not implement a second mastery policy.
    now; the dashboard confirms it only after verification. **Unassign** removes
    that variant and pauses its automatic reassignment until you assign it again.
 
+Assign and Unassign are **direct edits**, not mastery syncs: they change only the
+requested variant, verify its checkbox and live queue, and refresh the browser
+automatically. You can click other lessons while an edit runs; requests are saved
+locally and processed in order, with inline Queued/Updating/Verified feedback.
+Teacher view stays open for **60 seconds after the last edit**, so another request
+reuses the connection and login. Then it logs out through Khan Kids' UI without
+closing the app. An interruption stops pending requests; a dashboard restart never
+automatically replays unfinished edits. Check the tablet and explicitly retry them.
+Use **Sync progress** separately to collect scores and apply the mastery algorithm.
+
 Each variant shows its own mastery evidence and last verified assignment state.
 Assignment status is a snapshot from the last completed operation, not a live
 tablet connection. Manual additions are protected extras and may take the queue
