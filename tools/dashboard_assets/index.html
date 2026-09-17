@@ -81,7 +81,8 @@
       </section>
       <div id="activity" class="activity">
         <span class="activity-dot" aria-hidden="true"></span>
-        <div>
+        <svg class="icon activity-symbol" aria-hidden="true"><use href="#icon-sync" /></svg>
+        <div class="activity-copy">
           <p id="state" role="status" aria-live="polite">
             Connecting to your local app…
           </p>
@@ -100,6 +101,14 @@
         >
           <span id="sync-fill" class="sync-fill"></span>
         </div>
+        <ol id="sync-stages" class="sync-stages" aria-label="Sync steps" hidden>
+          <li><span class="stage-label">Read scores</span><span class="stage-status">Waiting</span></li>
+          <li><span class="stage-label">Update lessons</span><span class="stage-status">Waiting</span></li>
+          <li><span class="stage-label">Verify &amp; finish</span><span class="stage-status">Waiting</span></li>
+        </ol>
+        <p id="sync-explanation" class="muted" hidden>
+          Keep the tablet unlocked. Progress advances when real steps finish.
+        </p>
       </div>
       <p id="parent-session" class="muted" hidden></p>
       <details id="assignment-requests" class="assignment-requests" hidden>

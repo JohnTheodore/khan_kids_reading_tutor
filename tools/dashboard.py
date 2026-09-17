@@ -16,6 +16,7 @@ import threading
 import time
 import webbrowser
 from contextlib import suppress
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -36,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "tools" / "dashboard_assets"
 MAX_OUTPUT_CHARS = 250_000
 PARENT_IDLE_SECONDS = 60
+PARENT_COALESCE_SECONDS = 0.5
 MAX_PARENT_REQUESTS = 50
 
 
@@ -150,8 +152,17 @@ def setup_status(root: Path, serial: str | None) -> dict:
 class SyncJob:
     """Serialize tablet work; parent edits use a reusable, independent session."""
 
-    def __init__(self, root: Path, workflow: Path, serial: str | None = None) -> None:
+    def __init__(
+        self, root: Path, workflow: Path, serial: str | None = None, *, debug: bool = False
+    ) -> None:
         self.root, self.workflow, self.serial = root, workflow, serial
+        self.debug = debug
+        self.debug_path = root / "private/dashboard-debug/events.jsonl"
+        if debug:
+            self.debug_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            self.debug_path.touch(mode=0o600)
+            if self.debug_path.stat().st_mode & 0o077:
+                raise AutomationError("Debug log requires owner-only permissions")
         self.lock = threading.Lock()
         self.condition = threading.Condition(self.lock)
         self.thread: threading.Thread | None = None
@@ -163,6 +174,7 @@ class SyncJob:
         self.assignment: dict | None = None
         self.started_at: float | None = None
         self.manual_worker = False
+        self.manual_batch_size = 0
         self.warm_deadline: float | None = None
         self.stopping = False
         self.requests_path = root / "private/dashboard-assignment-queue.json"
@@ -199,9 +211,40 @@ class SyncJob:
 
     def _save_requests(self) -> None:
         write_json_atomic(self.requests_path, self.requests)
+        self._debug_event("queue", requests=self.requests)
+
+    def _debug_event(self, event: str, **details) -> None:
+        if self.debug:
+            try:
+                with self.debug_path.open("a") as output:
+                    output.write(
+                        json.dumps(
+                            {
+                                "time": datetime.now().astimezone().isoformat(),
+                                "event": event,
+                                **details,
+                            }
+                        )
+                        + "\n"
+                    )
+            except OSError:
+                pass  # Observability must never interrupt an already saved action.
+
+    def _manual_progress(self, message: str) -> None:
+        self._append(message + "\n")
 
     def snapshot(self) -> dict:
         with self.lock:
+            fraction = sync_progress(self.output, self.state)
+            if self.manual_worker and self.state != "succeeded" and self.manual_batch_size:
+                verified = self.output.count("Finished phase.verify_parent_checkbox")
+                saved = self.output.count("Finished phase.save_parent_assignment")
+                # Completed observed work, with a reserved final queue check.
+                fraction = min(
+                    0.9, (0.8 * verified + 0.4 * max(0, saved - verified)) / self.manual_batch_size
+                )
+                if "Finished phase.verify_parent_assignment" in self.output:
+                    fraction = max(fraction, 0.9)
             return {
                 "state": self.state,
                 "output": self.output,
@@ -209,6 +252,7 @@ class SyncJob:
                 "report": self.report,
                 "student": self.student,
                 "assignment": self.assignment,
+                "progress_fraction": fraction,
                 "elapsed_seconds": time.monotonic() - self.started_at if self.started_at else None,
                 "assignment_requests": [dict(request) for request in self.requests],
                 "teacher_session": "warm"
@@ -253,18 +297,39 @@ class SyncJob:
             if self.stopping:
                 return False
             if assignment:
-                if any(
-                    request["student"] == student
-                    and request["assignment"] == assignment
-                    and request["state"] in {"queued", "running"}
+                pending = [
+                    request
                     for request in self.requests
-                ):
+                    if request["student"] == student
+                    and all(
+                        request["assignment"][key] == assignment[key]
+                        for key in ("grade", "title", "variant")
+                    )
+                    and request["state"] in {"queued", "running"}
+                ]
+                if pending and pending[-1]["assignment"] == assignment:
                     return True
+                superseded = [request for request in pending if request["state"] == "queued"]
                 if (
                     sum(request["state"] in {"queued", "running"} for request in self.requests)
+                    - len(superseded)
                     >= MAX_PARENT_REQUESTS
                 ):
                     return False
+                previous = self.requests
+                superseded_ids = {request["id"] for request in superseded}
+                # Copy only pending entries being replaced; keep running request
+                # identities intact if durable queue storage fails.
+                self.requests = [
+                    {
+                        **request,
+                        "state": "blocked",
+                        "error": "Not applied: replaced by your newer request for this lesson.",
+                    }
+                    if request["id"] in superseded_ids
+                    else request
+                    for request in self.requests
+                ]
                 request = {
                     "id": secrets.token_hex(12),
                     "student": student,
@@ -272,7 +337,6 @@ class SyncJob:
                     "state": "queued",
                     "error": None,
                 }
-                previous = self.requests
                 kept = set(
                     [r["id"] for r in self.requests if r["state"] not in {"queued", "running"}][
                         -50:
@@ -305,6 +369,8 @@ class SyncJob:
         return True
 
     def _start_manual_locked(self) -> None:
+        queued = next(r for r in self.requests if r["state"] == "queued")
+        self.student, self.assignment = queued["student"], queued["assignment"]
         self.manual_worker = True
         self.state = "running"
         self.warm_deadline = None
@@ -313,20 +379,54 @@ class SyncJob:
 
     def _run_manual(self) -> None:
         current = None
+        batch = []
+        session = None
         try:
             with self.condition:
-                current = next(r for r in self.requests if r["state"] == "queued")
-                current["state"] = "running"
-                self.student, self.assignment = current["student"], current["assignment"]
                 self.output, self.report = "", None
                 self.started_at = time.monotonic()
-                self._save_requests()
-            with ManualAssignmentSession(self.root, self.serial, self._append) as session:
+                self.condition.wait_for(lambda: self.stopping, timeout=PARENT_COALESCE_SECONDS)
+            catalog = CatalogIndex(self.root / "data/reading-ela-archive.json")
+
+            def position(request):
+                assignment = request["assignment"]
+                return (
+                    catalog.order_key(assignment["grade"], assignment["title"]),
+                    assignment["variant"],
+                )
+
+            def take_next():
+                nonlocal current
+                with self.condition:
+                    candidates = [
+                        r
+                        for r in self.requests
+                        if r["state"] == "queued"
+                        and r["student"] == batch[0]["student"]
+                        and r["assignment"]["grade"] == batch[0]["assignment"]["grade"]
+                        and position(r) >= position(batch[-1])
+                        and not any(
+                            (r["assignment"]["title"], r["assignment"]["variant"])
+                            == (done["assignment"]["title"], done["assignment"]["variant"])
+                            for done in batch
+                        )
+                    ]
+                    if not candidates or len(batch) >= MAX_PARENT_REQUESTS:
+                        return None
+                    self.manual_batch_size = len(batch) + len(candidates)
+                    current = min(candidates, key=position)
+                    current["state"] = "running"
+                    batch.append(current)
+                    self.assignment = current["assignment"]
+                    self._save_requests()
+                    return current["assignment"]
+
+            with ManualAssignmentSession(
+                self.root, self.serial, self._manual_progress, debug=self.debug
+            ) as session:
                 while True:
                     with self.condition:
-                        queued = current or next(
-                            (r for r in self.requests if r["state"] == "queued"), None
-                        )
+                        queued = next((r for r in self.requests if r["state"] == "queued"), None)
                         if queued is None:
                             if self.warm_deadline is None:
                                 self.warm_deadline = time.monotonic() + PARENT_IDLE_SECONDS
@@ -337,6 +437,17 @@ class SyncJob:
                             self.condition.wait(timeout=remaining)
                             continue
                         current = queued
+                        # Only reorder independent requests within this student's grade.
+                        compatible = [
+                            r
+                            for r in self.requests
+                            if r["state"] == "queued"
+                            and r["student"] == current["student"]
+                            and r["assignment"]["grade"] == current["assignment"]["grade"]
+                        ]
+                        current = min(compatible, key=position)
+                        batch = [current]
+                        self.manual_batch_size = len(compatible)
                         current["state"] = "running"
                         self.state, self.output, self.returncode = "running", "", None
                         self.student, self.assignment = current["student"], current["assignment"]
@@ -344,29 +455,49 @@ class SyncJob:
                         self.warm_deadline = None
                         self.started_at = time.monotonic()
                         self._save_requests()
-                    report = session.apply(current["student"], current["assignment"])
-                    if not self._valid_assignment_report(
-                        report, current["student"], current["assignment"]
+                    reports = session.apply_many(
+                        current["student"], current["assignment"], take_next
+                    )
+                    if len(reports) != len(batch) or any(
+                        not self._valid_assignment_report(
+                            report, request["student"], request["assignment"]
+                        )
+                        for request, report in zip(batch, reports, strict=True)
                     ):
                         raise AutomationError(
-                            "The parent edit did not return an exact verified assignment result"
+                            "The parent batch did not return exact verified assignment results"
                         )
                     with self.condition:
-                        self.report = report
-                        current["state"] = "succeeded"
+                        self.report = reports[-1]
+                        for request in batch:
+                            request["state"] = "succeeded"
                         self.state, self.returncode = "succeeded", 0
                         self._save_requests()
                         self.warm_deadline = time.monotonic() + PARENT_IDLE_SECONDS
                         self.condition.notify_all()
                     current = None
         except Exception as error:
+            self._debug_event("failure", kind=type(error).__name__, message=str(error))
             self._append("Parent assignment session stopped. Check the tablet before retrying.\n")
             with self.condition:
-                if current is not None:
-                    current.update(
+                for request in batch:
+                    recovered = next(
+                        (
+                            report
+                            for report in getattr(session, "verified_reports", [])
+                            if self._valid_assignment_report(
+                                report, request["student"], request["assignment"]
+                            )
+                        ),
+                        None,
+                    )
+                    request.update(
                         state="failed",
                         error="Assignment could not be verified. Check the tablet before retrying.",
                     )
+                    if recovered is not None:
+                        request.update(state="succeeded", error=None)
+                        self.report = recovered
                 for request in self.requests:
                     if request["state"] == "queued":
                         request.update(
@@ -392,6 +523,7 @@ class SyncJob:
         finally:
             with self.condition:
                 self.manual_worker = False
+                self.manual_batch_size = 0
                 self.warm_deadline = None
                 # Requests received during the bounded logout transition start a new
                 # session only after the previous lock/awake context is released.
@@ -416,6 +548,7 @@ class SyncJob:
     def _append(self, text: str) -> None:
         with self.lock:
             self.output = (self.output + text)[-MAX_OUTPUT_CHARS:]
+            self._debug_event("progress", message=text.rstrip())
 
     def _run(self, student: str) -> None:
         command = [str(self.workflow), "--student", student, "--json"]
@@ -579,7 +712,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             snapshot = self.server.job.snapshot()
             phases = re.findall(r"Starting ((?:phase|teardown)\.\w+)", snapshot["output"])
             snapshot["phase"] = phases[-1] if phases else ""
-            snapshot["progress_fraction"] = sync_progress(snapshot["output"], snapshot["state"])
+            # Expose the existing public verification stage while retaining
+            # separate checkbox/queue timings in the diagnostic trace.
+            snapshot["phase"] = snapshot["phase"].replace(
+                "verify_parent_checkbox", "verify_parent_assignment"
+            )
+            snapshot["progress_fraction"] = snapshot.get(
+                "progress_fraction", sync_progress(snapshot["output"], snapshot["state"])
+            )
             if parse_qs(urlsplit(self.path).query).get("diagnostics") != ["1"]:
                 snapshot["output"] = ""
             self._json(200, snapshot)
@@ -687,6 +827,11 @@ def main() -> None:
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--serial", help="Explicit ADB serial, e.g. a USB-connected tablet")
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Save owner-private assignment navigation traces and failure captures",
+    )
+    parser.add_argument(
         "--workflow",
         type=Path,
         default=ROOT / "khan-mastery-sync",
@@ -698,7 +843,7 @@ def main() -> None:
     workflow = args.workflow.resolve()
     if not workflow.is_file():
         parser.error("workflow must be an existing local sync wrapper")
-    job = SyncJob(ROOT, workflow, args.serial)
+    job = SyncJob(ROOT, workflow, args.serial, debug=args.debug)
 
     def stop(signum: int, frame: object) -> None:
         raise KeyboardInterrupt
@@ -707,6 +852,11 @@ def main() -> None:
     with DashboardServer(args.port, job) as server:
         url = server.origin + "/#" + server.token
         print(f"Local dashboard: {url}", flush=True)
+        if args.debug:
+            print(
+                "Debug mode: private/dashboard-debug/events.jsonl (owner-private; no automatic request replay)",
+                flush=True,
+            )
         print(
             "Keep this launch URL private. Ctrl+C stops the dashboard after any active sync finishes.",
             flush=True,

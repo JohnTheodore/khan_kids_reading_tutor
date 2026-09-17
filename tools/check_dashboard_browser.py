@@ -793,6 +793,125 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator("#state")).to_contain_text("complete")
         expect(self.page.locator("#sync-indicator")).to_be_visible()
         expect(self.page.locator("#sync-indicator")).to_have_attribute("aria-valuenow", "1")
+        expect(self.page.locator("#sync")).to_have_attribute("aria-busy", "false")
+        expect(self.page.locator("#sync-stages")).to_be_hidden()
+        self.assertNotIn("sync-active", self.page.locator("#activity").get_attribute("class"))
+
+    def test_sync_working_panel_is_prominent_accessible_and_honest(self):
+        for width, theme, motion in (
+            (1280, "light", "no-preference"),
+            (375, "dark", "reduce"),
+            (320, "light", "no-preference"),
+        ):
+            with self.subTest(width=width, theme=theme, motion=motion):
+                self.state.update(
+                    state="idle", student=None, report=None, output="", assignment=None
+                )
+                self.page.set_viewport_size({"width": width, "height": 900})
+                self.page.emulate_media(color_scheme=theme, reduced_motion=motion)
+                self.open()
+                self.page.locator("#sync").click()
+                expect(self.page.locator("#sync")).to_have_attribute("aria-busy", "true")
+                expect(self.page.locator(".activity-symbol")).to_be_visible()
+                expect(self.page.locator("#sync-stages")).to_be_visible()
+                expect(self.page.locator("#sync-stages [aria-current=step]")).to_contain_text(
+                    "Read scores"
+                )
+                expect(self.page.locator("#sync-explanation")).to_contain_text("real steps")
+                self.assertEqual(
+                    self.page.locator(".activity-symbol").evaluate(
+                        "e=>getComputedStyle(e).animationName"
+                    ),
+                    "none" if motion == "reduce" else "sync-working",
+                )
+                self.assertEqual(
+                    self.page.locator("#sync-indicator").evaluate(
+                        "e=>e.getBoundingClientRect().height"
+                    ),
+                    10,
+                )
+                self.assert_no_overflow()
+                self.page.evaluate(self.axe)
+                result = self.page.evaluate(
+                    "async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})"
+                )
+                self.assertEqual([item["id"] for item in result["violations"]], [])
+                if os.environ.get("KHAN_BROWSER_SCREENSHOTS"):
+                    self.page.screenshot(
+                        path=str(
+                            Path(__file__).resolve().parents[1]
+                            / f"private/sync-working-{theme}-{width}.png"
+                        )
+                    )
+                self.state.update(
+                    output="Finished phase.review_assignments\nStarting phase.plan_queue\n"
+                )
+                self.page.evaluate("poll()")
+                expect(self.page.locator("#sync-stages [aria-current=step]")).to_contain_text(
+                    "Update lessons"
+                )
+                expect(self.page.locator("#sync-stages li").first).to_contain_text("Done")
+                self.state.update(
+                    output="Finished phase.review_assignments\nFinished phase.plan_queue\nStarting phase.fixed_point_verify\n"
+                )
+                self.page.evaluate("poll()")
+                expect(self.page.locator("#sync-stages [aria-current=step]")).to_contain_text(
+                    "Verify & finish"
+                )
+                expect(self.page.locator("#sync-indicator")).to_have_attribute(
+                    "aria-valuenow", "0.6"
+                )
+                self.assertEqual(
+                    self.page.locator("#sync-fill").evaluate(
+                        "e=>getComputedStyle(e).animationName"
+                    ),
+                    "none",
+                )
+                self.state.update(state="failed")
+                self.page.evaluate("poll()")
+                expect(self.page.locator("#sync-stages")).to_be_hidden()
+                expect(self.page.locator("#sync-indicator")).to_have_attribute(
+                    "aria-valuenow", "0.6"
+                )
+                expect(self.page.locator("#sync")).to_have_attribute("aria-busy", "false")
+
+    def test_manual_edit_does_not_show_mastery_sync_steps(self):
+        self.state.update(
+            state="running",
+            student="Student A",
+            assignment={
+                "grade": "Kindergarten",
+                "title": "Short Vowel Sound a",
+                "variant": "Main",
+                "action": "assign",
+            },
+            output="Starting phase.save_parent_assignment\n",
+        )
+        self.open()
+        expect(self.page.locator(".activity-symbol")).to_be_visible()
+        expect(self.page.locator("#sync-stages")).to_be_hidden()
+        expect(self.page.locator("#sync-indicator")).to_have_attribute(
+            "aria-label", "Assignment update stage completion"
+        )
+
+    def test_activity_motion_pauses_offscreen_and_stops_on_connection_loss(self):
+        self.open()
+        self.page.locator("#sync").click()
+        symbol = self.page.locator(".activity-symbol")
+        self.page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        self.page.wait_for_function(
+            "() => getComputedStyle(document.querySelector('.activity-symbol')).animationPlayState === 'paused'"
+        )
+        self.page.evaluate("window.scrollTo(0, 0)")
+        self.page.wait_for_function(
+            "() => getComputedStyle(document.querySelector('.activity-symbol')).animationPlayState === 'running'"
+        )
+        self.page.route("**/api/status", lambda route: route.abort())
+        self.page.evaluate("poll()")
+        expect(self.page.locator("#state")).to_contain_text("unavailable")
+        expect(symbol).to_be_hidden()
+        expect(self.page.locator("#sync-stages")).to_be_hidden()
+        expect(self.page.locator("#sync")).to_have_attribute("aria-busy", "false")
 
     def test_sync_gives_immediate_feedback_before_server_acknowledges(self) -> None:
         self.open()
@@ -802,6 +921,9 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator("#state")).to_contain_text("Starting")
         expect(self.page.locator("#sync-indicator")).to_be_visible()
         expect(self.page.locator("#sync")).to_be_disabled()
+        expect(self.page.locator("#sync")).to_have_attribute("aria-busy", "true")
+        expect(self.page.locator(".activity-symbol")).to_be_visible()
+        expect(self.page.locator("#sync-stages")).to_be_visible()
         self.assertEqual(len(pending), 1)
         pending[0].continue_()
         expect(self.page.locator("#state")).to_contain_text("Syncing")

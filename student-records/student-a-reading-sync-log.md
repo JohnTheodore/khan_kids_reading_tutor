@@ -6555,3 +6555,288 @@ Not recorded.
 | wait.assignment dialog | 1 | 0.408 | 0.408 | 0.408 |
 | startup.connected | 1 | 0.025 | 0.025 | 0.025 |
 | phase.plan_queue | 1 | 0.011 | 0.011 | 0.011 |
+
+## 2026-09-17T15:08:49.399363-04:00 — interrupted
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 0
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied before interruption unchecks
+
+None.
+
+### Applied before interruption promotions
+
+None.
+
+### Applied before interruption additions
+
+None.
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+None; recommendations require a successfully verified queue and score evidence.
+
+### Desired queue
+
+No lessons selected.
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Live queue unavailable: Exact parent edit was not verified
+
+### Duration
+
+Not recorded.
+
+## 2026-09-17T15:15:22.758081-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 13
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound s — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Short Vowel Sound e — Practice 1 — 98%. Close to mastery: one qualifying 90%+ attempt. Another 90%+ result establishes mastery.
+2. Make New Words — Practice 1 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Beginning Sounds 1 — Main — 81%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound f — Practice 2
+- Beginning Sound r — Practice 2
+- Beginning Sound s — Practice 2
+- Beginning Sounds 1 — Main
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Rhyming — Basic
+- Short Vowel Sound e — Practice 1
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with a — Main
+- Words with b & d — Main
+- Words with i — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+85.046 seconds
+
+## 2026-09-17T15:16:40.326774-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 14
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound t — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Short Vowel Sound e — Practice 1 — 98%. Close to mastery: one qualifying 90%+ attempt. Another 90%+ result establishes mastery.
+2. Make New Words — Practice 1 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Beginning Sounds 1 — Main — 81%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound f — Practice 2
+- Beginning Sound r — Practice 2
+- Beginning Sound s — Practice 2
+- Beginning Sound t — Practice 2
+- Beginning Sounds 1 — Main
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Rhyming — Basic
+- Short Vowel Sound e — Practice 1
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with a — Main
+- Words with b & d — Main
+- Words with i — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+73.161 seconds
+
+## 2026-09-17T15:17:53.496952-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 15
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound v — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Short Vowel Sound e — Practice 1 — 98%. Close to mastery: one qualifying 90%+ attempt. Another 90%+ result establishes mastery.
+2. Make New Words — Practice 1 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Beginning Sounds 1 — Main — 81%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound f — Practice 2
+- Beginning Sound r — Practice 2
+- Beginning Sound s — Practice 2
+- Beginning Sound t — Practice 2
+- Beginning Sound v — Practice 2
+- Beginning Sounds 1 — Main
+- Blend Sounds 2 — Practice 2
+- Make New Words — Practice 1
+- Rhyming — Basic
+- Short Vowel Sound e — Practice 1
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with a — Main
+- Words with b & d — Main
+- Words with i — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+72.166 seconds

@@ -22,6 +22,27 @@ from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_profile_chooser_without_sign_out_requires_aligned_avatar_labels(self):
+        _, automation = _automation()
+        chooser = _screen_with_text(
+            ("dad", Rect(611, 981, 677, 1026)),
+            ("Student A", Rect(1218, 981, 1350, 1026)),
+            ("Student B", Rect(1862, 981, 1985, 1026)),
+        )
+        self.assertEqual(automation._navigation_state(chooser), "profile_chooser")
+        unrelated = _screen_with_text(
+            ("dad", Rect(611, 100, 677, 150)),
+            ("Student A", Rect(1218, 981, 1350, 1026)),
+            ("Student B", Rect(1862, 981, 1985, 1026)),
+        )
+        self.assertIsNone(automation._navigation_state(unrelated))
+
+    def test_debug_observer_failure_cannot_interrupt_navigation(self):
+        device, automation = _automation()
+        device.hierarchy.return_value = _assignment_screen()
+        automation.hierarchy_observer = Mock(side_effect=OSError("diagnostic storage unavailable"))
+        self.assertIs(automation.live_root(), device.hierarchy.return_value)
+
     def test_blocked_startup_captures_are_private_and_capture_failure_does_not_escape(self) -> None:
         device, automation = _automation()
         with tempfile.TemporaryDirectory() as directory:
@@ -444,6 +465,44 @@ class AutomationTests(unittest.TestCase):
                 call("Second", "Main", root=first_saved, reset_to_top=False),
             ],
         )
+
+    def test_catalog_probe_reuses_current_report_root_without_reset(self):
+        _, automation = _automation()
+        progress, dialog = ET.Element("progress"), ET.Element("dialog")
+        automation._open_all_progress = Mock(return_value=progress)
+        automation._select_grade = Mock(return_value=progress)
+        automation._open_report_variant = Mock(return_value=dialog)
+        automation._inspect_open_assignment = Mock(return_value={"Student A": "checked"})
+        self.assertEqual(
+            automation.inspect_catalog_assignment(
+                "Kindergarten", "Lowercase l", "Main", reset_to_top=False
+            ),
+            {"Student A": "checked"},
+        )
+        automation._select_grade.assert_called_once_with("Kindergarten", root=progress)
+        automation._open_report_variant.assert_called_once_with(
+            "Lowercase l", "Main", root=progress, reset_to_top=False
+        )
+
+    def test_in_place_variant_lookup_never_scrolls_to_top(self):
+        device, automation = _automation()
+        expanded = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Blend Sounds 2", Rect(200, 500, 900, 580)),
+            ("Practice 2", Rect(239, 600, 800, 680)),
+        )
+        dialog = ET.Element("dialog")
+        automation._scroll_to_top = Mock()
+        automation._wait_for_assignment_dialog = Mock(return_value=dialog)
+        self.assertIs(
+            automation._open_report_variant(
+                "Blend Sounds 2", "Practice 2", root=expanded, reset_to_top=False
+            ),
+            dialog,
+        )
+        automation._scroll_to_top.assert_not_called()
+        device.swipe.assert_not_called()
+        device.tap_rect.assert_called_once_with(Rect(239, 600, 800, 680))
 
     def test_lesson_expansion_retries_a_dropped_tap_from_fresh_row(self) -> None:
         device, automation = _automation()

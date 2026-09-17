@@ -769,3 +769,47 @@ not establish whether warm startup caused the Khan-side close interruption.
 - Completed assignment actions: none recorded.
 - Live queue after interruption: unavailable.
 - Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-17-AUTO-150801-225386 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-17 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Startup blocked; app left open without restarting. Inspect the screen before retrying. Diagnostics: private/startup-blocked-5j295_nv.`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-17-AUTO-150849-972298 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-17 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: All Progress tab reached unexpected navigation state 'profile_chooser'`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.

@@ -1,5 +1,23 @@
 # Dashboard quality audit
 
+## Visible sync activity
+
+Sync acknowledges a click before the server responds: the button retains its
+action color, and a prominent working inset shows the current phase, a larger
+determinate bar and written Read scores / Update lessons / Verify & finish steps.
+The original sync icon rotates to indicate activity, not completion. Progress
+advances only from backend milestones; neither the bar nor elapsed time is used
+to simulate completed work. Reduced motion keeps static activity feedback and
+removes bar transitions. Icon motion pauses offscreen/in hidden tabs and stops
+on connection loss, failure or completion. On mobile, the elapsed counter yields
+space to the current task. Manual edits never display mastery-sync steps.
+
+Synthetic browser coverage checks immediate feedback under a delayed POST,
+real stage transitions, partial failure, completion, manual edits, both themes,
+320px/mobile layouts, reduced motion, offscreen motion and connection loss.
+The working states pass Axe WCAG A/AA checks. Screenshots remain private;
+verification does not connect to the tablet or start a real sync.
+
 ## Parent assignment controls
 
 Parents can assign/unassign each exact displayed variant from the journey,

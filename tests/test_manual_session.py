@@ -69,7 +69,7 @@ class ManualSessionTests(unittest.TestCase):
         self.assertEqual(report["manual_change"], CHANGE)
         self.assertEqual(report["new_scores"], [])
         self.automation.set_catalog_assignment.assert_called_once_with(
-            "Kindergarten", "Lowercase l", "Main", assigned=True
+            "Kindergarten", "Lowercase l", "Main", assigned=True, reset_to_top=True
         )
         self.assertFalse(
             self.automation.scan_assignments.call_args.kwargs["include_score_histories"]
@@ -113,6 +113,9 @@ class ManualSessionTests(unittest.TestCase):
             session.apply("Student A", CHANGE)
         self.automation.return_to_profile_chooser.assert_not_called()
         self.assertFalse((self.root / "private/student-a-reading-plan.json").exists())
+        self.assertEqual(
+            len(list((self.root / "private/dashboard-debug").glob("failure-*/error.txt"))), 1
+        )
         journal = json.loads((self.root / "private/student-a-manual-operation.json").read_text())
         self.assertEqual(journal["status"], "interrupted")
         self.assertEqual(journal["applied"][0]["title"], "Lowercase l")
@@ -147,3 +150,67 @@ class ManualSessionTests(unittest.TestCase):
             report = session.apply("Student A", CHANGE)
         self.assertEqual(report["status"], "applied")
         self.assertTrue((self.root / "private/student-a-reading-plan.json").exists())
+
+    def test_adjacent_batch_resets_once_and_scans_queue_once(self):
+        following = iter([{**CHANGE, "title": "Lowercase m"}, {**CHANGE, "title": "Lowercase n"}])
+        self.automation.set_catalog_assignment.side_effect = (
+            lambda grade, title, variant, **kwargs: (
+                ActionResult("checked", title, variant, "saved"),
+                {"Student A": "unchecked", "Student B": "unchecked"},
+            )
+        )
+        self.automation.scan_assignments.return_value = AssignmentSnapshot(
+            tuple(
+                AssignmentRow(f"Lowercase {letter}", "Main", "today", Rect(0, 0, 1, 1), None, None)
+                for letter in "lmn"
+            ),
+            (),
+        )
+        with self.session() as session:
+            reports = session.apply_many("Student A", CHANGE, lambda: next(following, None))
+        self.assertEqual(len(reports), 3)
+        self.assertEqual([report["queue_count"] for report in reports], [3, 3, 3])
+        self.assertEqual(
+            [
+                call.kwargs["reset_to_top"]
+                for call in self.automation.set_catalog_assignment.call_args_list
+            ],
+            [True, False, False],
+        )
+        self.assertTrue(
+            all(
+                not call.kwargs["reset_to_top"]
+                for call in self.automation.inspect_catalog_assignment.call_args_list
+            )
+        )
+        self.automation.scan_assignments.assert_called_once()
+        journal = json.loads((self.root / "private/student-a-manual-operation.json").read_text())
+        self.assertEqual(
+            [entry["status"] for entry in journal["batch_operations"]], ["applied"] * 3
+        )
+
+    def test_partial_batch_failure_reconciles_first_save_without_replay(self):
+        following = iter([{**CHANGE, "title": "Lowercase m"}])
+        self.automation.inspect_catalog_assignment.side_effect = [
+            {"Student A": "checked", "Student B": "unchecked"},
+            {"Student A": "checked", "Student B": "checked"},
+        ]
+        with self.session() as session:
+            with self.assertRaisesRegex(AutomationError, "checkbox verification"):
+                session.apply_many("Student A", CHANGE, lambda: next(following, None))
+            self.assertEqual(
+                [report["manual_change"] for report in session.verified_reports], [CHANGE]
+            )
+        self.assertEqual(self.automation.set_catalog_assignment.call_count, 2)
+        self.automation.scan_assignments.assert_called_once()
+        journal = json.loads((self.root / "private/student-a-manual-operation.json").read_text())
+        self.assertEqual(journal["status"], "interrupted")
+        self.assertEqual(journal["recovery"]["status"], "partial")
+
+    def test_batch_rejects_same_variant_twice_before_second_ui_write(self):
+        with (
+            self.assertRaisesRegex(AutomationError, "distinct variants"),
+            self.session() as session,
+        ):
+            session.apply_many("Student A", CHANGE, lambda: CHANGE)
+        self.automation.set_catalog_assignment.assert_called_once()

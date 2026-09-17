@@ -243,18 +243,21 @@ class SyncJobTests(unittest.TestCase):
         ):
             root = Path(directory)
             job = SyncJob(root, root / "khan-mastery-sync", serial="synthetic-usb")
-            session.return_value.__enter__.return_value.apply.return_value = {
-                "student": "Student A",
-                "status": "applied",
-                "manual_change": assignment,
-                "queue_count": 1,
-                "assigned": [{"title": "Lowercase l", "variant": "Main"}],
-            }
+            session.return_value.__enter__.return_value.apply_many.return_value = [
+                {
+                    "student": "Student A",
+                    "status": "applied",
+                    "manual_change": assignment,
+                    "queue_count": 1,
+                    "assigned": [{"title": "Lowercase l", "variant": "Main"}],
+                }
+            ]
             self.assertTrue(job.start("Student A", assignment))
             job.wait()
-            session.return_value.__enter__.return_value.apply.assert_called_once_with(
-                "Student A", assignment
-            )
+            calls = session.return_value.__enter__.return_value.apply_many.call_args_list
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0].args[:2], ("Student A", assignment))
+            self.assertIsNone(calls[0].args[2]())
             popen.assert_not_called()
             self.assertEqual(job.snapshot()["assignment_requests"][0]["state"], "succeeded")
             custom = SyncJob(root, root / "custom-workflow")
@@ -283,7 +286,7 @@ class SyncJobTests(unittest.TestCase):
                     patch("dashboard.CatalogIndex"),
                     patch("dashboard.ManualAssignmentSession") as session,
                 ):
-                    session.return_value.__enter__.return_value.apply.return_value = report
+                    session.return_value.__enter__.return_value.apply_many.return_value = [report]
                     self.assertTrue(job.start("Student A", assignment))
                     job.wait()
                 self.assertEqual(job.snapshot()["state"], "succeeded" if matches else "failed")

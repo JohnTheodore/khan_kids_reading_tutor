@@ -33,6 +33,32 @@ def verified_report(student, assignment):
 
 
 class AssignmentQueueTests(unittest.TestCase):
+    def test_debug_progress_is_timestamped_private_and_line_separated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            job = SyncJob(root, root / "khan-mastery-sync", debug=True)
+            job._manual_progress("Starting phase.save_parent_assignment")
+            job._manual_progress("Finished phase.save_parent_assignment (1.0s)")
+            self.assertEqual(len(job.snapshot()["output"].splitlines()), 2)
+            events = [json.loads(line) for line in job.debug_path.read_text().splitlines()]
+            self.assertEqual([event["event"] for event in events], ["progress", "progress"])
+            self.assertTrue(all("time" in event for event in events))
+            self.assertEqual(job.debug_path.stat().st_mode & 0o777, 0o600)
+
+    def test_batch_progress_uses_completed_checks_not_a_loop_or_early_success(self):
+        self.job.manual_worker = True
+        self.job.manual_batch_size = 3
+        self.job.state = "running"
+        for count in range(1, 4):
+            self.job._manual_progress("Finished phase.save_parent_assignment (1.0s)")
+            self.job._manual_progress("Finished phase.verify_parent_checkbox (1.0s)")
+            self.assertAlmostEqual(self.job.snapshot()["progress_fraction"], 0.8 * count / 3)
+        self.job._manual_progress("Finished phase.verify_parent_assignment (1.0s)")
+        self.assertEqual(self.job.snapshot()["progress_fraction"], 0.9)
+        self.job.state = "succeeded"
+        self.assertEqual(self.job.snapshot()["progress_fraction"], 1)
+        self.job.manual_worker = False
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -45,8 +71,169 @@ class AssignmentQueueTests(unittest.TestCase):
         self.factory = factory.start()
         self.session = self.factory.return_value.__enter__.return_value
         self.session.apply.side_effect = verified_report
+        self.session.verified_reports = []
+
+        def apply_many(student, assignment, next_change):
+            reports = []
+            while assignment is not None:
+                reports.append(self.session.apply(student, assignment))
+                assignment = next_change()
+            self.session.verified_reports = reports
+            return reports
+
+        self.session.apply_many.side_effect = apply_many
+        # The catalog factory is mocked; provide a stable numeric position.
+        from dashboard import CatalogIndex
+
+        CatalogIndex.return_value.order_key.return_value = 0
         self.job = SyncJob(self.root, self.root / "khan-mastery-sync")
         self.addCleanup(self.job.wait)
+
+    def burst(self, requests):
+        with patch.object(self.job, "_start_manual_locked"):
+            for student, assignment in requests:
+                self.assertTrue(self.job.start(student, assignment))
+        with self.job.condition:
+            self.job._start_manual_locked()
+
+    def test_burst_is_one_catalog_ordered_batch(self):
+        from dashboard import CatalogIndex
+
+        CatalogIndex.return_value.order_key.side_effect = lambda grade, title: {
+            "Lowercase l": 1,
+            "Lowercase m": 2,
+            "Lowercase n": 3,
+        }[title]
+        self.burst([("Student A", {**CHANGE, "title": f"Lowercase {letter}"}) for letter in "nlm"])
+        self.job.wait()
+        self.assertEqual(
+            [call.args[1]["title"] for call in self.session.apply.call_args_list],
+            [f"Lowercase {letter}" for letter in "lmn"],
+        )
+        self.session.apply_many.assert_called_once()
+
+    def test_coalescing_manual_requests_never_looks_like_a_mastery_sync(self):
+        with patch("dashboard.threading.Thread"):
+            self.job.start("Student A", CHANGE)
+        self.assertEqual(self.job.snapshot()["assignment"], CHANGE)
+        self.assertEqual(self.job.snapshot()["student"], "Student A")
+        self.session.apply_many.assert_not_called()
+
+    def test_pending_opposite_click_replaces_old_intent_without_tablet_write(self):
+        self.burst([("Student A", CHANGE), ("Student A", {**CHANGE, "action": "unassign"})])
+        self.job.wait()
+        self.session.apply.assert_called_once_with("Student A", {**CHANGE, "action": "unassign"})
+        requests = self.job.snapshot()["assignment_requests"]
+        self.assertEqual([request["state"] for request in requests], ["blocked", "succeeded"])
+        self.assertIn("newer request", requests[0]["error"])
+
+    def test_conflict_with_started_action_runs_in_separate_batch(self):
+        entered, release = threading.Event(), threading.Event()
+
+        def apply(student, assignment):
+            if self.session.apply.call_count == 1:
+                entered.set()
+                release.wait(5)
+            return verified_report(student, assignment)
+
+        self.session.apply.side_effect = apply
+        self.job.start("Student A", CHANGE)
+        self.assertTrue(entered.wait(5))
+        self.job.start("Student A", {**CHANGE, "action": "unassign"})
+        release.set()
+        self.job.wait()
+        self.assertEqual(self.session.apply_many.call_count, 2)
+        self.assertEqual(
+            [call.args[1]["action"] for call in self.session.apply.call_args_list],
+            ["assign", "unassign"],
+        )
+
+    def test_late_forward_click_joins_but_earlier_lesson_waits_for_next_batch(self):
+        from dashboard import CatalogIndex
+
+        CatalogIndex.return_value.order_key.side_effect = lambda grade, title: ord(title[-1])
+        entered, release = threading.Event(), threading.Event()
+
+        def apply(student, assignment):
+            if self.session.apply.call_count == 1:
+                entered.set()
+                release.wait(5)
+            return verified_report(student, assignment)
+
+        self.session.apply.side_effect = apply
+        self.job.start("Student A", {**CHANGE, "title": "Lowercase m"})
+        self.assertTrue(entered.wait(5))
+        for letter in "ln":
+            self.job.start("Student A", {**CHANGE, "title": f"Lowercase {letter}"})
+        release.set()
+        self.job.wait()
+        self.assertEqual(
+            [call.args[1]["title"] for call in self.session.apply.call_args_list],
+            [f"Lowercase {letter}" for letter in "mnl"],
+        )
+        self.assertEqual(self.session.apply_many.call_count, 2)
+
+    def test_different_students_and_grades_do_not_share_batch(self):
+        self.burst(
+            [
+                ("Student A", CHANGE),
+                ("Student B", CHANGE),
+                ("Student A", {**CHANGE, "grade": "First Grade"}),
+            ]
+        )
+        self.job.wait()
+        self.assertEqual(self.session.apply_many.call_count, 3)
+        self.assertEqual([request["state"] for request in self.job.requests], ["succeeded"] * 3)
+
+    def test_partial_failure_preserves_reconciled_success_and_blocks_remaining(self):
+        entered, release = threading.Event(), threading.Event()
+
+        def fail_batch(student, assignment, next_change):
+            following = next_change()
+            self.assertIsNotNone(following)
+            self.session.verified_reports = [verified_report(student, assignment)]
+            entered.set()
+            release.wait(5)
+            raise AutomationError("second Save blocked")
+
+        self.session.apply_many.side_effect = fail_batch
+        self.burst([("Student A", CHANGE), ("Student A", {**CHANGE, "variant": "Practice 1"})])
+        self.assertTrue(entered.wait(5))
+        self.job.start("Student A", {**CHANGE, "variant": "Practice 2"})
+        release.set()
+        self.job.wait()
+        self.assertEqual(
+            [request["state"] for request in self.job.requests], ["succeeded", "failed", "blocked"]
+        )
+
+    def test_failed_superseding_queue_write_restores_previous_intent(self):
+        self.job.thread = Mock()
+        self.job.thread.is_alive.return_value = True
+        self.job.start("Student A", CHANGE)
+        with (
+            patch.object(self.job, "_save_requests", side_effect=OSError("no space")),
+            self.assertRaises(OSError),
+        ):
+            self.job.start("Student A", {**CHANGE, "action": "unassign"})
+        self.assertEqual(self.job.requests[0]["state"], "queued")
+        self.assertEqual(self.job.requests[0]["assignment"], CHANGE)
+        self.job.thread = None
+
+    def test_failed_queue_write_preserves_running_request_identity(self):
+        self.job.thread = Mock()
+        self.job.thread.is_alive.return_value = True
+        self.job.start("Student A", CHANGE)
+        running = self.job.requests[0]
+        running["state"] = "running"
+        self.job.start("Student A", {**CHANGE, "variant": "Practice 1"})
+        with (
+            patch.object(self.job, "_save_requests", side_effect=OSError("no space")),
+            self.assertRaises(OSError),
+        ):
+            self.job.start("Student A", {**CHANGE, "variant": "Practice 1", "action": "unassign"})
+        self.assertIs(self.job.requests[0], running)
+        self.assertEqual(self.job.requests[1]["state"], "queued")
+        self.job.thread = None
 
     def wait_for_warm(self):
         with self.job.condition:
@@ -75,6 +262,7 @@ class AssignmentQueueTests(unittest.TestCase):
         release.set()
         self.job.wait()
         self.factory.assert_called_once()
+        self.session.apply_many.assert_called_once()
         self.assertEqual(
             [call.args[1]["variant"] for call in self.session.apply.call_args_list],
             ["Main", "Practice 1"],

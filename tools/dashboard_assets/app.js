@@ -28,6 +28,9 @@ const assignmentFeedbacks = new Map();
 let teacherSession = "closed",
   completedRequestsSignature = "";
 let manualRunning = false;
+let workflowManual = false,
+  currentPhase = "";
+let activityOnscreen = true;
 let completedJourneyKey = "";
 let assignmentControlSequence = 0;
 let displayedReport = null;
@@ -148,11 +151,11 @@ function updateButton() {
   element("sync-indicator").setAttribute("aria-valuenow", fraction);
   element("sync-indicator").setAttribute(
     "aria-label",
-    manualRunning
+    workflowManual
       ? "Assignment update stage completion"
       : "Mastery sync stage completion",
   );
-  element("sync-fill").style.width = fraction * 100 + "%";
+  element("sync-fill").style.transform = `scaleX(${fraction})`;
   element("sync-indicator").setAttribute(
     "aria-valuetext",
     submitted
@@ -163,7 +166,26 @@ function updateButton() {
           : "Check-in stopped before completion"
         : element("phase").textContent || "Mastery sync is running",
   );
-  element("activity").classList.toggle("sync-active", running || submitted);
+  const working = connected && (running || submitted);
+  element("activity").classList.toggle("sync-active", working);
+  element("sync").setAttribute("aria-busy", working && !workflowManual);
+  element("sync-explanation").hidden = !working;
+  element("sync-stages").hidden = !working || workflowManual;
+  const stage = /fixed_point|teardown/.test(currentPhase)
+    ? 2
+    : /plan_queue|add_and_verify|remove_and_verify/.test(currentPhase)
+      ? 1
+      : 0;
+  element("sync-stages").querySelectorAll("li").forEach((step, index) => {
+    step.dataset.state =
+      index < stage ? "done" : index === stage ? "current" : "waiting";
+    if (index === stage) step.setAttribute("aria-current", "step");
+    else step.removeAttribute("aria-current");
+    const text =
+      index < stage ? "Done" : index === stage ? "In progress" : "Waiting";
+    if (step.querySelector(".stage-status").textContent !== text)
+      step.querySelector(".stage-status").textContent = text;
+  });
   document.body.classList.toggle("busy", running || submitted);
   const label =
     (running && !manualRunning) || submitted ? "Syncing… " : "Sync progress ";
@@ -343,7 +365,12 @@ async function startWorkflow(assignment = null) {
     archivedStudents.includes(element("student").value)
   )
     return;
-  if (!assignment) submitted = true;
+  if (!assignment) {
+    submitted = true;
+    workflowManual = false;
+    currentPhase = "";
+    progressFraction = 0;
+  }
   const feedback = assignment
     ? {
         ...assignment,
@@ -368,7 +395,7 @@ async function startWorkflow(assignment = null) {
     "phase",
     assignment
       ? `${assignment.action === "assign" ? "Assigning" : "Unassigning"} ${assignment.title} — ${assignment.variant}. Waiting for tablet verification.`
-      : "Keeping the previous check-in visible until this sync finishes.",
+      : "Connecting to your tablet and opening Teacher view…",
   );
   updateButton();
   try {
@@ -836,6 +863,10 @@ async function status() {
   connected = true;
   running = data.state === "running";
   manualRunning = running && !!data.assignment;
+  if (running || data.student === element("student").value) {
+    workflowManual = !!data.assignment;
+    currentPhase = data.phase || "";
+  }
   if (submitted && !running && data.state === "idle") {
     updateButton();
     return;
@@ -1067,9 +1098,22 @@ async function poll() {
   schedulePoll();
 }
 document.addEventListener("visibilitychange", () => {
+  updateActivityMotion();
   if (!document.hidden && !authFailed) poll();
   else schedulePoll();
 });
+function updateActivityMotion() {
+  element("activity").classList.toggle(
+    "motion-paused",
+    document.hidden || !activityOnscreen,
+  );
+}
+if ("IntersectionObserver" in window) {
+  new IntersectionObserver(([entry]) => {
+    activityOnscreen = entry.isIntersecting;
+    updateActivityMotion();
+  }).observe(element("activity"));
+}
 (async function initialize() {
   try {
     await setup();

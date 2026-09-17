@@ -367,12 +367,26 @@ command-line launcher; the dashboard does not implement a second mastery policy.
 Assign and Unassign are **direct edits**, not mastery syncs: they change only the
 requested variant, verify its checkbox and live queue, and refresh the browser
 automatically. You can click other lessons while an edit runs; requests are saved
-locally and processed in order, with inline Queued/Updating/Verified feedback.
+locally, with inline Queued/Updating/Verified feedback. Nearby clicks are collected
+for half a second. Requests for the same reader and grade share a catalog-ordered
+traversal: each saved checkbox is checked in place, followed by one shared live
+queue verification. Compatible clicks received during that traversal can join it;
+earlier lessons and different readers/grades get a separate batch. A newer request
+replaces an opposite request only if the older one has not started. Partial
+failures are reconciled read-only; saved edits are never blindly replayed.
 Teacher view stays open for **60 seconds after the last edit**, so another request
 reuses the connection and login. Then it logs out through Khan Kids' UI without
 closing the app. An interruption stops pending requests; a dashboard restart never
 automatically replays unfinished edits. Check the tablet and explicitly retry them.
 Use **Sync progress** separately to collect scores and apply the mastery algorithm.
+
+Normal runs retain lightweight phase timings and capture private diagnostics only
+on failure. For a failing manual edit, launch `./khan-dashboard --debug`. Timestamped events,
+bounded navigation XML traces and failure screenshots/Android logs stay in
+owner-private `private/dashboard-debug/`; password-dialog screen captures are
+skipped. Open **Connection & setup → Technical details** for current progress.
+Debug mode never automatically replays failed or blocked requests. Stop the
+dashboard and relaunch without `--debug` when diagnosis is complete.
 
 Each variant shows its own mastery evidence and last verified assignment state.
 Assignment status is a snapshot from the last completed operation, not a live

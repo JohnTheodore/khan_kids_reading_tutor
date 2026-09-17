@@ -54,6 +54,7 @@ class KhanKidsAutomation:
         parent_password_provider: Callable[[], str] | None = None,
         history_lookup: Callable[[AssignmentRow], ScoreHistory | None] | None = None,
         forbidden_students: tuple[str, ...] = (),
+        hierarchy_observer: Callable[[ET.Element], None] | None = None,
     ) -> None:
         if student not in roster:
             raise ValueError(f"Student {student!r} is not in roster {roster!r}")
@@ -65,19 +66,31 @@ class KhanKidsAutomation:
         self.parent_password_provider = parent_password_provider
         self.history_lookup = history_lookup
         self.forbidden_students = forbidden_students
+        self.hierarchy_observer = hierarchy_observer
         self._assignments_at_top = False
         self.scratch.mkdir(parents=True, exist_ok=True)
 
     def root(self, name: str = "window") -> ET.Element:
         root = self.device.dump(self.scratch / f"{name}.xml")
         self._validate_screen(root)
+        self._observe_hierarchy(root)
         return root
 
     def live_root(self) -> ET.Element:
         """Inspect state without persisting sensitive transient UI text."""
         root = self.device.hierarchy()
         self._validate_screen(root)
+        self._observe_hierarchy(root)
         return root
+
+    def _observe_hierarchy(self, root: ET.Element) -> None:
+        if self.hierarchy_observer is not None:
+            try:
+                self.hierarchy_observer(root)
+            except Exception:
+                self.device.timing.progress(
+                    "Diagnostic capture unavailable; tablet guards remain active"
+                )
 
     @staticmethod
     def _validate_screen(root: ET.Element) -> None:
@@ -407,7 +420,7 @@ class KhanKidsAutomation:
             return "class_reports_menu"
         if "Students" in texts and all(student in texts for student in self.roster):
             return "teacher_roster"
-        if self._is_profile_chooser(texts):
+        if self._is_profile_chooser(root):
             return "profile_chooser"
         if "Enter Password" in texts:
             return "password_dialog"
@@ -429,11 +442,27 @@ class KhanKidsAutomation:
         texts = text_set(root)
         return {"Students", "Add Students", *self.roster}.issubset(texts)
 
-    def _is_profile_chooser(self, texts: set[str]) -> bool:
-        return (
-            "dad" in texts
-            and "Sign Out" in texts
-            and all(student in texts for student in self.roster)
+    def _is_profile_chooser(self, root: ET.Element) -> bool:
+        texts = text_set(root)
+        if not {"dad", *self.roster}.issubset(texts):
+            return False
+        if "Sign Out" in texts:
+            return True
+        # Khan sometimes omits Sign Out from accessibility on the real chooser.
+        # Require its independently verified avatar-label row instead of accepting
+        # any page that merely mentions the parent and students.
+        labels = [find_text(root, name) for name in ("dad", *self.roster)]
+        if any(len(matches) != 1 for matches in labels):
+            return False
+        rectangles = [matches[0].rect for matches in labels]
+        parent, *children = rectangles
+        centers = [rect.center[1] for rect in rectangles]
+        return bool(
+            children
+            and parent.left < min(rect.left for rect in children)
+            and min(centers) > _screen_rect(root).bottom * 0.45
+            and max(centers) < _screen_rect(root).bottom * 0.8
+            and max(centers) - min(centers) <= 60
         )
 
     def _login_parent(self, root: ET.Element) -> ET.Element:
@@ -587,11 +616,13 @@ class KhanKidsAutomation:
         root = self._wait_for_assignment_dialog()
         return self._inspect_open_assignment(title, variant, "probe-active", root=root)
 
-    def inspect_catalog_assignment(self, grade: str, title: str, variant: str) -> dict[str, str]:
+    def inspect_catalog_assignment(
+        self, grade: str, title: str, variant: str, *, reset_to_top: bool = True
+    ) -> dict[str, str]:
         """Open an All Progress assignment dialog and close it without saving."""
-        self._open_all_progress()
-        self._select_grade(grade)
-        root = self._open_report_variant(title, variant)
+        root = self._open_all_progress()
+        root = self._select_grade(grade, root=root)
+        root = self._open_report_variant(title, variant, root=root, reset_to_top=reset_to_top)
         return self._inspect_open_assignment(title, variant, "probe-catalog", root=root)
 
     def unassign(self, title: str, variant: str) -> ActionResult:
@@ -643,12 +674,18 @@ class KhanKidsAutomation:
         return next(self.assign_many(((grade, title, variant),)))
 
     def set_catalog_assignment(
-        self, grade: str, title: str, variant: str, *, assigned: bool
+        self,
+        grade: str,
+        title: str,
+        variant: str,
+        *,
+        assigned: bool,
+        reset_to_top: bool = True,
     ) -> tuple[ActionResult | None, dict[str, str]]:
         """Change only the selected student's exact variant, including idempotent removal."""
         root = self._open_all_progress()
         root = self._select_grade(grade, root=root)
-        root = self._open_report_variant(title, variant, root=root)
+        root = self._open_report_variant(title, variant, root=root, reset_to_top=reset_to_top)
         self._validate_assignment_dialog(root, title, variant)
         before = {
             student: reading.state.value

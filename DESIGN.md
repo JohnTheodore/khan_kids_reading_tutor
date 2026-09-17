@@ -200,7 +200,7 @@ Reader tiles are selectable buttons with a 16px inset, 12px corners, and a contr
 
 ### Native disclosures and mastery evidence
 
-The selected reader persists across reloads and changes through a compact dropdown, not a family tile grid. Next practice and recent mastery lead, followed by the weekly summary and journey. Static horizontal meters show recorded mastery coverage, never a reading-level percentage. An empty meter is paired with “Not assessed” or no-evidence copy, not a judgment of ability. Milestones use details/summary with written state and a plus/minus indicator. Exact variants and dated evidence sit beneath. Assessment guidance and technical sync details are collapsed. Active sync has a determinate stage-completion bar, phase and elapsed time without looping animation.
+The selected reader persists across reloads and changes through a compact dropdown, not a family tile grid. Next practice and recent mastery lead, followed by the weekly summary and journey. Static horizontal meters show recorded mastery coverage, never a reading-level percentage. An empty meter is paired with “Not assessed” or no-evidence copy, not a judgment of ability. Milestones use details/summary with written state and a plus/minus indicator. Exact variants and dated evidence sit beneath. Assessment guidance and technical sync details are collapsed. Active sync uses a prominent working inset, written steps and a determinate bar; a separate rotating sync icon signals activity, not completion.
 
 Queue, setup, and counting explanations also use native disclosures. Summary hover uses the soft role; all keyboard focus uses the shared visible outline.
 
@@ -254,7 +254,19 @@ Recommendation cards use paper, a quiet stroke, 12px corners, and 20px padding; 
 
 The top bar uses the original letter mark, restrained supporting brand text, and a plain setup link. Its local/private label hides at 760px and below. Connection activity uses a small dot plus written live status; failures use the warning trio and explicit reconnect/setup actions.
 
-Sync uses a determinate stage-completion bar with phase and elapsed text. It advances only at observed workflow milestones, pauses during work, and fills only after successful job completion. No visible percentages or looping animations are used. Reduced motion removes primary active translation. Forced-colors styles preserve the indicator, activity dot and button boundaries. Saved All Progress scores appear as snapshot evidence with an unknown lesson date; they are not inserted into dated attempt histories or weekly counts.
+Sync immediately reveals a blue-toned working inset with a larger heading, a
+32px original sync icon, a 10px determinate bar and written Read scores / Update
+lessons / Verify & finish steps. The busy button retains its blue action color
+and exposes aria-busy. Elapsed time remains secondary. Steps follow real backend
+phases; the bar advances only at observed milestones and fills only after
+successful completion. No visible percentages or looping progress bars are used.
+The separate activity icon rotates only during confirmed activity, pauses offscreen
+or in a hidden tab, and becomes static with reduced motion. Disconnection and
+failure stop activity feedback and retain partial progress. Manual edits share the
+working treatment but never display mastery-sync steps. Reduced motion also
+removes bar transitions and primary active translation. Forced-colors styles
+preserve the indicator, activity dot and button boundaries. Saved All Progress
+scores remain undated snapshot evidence, never fabricated weekly gains.
 
 ## Do's and Don'ts
 
