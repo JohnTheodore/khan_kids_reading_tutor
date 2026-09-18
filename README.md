@@ -242,9 +242,11 @@ the tutor navigates to the profile picker without restarting the app. Parent
 password key presses share one ADB connection, preserving capitalization and
 keeping the password out of command arguments. Unsupported screens or failed
 navigation stop the sync without restarting, preserving owner-private diagnostic
-captures under `private/startup-blocked-*`. This keeps occasional prize prompts
-available for inspection instead of hiding them with a restart. Once its actual
-layout is verified, a prize-selection handler can be added safely.
+captures under `private/startup-blocked-*`. The verified three-card prize prompt
+is handled automatically: the tutor chooses a prize at random for the selected
+child, taps once, and waits for the child home screen before continuing. It never
+repeats an uncertain award or restarts past an unfamiliar reward screen; new
+layouts remain available for inspection.
 Protect the files:
 
 ```bash

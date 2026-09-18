@@ -102,3 +102,12 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-17,Student A,checked,Beginning Sound s,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T15:16:40.318228-04:00
 2026-09-17,Student A,checked,Beginning Sound t,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T15:17:53.488254-04:00
 2026-09-17,Student A,checked,Beginning Sound v,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T15:19:05.662573-04:00
+2026-09-17,Student A,unchecked,Beginning Sound f,Practice 2,mastered: latest attempt is 100%,saved,2026-09-17T20:02:07.979439-04:00
+2026-09-17,Student A,unchecked,Beginning Sound r,Practice 2,mastered: latest attempt is 100%,saved,2026-09-17T20:02:25.127793-04:00
+2026-09-17,Student A,unchecked,Beginning Sounds 1,Main,waiting for an open stretch slot,saved,2026-09-17T20:02:42.437368-04:00
+2026-09-17,Student A,unchecked,Short Vowel Sound e,Practice 1,mastered: latest attempt is 100%; successor waiting for an open queue slot,saved,2026-09-17T20:03:01.334227-04:00
+2026-09-17,Student A,checked,Beginning Sound w,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.448593-04:00
+2026-09-17,Student A,checked,Beginning Sound y,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.456268-04:00
+2026-09-17,Student A,checked,Beginning Sound z,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.459966-04:00
+2026-09-17,Student A,checked,Ending Sound d,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.463615-04:00
+2026-09-17,Student A,checked,Beginning Sound p,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:10:21.707687-04:00

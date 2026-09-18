@@ -1,5 +1,17 @@
 # Repository instructions
 
+## Local dashboard availability
+
+- Leave the local dashboard running after every task unless the user explicitly
+  asks to stop it. Never stop it merely because a task or chat turn is complete.
+- Use the persistent user service `khan-dashboard.service` when available;
+  chat-owned terminal processes are not a reliable background host.
+- Before restarting, check for active syncs or assignment requests. Let tablet
+  operations finish safely, restart only when needed, and verify the server is
+  responding on `http://127.0.0.1:8765/` afterward.
+- Keep it loopback-only. Keep authenticated launch URLs private, and never
+  replay unfinished tablet operations automatically after a restart.
+
 ## Khan mastery sync reporting
 
 Whenever the user asks to run Khan Kids mastery sync:

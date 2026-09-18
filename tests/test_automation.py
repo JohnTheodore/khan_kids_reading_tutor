@@ -22,6 +22,67 @@ from khan_kids.ui import Rect
 
 
 class AutomationTests(unittest.TestCase):
+    def test_prize_overlay_is_not_mistaken_for_child_home(self):
+        _, automation = _automation()
+        root = _prize_screen()
+        self.assertEqual(automation._navigation_state(root), "prize_picker")
+        self.assertEqual(len(automation._prize_choices(root)), 3)
+        root.remove(list(root)[-1])
+        self.assertFalse(automation._prize_choices(root))
+        self.assertIsNone(automation._navigation_state(root))
+
+    def test_unobstructed_child_home_is_not_a_prize_picker(self):
+        _, automation = _automation()
+        root = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        self.assertFalse(automation._prize_choices(root))
+        self.assertEqual(automation._navigation_state(root), "child_home")
+
+    def test_random_prize_uses_one_fresh_choice_and_verifies_home(self):
+        device, automation = _automation()
+        root = _prize_screen()
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        automation.live_root = Mock(return_value=root)
+        automation._wait_for_stable_root = Mock(return_value=home)
+        choice = automation._prize_choices(root)[1]
+        with patch("khan_kids.automation.secrets.choice", return_value=choice) as random_choice:
+            self.assertIs(automation.pick_random_prize(), home)
+        random_choice.assert_called_once_with(automation._prize_choices(root))
+        device.tap_rect.assert_called_once_with(choice)
+        predicate = automation._wait_for_stable_root.call_args.args[0]
+        self.assertTrue(predicate(home))
+        self.assertFalse(predicate(root))
+
+    def test_prize_timeout_does_not_repeat_an_uncertain_award(self):
+        device, automation = _automation()
+        automation.live_root = Mock(return_value=_prize_screen())
+        automation._wait_for_stable_root = Mock(side_effect=AutomationError("timeout"))
+        with self.assertRaisesRegex(AutomationError, "timeout"):
+            automation.pick_random_prize()
+        device.tap_rect.assert_called_once()
+
+    def test_prize_refuses_wrong_child_or_stale_screen(self):
+        for root in (_prize_screen("Student B"), _screen_with_text()):
+            with self.subTest(root=root):
+                device, automation = _automation()
+                automation.live_root = Mock(return_value=root)
+                with self.assertRaises(AutomationError):
+                    automation.pick_random_prize()
+                device.tap_rect.assert_not_called()
+
+    def test_prize_startup_continues_without_restarting(self):
+        device, automation = _automation()
+        automation.live_root = Mock(return_value=_prize_screen())
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        automation.pick_random_prize = Mock(return_value=home)
+        automation._tap_until_navigation_target = Mock(return_value=_chooser_screen())
+        self.assertTrue(automation.ready_for_sync())
+        automation.pick_random_prize.assert_called_once()
+        self.assertEqual(
+            automation._tap_until_navigation_target.call_args.kwargs["target_state"],
+            "profile_chooser",
+        )
+        device.force_stop.assert_not_called()
+
     def test_profile_chooser_without_sign_out_requires_aligned_avatar_labels(self):
         _, automation = _automation()
         chooser = _screen_with_text(
@@ -556,6 +617,20 @@ def _device() -> Mock:
     device = Mock()
     device.timing.span.return_value = nullcontext()
     return device
+
+
+def _prize_screen(student: str = "Student A") -> ET.Element:
+    root = _screen_with_text((student, Rect(2169, 42, 2356, 166)))
+    for bounds in (
+        "[364,538][889,1063]",
+        "[1022,538][1547,1063]",
+        "[1676,538][2201,1063]",
+        "[551,983][701,1133]",
+        "[1206,983][1356,1133]",
+        "[1864,983][2014,1133]",
+    ):
+        ET.SubElement(root, "node", bounds=bounds, **{"class": "android.widget.ImageView"})
+    return root
 
 
 def _automation() -> tuple[Mock, KhanKidsAutomation]:

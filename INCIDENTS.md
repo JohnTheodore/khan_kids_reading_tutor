@@ -813,3 +813,42 @@ not establish whether warm startup caused the Khan-side close interruption.
 - Completed assignment actions: none recorded.
 - Live queue after interruption: unavailable.
 - Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-18-AUTO-145108-483356 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-18 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Startup blocked; app left open without restarting. Inspect the screen before retrying. Diagnostics: private/startup-blocked-ri52s7xk.`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+### Diagnosis and prevention
+
+The saved startup screen shows a three-card prize overlay. Its accessibility
+hierarchy exposes the child's home label beneath the overlay but no labeled
+prize buttons. Startup previously classified it as child home and attempted
+profile navigation through the overlay, then correctly stopped instead of
+restarting past the unsupported screen.
+
+Startup now recognizes the verified card-and-avatar layout before child home,
+checks the selected child, chooses one live card at random, and waits for stable
+child home before continuing. It makes only one prize tap: an uncertain result
+stops rather than risking another award. Unfamiliar central-card layouts cannot
+fall through to child-home navigation. Regression tests cover recognition,
+ordinary home, wrong-child and stale-screen refusal, single-tap timeout behavior,
+and continued startup without restarting. Captured artwork remains private;
+tests use synthetic hierarchy fixtures.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -160,6 +161,9 @@ class KhanKidsAutomation:
                 raise AutomationError("Startup screen is still changing")
             root = roots[-1]
             state = states[-1]
+            if state == "prize_picker":
+                root = self.pick_random_prize()
+                state = self._navigation_state(root)
             if state == "child_assignments":
                 root = self._tap_until_navigation_target(
                     root,
@@ -197,6 +201,78 @@ class KhanKidsAutomation:
             "assignments_report",
             "all_progress_report",
         }
+
+    def _prize_choices(self, root: ET.Element) -> tuple[Rect, ...]:
+        """Recognize the observed three-card reward overlay, not ordinary home UI."""
+        texts = text_set(root)
+        labels = [item for item in visible_nodes(root) if item.text in self.roster]
+        if (
+            len(labels) != 1
+            or labels[0].rect.left <= 2100
+            or labels[0].rect.top >= 180
+            or texts
+            & {"Assignments", "All Progress", "Enter Password", "Students", "Save", "Sign Out"}
+        ):
+            return ()
+        images = {
+            node_rect(node)
+            for node in root.iter("node")
+            if node.get("class") == "android.widget.ImageView"
+        }
+        cards = sorted(
+            (
+                rect
+                for rect in images
+                if rect is not None
+                and 500 <= rect.width <= 550
+                and 500 <= rect.height <= 550
+                and 500 <= rect.top <= 600
+            ),
+            key=lambda rect: rect.left,
+        )
+        expected = (
+            Rect(364, 538, 889, 1063),
+            Rect(1022, 538, 1547, 1063),
+            Rect(1676, 538, 2201, 1063),
+        )
+        avatars = (
+            Rect(551, 983, 701, 1133),
+            Rect(1206, 983, 1356, 1133),
+            Rect(1864, 983, 2014, 1133),
+        )
+
+        def matches(actual: Rect, reference: Rect) -> bool:
+            return all(
+                abs(a - b) <= 6 for a, b in zip(actual.as_list(), reference.as_list(), strict=True)
+            )
+
+        if len(cards) != 3 or not all(
+            matches(actual, reference) for actual, reference in zip(cards, expected, strict=True)
+        ):
+            return ()
+        if not all(
+            any(rect is not None and matches(rect, avatar) for rect in images) for avatar in avatars
+        ):
+            return ()
+        return tuple(cards)
+
+    def pick_random_prize(self) -> ET.Element:
+        """Choose once from a fresh verified overlay; never retry an uncertain award."""
+        root = self.live_root()
+        choices = self._prize_choices(root)
+        if not choices or self._navigation_state(root) != "prize_picker":
+            raise AutomationError("Verified three-choice prize picker is not visible")
+        if self.student not in text_set(root):
+            raise AutomationError("Refusing to collect a prize for a different student")
+        selected = secrets.choice(choices)
+        self.device.timing.progress("Choosing one of three Khan Kids prizes at random")
+        self.device.tap_rect(selected)
+        return self._wait_for_stable_root(
+            lambda candidate: self._navigation_state(candidate) == "child_home",
+            description="child home after random prize selection",
+            timeout=20,
+            persist=False,
+        )
 
     def _capture_blocked_startup(self) -> str:
         """Retain one owner-private snapshot before any restart could hide a prompt."""
@@ -414,6 +490,19 @@ class KhanKidsAutomation:
             raise AutomationError(
                 f"Account identity guard found forbidden students: {sorted(unexpected)!r}"
             )
+        if self._prize_choices(root):
+            return "prize_picker"
+        # An unfamiliar reward layout can still expose the home name underneath.
+        # Never treat large central choice cards as an unobstructed home screen.
+        if any(
+            node.get("class") == "android.widget.ImageView"
+            and (rect := node_rect(node)) is not None
+            and 500 <= rect.width <= 550
+            and 500 <= rect.height <= 550
+            and 500 <= rect.top <= 600
+            for node in root.iter("node")
+        ):
+            return None
         if "Class Report: All Progress" in texts:
             return "all_progress_report"
         if "Class Reports" in texts:
