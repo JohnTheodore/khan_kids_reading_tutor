@@ -12,7 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from khan_kids.diagnostics import (
     MAX_DIAGNOSTIC_RUNS,
     DiagnosticRun,
+    new_run_id,
     sanitize_diagnostic_text,
+    validate_run_id,
 )
 
 
@@ -35,6 +37,12 @@ class FakeDevice:
 
 
 class DiagnosticRunTests(unittest.TestCase):
+    def test_generated_run_id_is_valid_in_every_timezone(self) -> None:
+        run_id = new_run_id()
+        self.assertEqual(validate_run_id(run_id), run_id)
+        self.assertIn("Z-", run_id)
+        self.assertNotIn("+", run_id)
+
     def test_failure_bundle_is_correlated_private_redacted_and_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

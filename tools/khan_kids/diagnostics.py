@@ -9,7 +9,7 @@ import shutil
 import traceback
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .records import write_json_atomic, write_text_atomic
@@ -21,7 +21,7 @@ _RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 def new_run_id() -> str:
     """Return a sortable, path-safe correlation ID."""
-    stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%f%z")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     return f"sync-{stamp}-{secrets.token_hex(4)}"
 
 
