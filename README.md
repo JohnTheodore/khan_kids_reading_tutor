@@ -350,15 +350,22 @@ When the preview looks right, run:
 
 After completing setup, run `./khan-dashboard`. It opens your family's reading
 dashboard: each reader's current focus, gains over the last seven days, a map
-from letters through comprehension, and suggested next practice.
+from letters through comprehension, and suggested next practice. The reading
+map groups skills into six phases, with vocabulary, language and writing shown
+as supporting skills. Skills develop together—not as a rigid checklist.
 **Sync progress applies changes**, just like the
 command-line launcher; the dashboard does not implement a second mastery policy.
 
 1. Choose your child in **Reader**. The selection stays set when you refresh.
 2. Glance at **Working on** and **The last 7 days**.
-3. Open a reading milestone, then a lesson family, to see exact variants,
+3. Click **View current practice**, or open a phase, skill and topic, to see exact variants,
    score dates and mastery evidence. Lessons without recorded scores are in
    **No recorded scores**; missing evidence does not mean failure.
+   A topic counts once when a non-Basic variant meets the mastery goal, even if
+   other variants still need practice. Bars show recorded topic coverage, not a
+   reading level. Alphabet buttons show just the selected letter's evidence.
+   Archived reading/listening exposure stays separate from scored mastery;
+   uncertain dates are excluded from weekly gains.
 4. After a session, click **Sync progress**. **Latest check-in** shows new scores,
    verified assignment changes and the best next lessons from the ten assignments.
 5. To choose practice yourself, open a lesson and click **Assign** beside its
@@ -513,7 +520,11 @@ Raspberry Pi/dependency compatibility still needs testing.
 
 Sync reads current state again, applies the desired queue, and verifies it.
 Every change is checked after Save; a second complete queue scan must match
-before success is reported. The app normally returns to the profile chooser.
+before success is reported. The app logs out to the profile chooser, then Android
+Home is pressed and verified. Khan Kids remains suspended in the background, so
+the tablet leaves fullscreen with its system controls available and the next
+launch resumes quickly. This Home handoff also runs after failures, once private
+diagnostics have preserved the app screen.
 
 Run that same command after learning sessions. For the original configured
 family, `./khan-mastery-sync` alone remains the usual command; the launcher

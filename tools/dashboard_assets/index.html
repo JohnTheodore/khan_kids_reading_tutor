@@ -81,7 +81,9 @@
       </section>
       <div id="activity" class="activity">
         <span class="activity-dot" aria-hidden="true"></span>
-        <svg class="icon activity-symbol" aria-hidden="true"><use href="#icon-sync" /></svg>
+        <svg class="icon activity-symbol" aria-hidden="true">
+          <use href="#icon-sync" />
+        </svg>
         <div class="activity-copy">
           <p id="state" role="status" aria-live="polite">
             Connecting to your local app…
@@ -102,9 +104,18 @@
           <span id="sync-fill" class="sync-fill"></span>
         </div>
         <ol id="sync-stages" class="sync-stages" aria-label="Sync steps" hidden>
-          <li><span class="stage-label">Read scores</span><span class="stage-status">Waiting</span></li>
-          <li><span class="stage-label">Update lessons</span><span class="stage-status">Waiting</span></li>
-          <li><span class="stage-label">Verify &amp; finish</span><span class="stage-status">Waiting</span></li>
+          <li>
+            <span class="stage-label">Read scores</span
+            ><span class="stage-status">Waiting</span>
+          </li>
+          <li>
+            <span class="stage-label">Update lessons</span
+            ><span class="stage-status">Waiting</span>
+          </li>
+          <li>
+            <span class="stage-label">Verify &amp; finish</span
+            ><span class="stage-status">Waiting</span>
+          </li>
         </ol>
         <p id="sync-explanation" class="muted" hidden>
           Keep the tablet unlocked. Progress advances when real steps finish.
@@ -136,6 +147,14 @@
               <h3>Working on</h3>
               <p id="journey-focus" class="focus-name"></p>
               <p id="journey-next" class="muted"></p>
+              <button
+                id="journey-practice-link"
+                type="button"
+                class="secondary"
+                hidden
+              >
+                View current practice
+              </button>
             </div>
             <div class="weekly">
               <h3>The last 7 days</h3>
@@ -155,10 +174,18 @@
           <div class="journey-layout">
             <div>
               <div class="section-heading">
-                <h3>From letters to independent reading</h3>
-                <span class="muted">Open a milestone for evidence</span>
+                <h3>Your reading map</h3>
+                <span class="muted"
+                  >Skills develop together. Open a phase to explore.</span
+                >
               </div>
               <div id="milestones" class="milestones"></div>
+              <p class="map-counting-note muted">
+                A topic counts as mastered when Main, Practice 1, Practice 2, or
+                another non-Basic activity meets the mastery goal—not when every
+                variant is complete. Bars show recorded topic coverage, not
+                reading level.
+              </p>
             </div>
             <details
               class="reading-checks"
@@ -169,6 +196,7 @@
               </summary>
               <p id="reading-level" class="reading-level"></p>
               <p id="journey-forecast" class="muted"></p>
+              <p id="journey-exposure" class="muted" hidden></p>
               <h4>Confirm away from the app</h4>
               <ul id="reading-check-list"></ul>
               <p class="muted">

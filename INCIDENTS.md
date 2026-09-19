@@ -852,3 +852,30 @@ fall through to child-home navigation. Regression tests cover recognition,
 ordinary home, wrong-child and stale-screen refusal, single-tap timeout behavior,
 and continued startup without restarting. Captured artwork remains private;
 tests use synthetic hierarchy fixtures.
+## KKRT-2026-09-19-UX-001 — System volume unavailable after tablet automation
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Severity | SEV-3 — tablet usability impaired after an otherwise bounded workflow |
+| Status | Resolved preventively; physical acceptance check pending next live run |
+| Detected by | Parent report |
+| Affected surface | Android system controls after Khan Kids automation |
+
+### Findings
+
+The automation did not send volume keys or modify audio, mute, or Do Not Disturb
+settings. Successful workflows deliberately logged out to the Khan Kids profile
+chooser but left the fullscreen app foregrounded. Wireless ADB was unavailable
+during diagnosis, so the exact Android audio-routing cause could not be proven.
+
+### Prevention
+
+All mastery-sync, manual-assignment, and archive-crawl tablet sessions now press
+Android Home after in-app logout or after failure diagnostics. The handoff is
+accepted only after two stable foreground reads outside Khan Kids; it never
+changes the user's volume level and never force-stops Khan Kids. Cleanup failure
+is reported, while a primary workflow failure remains primary and carries the
+Home failure as a diagnostic note. Tests cover success, workflow failure,
+simultaneous cleanup failure, transient System UI, and Khan Kids remaining
+foreground.

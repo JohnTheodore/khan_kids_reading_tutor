@@ -13,6 +13,7 @@ from pathlib import Path
 from .adb import AndroidDevice, AutomationError
 from .automation import KhanKidsAutomation
 from .catalog import CatalogIndex
+from .constants import KHAN_KIDS_PACKAGE
 from .device_discovery import DeviceConfig, resolve_device
 from .launcher import ensure_khan_kids_open, local_secrets_provider
 from .manual_assignments import ManualAssignments, ManualChange, policy_path
@@ -52,7 +53,7 @@ class ManualAssignmentSession:
             )
             self.device = AndroidDevice(serial, timing=TimingRecorder(self.progress))
             self.device.assert_connected()
-            self.resources.enter_context(self.device.awake_session())
+            self.resources.enter_context(self.device.app_session(KHAN_KIDS_PACKAGE))
             self.scratch = Path(
                 self.resources.enter_context(tempfile.TemporaryDirectory(prefix="khan-parent-"))
             )
@@ -364,10 +365,18 @@ class ManualAssignmentSession:
         return build_dashboard_report(payload)
 
     def __exit__(self, kind, error, traceback) -> None:
+        cleanup_error = error
         try:
             # Failure leaves unexpected screens intact for diagnosis.
             if error is None and self.automation is not None:
                 with self.device.timing.span("teardown.switch_user"):
                     self.automation.return_to_profile_chooser()
+        except BaseException as failure:
+            cleanup_error = failure
+            raise
         finally:
-            self.resources.close()
+            self.resources.__exit__(
+                type(cleanup_error) if cleanup_error is not None else kind,
+                cleanup_error,
+                cleanup_error.__traceback__ if cleanup_error is not None else traceback,
+            )

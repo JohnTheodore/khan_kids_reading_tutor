@@ -11,9 +11,10 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 
-from khan_kids.adb import AndroidDevice, AutomationError
+from khan_kids.adb import AndroidDevice, AutomationError, HomeHandoffError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.catalog import CatalogIndex
+from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.history_cache import HistoryCache
 from khan_kids.incidents import append_failed_sync_incident
@@ -415,7 +416,7 @@ def main(progress: ProgressReporter | None = None) -> None:
         with timing.span("startup.connected"):
             device.assert_connected()
         with (
-            device.awake_session(),
+            device.app_session(KHAN_KIDS_PACKAGE),
             tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary,
         ):
             credentials = local_secrets_provider(args.secrets_file)
@@ -482,6 +483,11 @@ def main(progress: ProgressReporter | None = None) -> None:
                     "Teardown failed after the sync outcome "
                     f"{output_payload['status']!r} had already been saved: {error}"
                 )
+    except HomeHandoffError as error:
+        output_payload["teardown"] = {"status": "failed", "error": str(error)}
+        teardown_error = AutomationError(
+            f"Sync outcome was saved, but Android Home could not be verified: {error}"
+        )
     except MasterySyncInterrupted:
         raise
     except Exception as error:

@@ -153,6 +153,47 @@ def example_journey(student: str = "Student A") -> dict:
     }
 
 
+def example_phased_journey(student: str = "Student A") -> dict:
+    """Six core phases plus supporting skills, with a shared topic placement."""
+    reader = example_journey(student)
+    template = reader["milestones"][0]
+    phase_specs = [
+        ("letters", "Know letters", "Recognize letters and their sounds", "letters"),
+        ("sounds", "Hear sounds", "Blend and separate spoken sounds", "sounds"),
+        ("words", "Read first words", "Read short-vowel words", "cvc"),
+        ("patterns", "Build word patterns", "Explore common spelling patterns", "patterns"),
+        ("text", "Read connected text", "Read sentences accurately and smoothly", "text"),
+        ("meaning", "Understand reading", "Retell and discuss what you read", "meaning"),
+        ("supporting", "Supporting skills", "Useful skills alongside the core path", "supporting"),
+    ]
+    reader["milestones"] = []
+    reader["phases"] = []
+    for phase_id, title, description, milestone_id in phase_specs:
+        milestone = copy.deepcopy(template)
+        milestone.update(id=milestone_id, title=title, description=description)
+        reader["milestones"].append(milestone)
+        reader["phases"].append(
+            {
+                "id": phase_id,
+                "title": title,
+                "description": description,
+                "milestone_ids": [milestone_id],
+                "state": "practicing",
+                "mastered": 1,
+                "total": 2,
+                "weekly_gain": 1,
+                "supporting": phase_id == "supporting",
+            }
+        )
+    duplicate = copy.deepcopy(template)
+    duplicate.update(id="word-sounds", title="Word sounds")
+    duplicate["lessons"][1]["title"] = "Short Vowel Sound u"
+    reader["milestones"].append(duplicate)
+    reader["phases"][2].update(milestone_ids=["cvc", "word-sounds", "cvc"], total=3)
+    reader["current_milestone_id"] = "cvc"
+    return reader
+
+
 class DashboardBrowserTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -573,9 +614,7 @@ class DashboardBrowserTests(unittest.TestCase):
 
     def test_journey_evidence_and_weekly_gains_do_not_claim_reading_level(self) -> None:
         self.open()
-        expect(self.page.locator("#journey-weekly")).to_contain_text(
-            "1 lesson gained mastery evidence"
-        )
+        expect(self.page.locator("#journey-weekly")).to_contain_text("1 topic mastered")
         expect(self.page.locator("#reading-level")).to_have_text("Reading level: Not assessed")
         expect(self.page.locator("#journey-forecast")).to_contain_text("cannot predict")
         self.page.locator(".milestone > summary").click()
@@ -599,6 +638,113 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator("#student")).to_have_value("Student B")
         expect(self.page.locator("#journey-focus")).to_have_text("Archived reading history")
         expect(self.page.locator("#sync")).to_be_disabled()
+        self.job.start.assert_not_called()
+
+    def test_phases_group_milestones_and_use_deduplicated_topic_counts(self) -> None:
+        self.journeys[0] = example_phased_journey()
+        self.open()
+        expect(self.page.locator(".journey-phase")).to_have_count(7)
+        expect(self.page.locator('.journey-phase:not([data-phase="supporting"])')).to_have_count(6)
+        current = self.page.locator('.journey-phase[data-phase="words"]')
+        expect(current).to_have_attribute("open", "")
+        expect(current.locator(":scope > summary .current-focus-label")).to_have_text(
+            "Current focus"
+        )
+        expect(self.page.locator(".journey-phase[open]")).to_have_count(1)
+        expect(current.locator(".milestone")).to_have_count(2)
+        expect(current.locator(".phase-counts")).to_contain_text("1 of 3 topics mastered")
+        meter = current.locator(".phase-counts meter")
+        expect(meter).to_have_attribute("value", "1")
+        expect(meter).to_have_attribute("max", "3")
+        expect(current.locator(".phase-counts button")).to_have_count(0)
+        expect(self.page.locator('.journey-phase[data-phase="supporting"]')).to_contain_text(
+            "Supporting skills"
+        )
+        expect(self.page.locator(".milestone[open]")).to_have_count(0)
+        expect(self.page.locator(".recent-lesson")).to_have_count(1)
+        self.job.start.assert_not_called()
+
+    def test_supporting_skills_and_unscored_exposure_do_not_claim_mastery(self) -> None:
+        reader = example_phased_journey()
+        reader["unscored_exposures"] = 4
+        supporting = reader["phases"][-1]
+        supporting.update(state="not_assessed", mastered=0, weekly_gain=0)
+        milestone = next(m for m in reader["milestones"] if m["id"] == "supporting")
+        milestone.update(state="not_assessed", mastered=0, weekly_gain=0)
+        for lesson in milestone["lessons"]:
+            lesson.update(state="not_assessed", weekly_gain=False)
+            for activity in lesson["activities"]:
+                activity.update(
+                    state="not_assessed", scores=[], attempts=[], first_mastery_date=None
+                )
+        self.journeys[0] = reader
+        self.open()
+        self.page.locator(".reading-checks > summary").click()
+        expect(self.page.locator("#journey-exposure")).to_be_visible()
+        expect(self.page.locator("#journey-exposure")).to_contain_text("4 unscored")
+        expect(self.page.locator("#journey-exposure")).to_contain_text("not demonstrated mastery")
+        phase = self.page.locator('.journey-phase[data-phase="supporting"]')
+        expect(phase).to_have_class("journey-phase supporting-phase")
+        expect(phase.locator(".phase-counts meter")).to_have_attribute("value", "0")
+        expect(phase.locator(".phase-counts")).to_contain_text("Not assessed")
+        phase.locator(":scope > summary").click()
+        phase.locator(".milestone > summary").click()
+        expect(phase.locator(".unrecorded-lessons > summary")).to_contain_text(
+            "No recorded scores · 2"
+        )
+        expect(phase.locator(".mastered-lessons")).to_have_count(0)
+        self.job.start.assert_not_called()
+
+    def test_current_practice_link_opens_phase_and_focuses_milestone_with_keyboard(self) -> None:
+        self.journeys[0] = example_phased_journey()
+        for width in (1280, 375):
+            with self.subTest(width=width):
+                self.page.set_viewport_size({"width": width, "height": 900})
+                self.open()
+                phase = self.page.locator('.journey-phase[data-phase="words"]')
+                phase.locator(":scope > summary").click()
+                expect(phase).not_to_have_attribute("open", "")
+                link = self.page.locator("#journey-practice-link")
+                link.focus()
+                self.page.keyboard.press("Enter")
+                expect(phase).to_have_attribute("open", "")
+                milestone = phase.locator('.milestone[data-milestone="cvc"]')
+                expect(milestone).to_have_attribute("open", "")
+                expect(milestone.locator(":scope > summary")).to_be_focused()
+                expect(milestone.locator(".milestone-title .muted")).to_be_visible()
+                self.assert_no_overflow()
+        self.job.start.assert_not_called()
+
+    def test_current_practice_focus_survives_completed_sync_background_refresh(self) -> None:
+        self.journeys[0] = example_phased_journey()
+        for width in (1280, 375):
+            with self.subTest(width=width):
+                self.page.set_viewport_size({"width": width, "height": 900})
+                self.state.update(state="idle", student=None, report=None)
+                self.journeys[0]["weekly_attempts"] = 2
+                self.open()
+                self.page.locator("#journey-practice-link").click()
+                phase = self.page.locator('.journey-phase[data-phase="words"]')
+                milestone = phase.locator('.milestone[data-milestone="cvc"]')
+                heading = milestone.locator(":scope > summary")
+                expect(heading).to_be_focused()
+                old_heading = heading.element_handle()
+                self.journeys[0]["weekly_attempts"] = 3
+                report = copy.deepcopy(self.reports["Student A"])
+                report["timestamp"] = "2026-09-17T14:00:00-04:00"
+                self.state.update(
+                    state="succeeded",
+                    student="Student A",
+                    report=report,
+                    output="Finished phase.fixed_point_verify\n",
+                )
+                self.page.evaluate("poll()")
+                expect(self.page.locator("#journey-weekly")).to_contain_text("3 scored attempts")
+                self.assertFalse(old_heading.evaluate("e => e.isConnected"))
+                expect(phase).to_have_attribute("open", "")
+                expect(milestone).to_have_attribute("open", "")
+                expect(heading).to_be_focused()
+                self.assert_no_overflow()
         self.job.start.assert_not_called()
 
     def test_only_remaining_letter_is_visible_without_searching_completed_lessons(self) -> None:
@@ -629,16 +775,30 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator(".remaining-lessons")).to_contain_text("Lowercase l")
         expect(self.page.locator(".remaining-lessons")).to_contain_text("88%")
         expect(self.page.locator(".remaining-lessons")).to_contain_text("lesson date unknown")
-        expect(self.page.locator(".mastered-lessons")).not_to_have_attribute("open", "")
+        expect(self.page.locator(".mastered-lessons")).to_have_count(0)
+        expect(self.page.locator(".unrecorded-lessons")).to_have_count(0)
         self.assert_no_overflow()
-        self.page.locator(".mastered-lessons > summary").click()
-        expect(self.page.locator(".mastered-lessons .journey-lesson")).to_have_count(25)
         self.page.get_by_role(
             "button", name="Lowercase a: Mastery evidence — Main. Show scores", exact=True
         ).click()
         expect(
-            self.page.locator(".mastered-lessons .journey-lesson > summary").first
+            self.page.locator(".selected-letter-evidence .journey-lesson > summary")
         ).to_be_focused()
+        expect(self.page.locator(".selected-letter-evidence .journey-lesson")).to_have_count(1)
+        expect(self.page.locator(".journey-lesson")).to_have_count(2)
+        self.page.get_by_role(
+            "button", name="Lowercase l: Practicing. Show scores", exact=True
+        ).click()
+        expect(self.page.locator(".selected-letter-evidence")).to_contain_text("Lowercase l")
+        expect(self.page.locator(".remaining-lessons .journey-lesson")).to_have_count(0)
+        expect(self.page.locator(".journey-lesson")).to_have_count(1)
+        self.journeys[0]["weekly_attempts"] += 1
+        self.page.evaluate("loadJourneys()")
+        expect(self.page.locator("#journey-weekly")).to_contain_text("3 scored attempts")
+        expect(self.page.locator(".selected-letter-evidence .journey-lesson")).to_have_count(1)
+        expect(self.page.locator(".selected-letter-evidence")).to_contain_text("Lowercase l")
+        expect(self.page.locator('.letter-cell[aria-current="true"]')).to_have_text("l")
+        expect(self.page.locator(".journey-lesson")).to_have_count(1)
         self.job.start.assert_not_called()
 
     def test_sounds_separate_practice_from_missing_scores(self) -> None:
@@ -692,7 +852,9 @@ class DashboardBrowserTests(unittest.TestCase):
                 selected = self.page.get_by_role(
                     "button", name="Lowercase z: Mastery evidence — Main. Show scores", exact=True
                 )
-                selected.click()
+                selected.focus()
+                self.page.evaluate("window.scrollTo(0, 0)")
+                self.page.keyboard.press("Enter")
                 heading = self.page.locator(".journey-lesson.is-selected > summary")
                 expect(heading).to_be_focused()
                 expect(heading).to_contain_text("Lowercase z")
@@ -717,6 +879,11 @@ class DashboardBrowserTests(unittest.TestCase):
                     "Lowercase a"
                 )
                 expect(self.page.locator('.letter-cell[aria-current="true"]')).to_have_count(1)
+                expect(
+                    self.page.locator(".selected-letter-evidence .journey-lesson")
+                ).to_have_count(1)
+                expect(self.page.locator(".journey-lesson")).to_have_count(1)
+                expect(self.page.locator(".mastered-lessons, .unrecorded-lessons")).to_have_count(0)
                 self.assert_no_overflow()
         self.job.start.assert_not_called()
 
@@ -934,6 +1101,8 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator("#journey-content")).to_be_visible()
         title = self.page.locator(".milestone-title").bounding_box()
         counts = self.page.locator(".milestone-counts").bounding_box()
+        expect(self.page.locator(".milestone-title .muted")).to_be_visible()
+        expect(self.page.locator(".milestone-title .muted")).to_have_text("Read short-vowel words")
         self.assertIsNotNone(title)
         self.assertIsNotNone(counts)
         self.assertGreaterEqual(counts["y"], title["y"] + title["height"])

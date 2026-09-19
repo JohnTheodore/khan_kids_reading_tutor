@@ -90,13 +90,14 @@
 .mastery-meter {
   display: block;
   width: 100%;
-  height: 10px;
+  height: 18px;
   margin-bottom: 8px;
 }
 .mastery-meter::-webkit-meter-bar {
   background: var(--line);
   border: 1px solid var(--control-line);
   border-radius: 6px;
+  height: 10px;
 }
 .mastery-meter::-webkit-meter-optimum-value {
   background: var(--mastered);
@@ -137,6 +138,100 @@
 .focus-name {
   font-size: 1.5rem;
   font-weight: 650;
+}
+#journey-practice-link {
+  margin-top: 10px;
+}
+.journey-phase {
+  border-top: 1px solid var(--line);
+}
+.journey-phase > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 28%);
+  align-items: center;
+  gap: 32px;
+  padding: 20px 28px 20px 0;
+  position: relative;
+  list-style: none;
+}
+.journey-phase > summary::-webkit-details-marker {
+  display: none;
+}
+.journey-phase > summary::after {
+  content: "+";
+  position: absolute;
+  right: 2px;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+.journey-phase[open] > summary::after {
+  content: "−";
+}
+.phase-title,
+.phase-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.phase-title strong {
+  font-size: 1.125rem;
+}
+.phase-title .muted,
+.phase-counts,
+.milestone-title .muted,
+.milestone-counts {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.phase-counts {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.phase-counts .mastery-meter,
+.milestone-counts .mastery-meter {
+  margin: 0;
+}
+.phase-content {
+  padding: 0 24px 16px;
+  background: var(--soft);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.phase-content .milestone:first-child {
+  border-top: 0;
+}
+.current-focus-label {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.journey-phase.is-current > summary .phase-title strong {
+  color: var(--accent);
+}
+.weekly-gain {
+  color: var(--mastered);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.supporting-phase {
+  margin-top: 24px;
+}
+.map-counting-note {
+  font-size: 0.875rem;
+  max-width: 75ch;
+  margin-top: 20px;
+}
+.selected-letter-evidence:empty {
+  display: none;
+}
+.selected-letter-evidence {
+  margin-bottom: 20px;
+}
+.topic-mastery-note {
+  font-size: 0.875rem;
+  max-width: 65ch;
+  margin: 0 12px 16px;
 }
 .weekly {
   align-self: center;
@@ -212,7 +307,7 @@
 }
 .milestone-counts {
   text-align: right;
-  width: 40%;
+  width: 32%;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -434,6 +529,26 @@
   margin-top: 12px !important;
 }
 @media (max-width: 600px) {
+  .journey-phase > summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .journey-phase > summary::after {
+    top: 18px;
+  }
+  .phase-counts {
+    text-align: start;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+  }
+  .phase-counts .mastery-meter {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .phase-content {
+    padding-inline: 12px;
+  }
   .lesson-heading {
     flex-direction: column;
     gap: 4px;
@@ -539,7 +654,7 @@
     text-align: start;
   }
   .milestone-title .muted {
-    display: none;
+    display: block;
   }
   .reading-checks {
     padding: 20px;

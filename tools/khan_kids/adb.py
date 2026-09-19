@@ -20,6 +20,10 @@ class AutomationError(RuntimeError):
     """Raised when the live app is not in the exact state automation expects."""
 
 
+class HomeHandoffError(AutomationError):
+    """Raised when Android does not verify a stable foreground outside the app."""
+
+
 def run_command(
     args: Sequence[str],
     *,
@@ -180,6 +184,28 @@ class AndroidDevice:
             return component.split("/", maxsplit=1)[0]
         return None
 
+    def return_to_android_home(self, app_package: str, *, timeout: float = 5.0) -> str:
+        """Leave one foreground app via Android Home and verify a stable handoff."""
+        if not app_package or any(character.isspace() for character in app_package):
+            raise ValueError("app_package must be a non-empty package name")
+        self.command("shell", "input", "keyevent", "KEYCODE_HOME")
+        deadline = time.monotonic() + timeout
+        previous = None
+        stable_reads = 0
+        while time.monotonic() < deadline:
+            foreground = self.foreground_package()
+            if foreground and foreground != app_package:
+                stable_reads = stable_reads + 1 if foreground == previous else 1
+                if stable_reads >= 2:
+                    return foreground
+            else:
+                stable_reads = 0
+            previous = foreground
+            time.sleep(min(0.2, self.settle_seconds))
+        raise HomeHandoffError(
+            f"Android Home did not leave {app_package}; the tablet may still be in fullscreen"
+        )
+
     def start_activity(self, component: str) -> None:
         # Ask ActivityManager to wait for the launch transition itself.  The
         # caller still verifies foreground focus because ``am start -W`` can
@@ -212,6 +238,25 @@ class AndroidDevice:
             if restore_rotation != ("shell", "wm", "user-rotation", "lock", "3"):
                 time.sleep(self.settle_seconds)
             yield
+
+    @contextmanager
+    def app_session(self, app_package: str) -> Iterator[None]:
+        """Restore Android state and always hand the foreground back to Home."""
+        active_error: BaseException | None = None
+        with self.awake_session():
+            try:
+                yield
+            except BaseException as error:
+                active_error = error
+                raise
+            finally:
+                try:
+                    with self.timing.span("teardown.android_home"):
+                        self.return_to_android_home(app_package)
+                except Exception as home_error:
+                    if active_error is None:
+                        raise
+                    active_error.add_note(f"Android Home cleanup also failed: {home_error}")
 
     def _rotation_restore_command(self) -> tuple[str, ...]:
         state = self.command("shell", "wm", "user-rotation", capture=True).decode().strip()

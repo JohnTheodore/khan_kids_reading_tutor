@@ -30,7 +30,7 @@ class ManualSessionTests(unittest.TestCase):
             (ROOT / "data/reading-ela-archive.json").read_bytes()
         )
         self.device = Mock(spec=AndroidDevice)
-        self.device.awake_session.return_value = nullcontext()
+        self.device.app_session.return_value = nullcontext()
         self.automation = Mock()
         self.automation.student = "Student A"
         self.automation.set_catalog_assignment.return_value = (
@@ -86,7 +86,7 @@ class ManualSessionTests(unittest.TestCase):
             session.apply("Student A", CHANGE)
         self.AndroidDevice.assert_called_once()
         self.device.enable_ui_backend.assert_called_once()
-        self.device.awake_session.assert_called_once()
+        self.device.app_session.assert_called_once_with("org.khankids.android")
         self.launch.assert_called_once()
         self.KhanKidsAutomation.assert_called_once()
 

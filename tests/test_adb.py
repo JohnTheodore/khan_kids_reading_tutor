@@ -4,15 +4,82 @@ import subprocess
 import sys
 import unittest
 import xml.etree.ElementTree as ET
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from khan_kids.adb import AndroidDevice, AutomationError, run_command
+from khan_kids.adb import AndroidDevice, AutomationError, HomeHandoffError, run_command
 
 
 class AndroidDeviceTests(unittest.TestCase):
+    def test_android_home_requires_two_stable_non_app_reads(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(device, "command") as command,
+            patch.object(
+                device,
+                "foreground_package",
+                side_effect=[
+                    "org.khankids.android",
+                    "com.android.systemui",
+                    "launcher",
+                    "launcher",
+                ],
+            ),
+            patch("khan_kids.adb.time.sleep"),
+        ):
+            self.assertEqual(device.return_to_android_home("org.khankids.android"), "launcher")
+        command.assert_called_once_with("shell", "input", "keyevent", "KEYCODE_HOME")
+
+    def test_android_home_fails_when_khan_remains_foreground(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(device, "command"),
+            patch.object(device, "foreground_package", return_value="org.khankids.android"),
+            patch("khan_kids.adb.time.monotonic", side_effect=[0, 0, 6]),
+            patch("khan_kids.adb.time.sleep"),
+            self.assertRaisesRegex(HomeHandoffError, "may still be in fullscreen"),
+        ):
+            device.return_to_android_home("org.khankids.android")
+
+    def test_app_session_goes_home_on_success(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "awake_session", return_value=nullcontext()),
+            patch.object(device, "return_to_android_home") as home,
+            device.app_session("org.khankids.android"),
+        ):
+            pass
+        home.assert_called_once_with("org.khankids.android")
+
+    def test_app_session_goes_home_on_failure(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "awake_session", return_value=nullcontext()),
+            patch.object(device, "return_to_android_home") as home,
+            self.assertRaisesRegex(RuntimeError, "operation failed"),
+            device.app_session("org.khankids.android"),
+        ):
+            raise RuntimeError("operation failed")
+        home.assert_called_once_with("org.khankids.android")
+
+    def test_app_session_preserves_primary_failure_when_home_also_fails(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(device, "awake_session", return_value=nullcontext()),
+            patch.object(
+                device,
+                "return_to_android_home",
+                side_effect=AutomationError("home blocked"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "operation failed") as raised,
+            device.app_session("org.khankids.android"),
+        ):
+            raise RuntimeError("operation failed")
+        self.assertIn("Home cleanup also failed", " ".join(raised.exception.__notes__))
+
     def test_wake_skips_command_and_sleep_when_already_awake(self) -> None:
         device = AndroidDevice("test-device")
         with (

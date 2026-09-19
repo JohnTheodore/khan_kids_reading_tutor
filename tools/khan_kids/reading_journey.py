@@ -37,6 +37,17 @@ MILESTONES = (
     ("lowercase", "Lowercase letters", "Recognize a–z", ("Lowercase Letters",)),
     ("uppercase", "Uppercase letters", "Recognize A–Z", ("Uppercase Letters",)),
     (
+        "print",
+        "Books & print",
+        "Understand books, words and letters on a page",
+        (
+            "Print Concepts: Parts of a Book",
+            "Print Concepts: Words",
+            "Print Concepts: Words, Letters",
+            "Print Concepts: Words, Letters & Numbers",
+        ),
+    ),
+    (
         "sounds",
         "Letters & sounds",
         "Connect letters to their sounds",
@@ -61,7 +72,7 @@ MILESTONES = (
     ),
     (
         "cvc",
-        "Short vowels & CVC",
+        "Short-vowel words",
         "Read words like cat, sit and dog",
         (
             "Short Vowel Sounds",
@@ -86,12 +97,18 @@ MILESTONES = (
         ("r-Controlled Vowels (ar, or, er, ir, ur)", "r-Controlled Vowels"),
     ),
     (
+        "spelling",
+        "Spelling patterns",
+        "Use spelling rules to read and write words",
+        ("Spelling Rules",),
+    ),
+    (
         "longer",
         "Longer words & word parts",
         "Use syllables, endings, prefixes and suffixes",
         ("1-Syllable & 2-Syllable Words", "Inflectional Endings -ing & -ed", "Prefixes & Suffixes"),
     ),
-    ("sight", "High-frequency words", "Recognize common and irregular words", ("Sight Words",)),
+    ("sight", "Common words", "Recognize common and irregular words", ("Sight Words",)),
     (
         "fluency",
         "Connected reading",
@@ -109,6 +126,94 @@ MILESTONES = (
             "Dialogue & Perspective",
             "Define Unknown Words",
         ),
+    ),
+    (
+        "vocabulary",
+        "Vocabulary",
+        "Build word meanings and categories",
+        ("Vocabulary & Objects", "Vocabulary & Sorting Objects", "Words by Category", "Opposites"),
+    ),
+    (
+        "language",
+        "Language & sentences",
+        "Understand grammar and how sentences work",
+        (
+            "Adjectives & Adverbs",
+            "Adjectives, Conjunctions, Determiners, Prepositions",
+            "Capitalization",
+            "Capitalization & Sentence Parts",
+            "Capitalize Dates & Names",
+            "Collective & Plural Nouns",
+            "Commas",
+            "Commas in Letters",
+            "Contractions & Possessives",
+            "Expand & Arrange Sentences",
+            "Formal vs Informal Language",
+            "Nouns",
+            "Prepositions",
+            "Pronouns",
+            "Reflexive Pronouns",
+            "Sentence Types & Punctuation",
+            "Subject & Verb, Verb Tenses",
+            "Verb Tenses",
+        ),
+    ),
+    (
+        "writing",
+        "Writing",
+        "Form letters and express ideas in writing",
+        (
+            "Informative Writing & Sequencing",
+            "Writing Lines, Letters, Words",
+            "Writing Lines, Shapes",
+            "Writing Words",
+        ),
+    ),
+)
+
+# One canonical parent-facing structure; milestones retain their existing IDs.
+PHASES = (
+    (
+        "letters-print",
+        "Letters & print",
+        "Recognize letters and understand books and print",
+        ("lowercase", "uppercase", "print"),
+    ),
+    (
+        "sound-skills",
+        "Sound skills",
+        "Hear sounds in words and connect them to letters",
+        ("sounds", "blending"),
+    ),
+    (
+        "simple-words",
+        "Simple words",
+        "Read simple short-vowel words and common words",
+        ("cvc", "sight"),
+    ),
+    (
+        "word-patterns",
+        "Word patterns",
+        "Read blends, digraphs, vowel patterns and spelling rules",
+        ("blends", "digraphs", "vowels", "r-vowels", "spelling"),
+    ),
+    (
+        "longer-words",
+        "Longer words",
+        "Read syllables, endings and meaningful word parts",
+        ("longer",),
+    ),
+    (
+        "reading-text",
+        "Reading text",
+        "Read connected text and understand its meaning",
+        ("fluency", "meaning"),
+    ),
+    (
+        "supporting",
+        "Supporting skills",
+        "Vocabulary, language and writing support reading throughout",
+        ("vocabulary", "language", "writing"),
     ),
 )
 
@@ -166,7 +271,7 @@ def catalog(root: Path, archive_stamp: int, letters_stamp: int) -> tuple[dict, .
     )
 
 
-def _archive_attempts(path: Path, student: str) -> list[dict]:
+def _archive_history(path: Path, student: str) -> tuple[list[dict], list[dict]]:
     """Adapt an explicit local history export, preserving date uncertainty.
 
     Exports repeat histories in multiple report placements. Their occurrence
@@ -189,11 +294,10 @@ def _archive_attempts(path: Path, student: str) -> list[dict]:
             identities[name] = public_student(name)
         if identities[name] != student:
             continue
-        if not row["score_percent"]:
-            # Viewed/listened/book exposure is not a scored reading attempt.
-            continue
-        score = int(row["score_percent"])
-        if not 0 <= score <= 100:
+        # Exposure shares the placement/occurrence deduplication but is never
+        # passed to the mastery evaluator or counted as a scored attempt.
+        score = int(row["score_percent"]) if row["score_percent"] else None
+        if score is not None and not 0 <= score <= 100:
             raise ValueError("Attempt score outside 0–100")
         day = date.fromisoformat(row["normalized_date"]) if row["normalized_date"] else None
         confidence = "inferred" if "year_not_displayed" in row["date_resolution"] else "exact"
@@ -209,9 +313,97 @@ def _archive_attempts(path: Path, student: str) -> list[dict]:
                 "score": score,
                 "date_confidence": confidence,
                 "order": -order,
+                "source_context": row.get("curriculum_path"),
+                "source_grade": row.get("grade"),
             },
         )
-    return sorted(unique.values(), key=lambda a: (a["date"] or "", a["order"]))
+    entries = sorted(unique.values(), key=lambda a: (a["date"] or "", a["order"]))
+    return (
+        [entry for entry in entries if entry["score"] is not None],
+        [entry for entry in entries if entry["score"] is None],
+    )
+
+
+def _archive_attempts(path: Path, student: str) -> list[dict]:
+    """Compatibility adapter: only scored history is eligible for mastery."""
+    return _archive_history(path, student)[0]
+
+
+def _archive_variants(families: tuple[dict, ...], path: Path, student: str) -> tuple[dict, ...]:
+    """Supplement exact Direct identities from this profile's saved inventory.
+
+    A Direct activity is not an alias for Main. The native catalog may omit a
+    direct activity altogether. Require its exact title, original grade/heading
+    and student in the companion export; never broaden native assignment keys.
+    This runs outside the shared catalog cache to isolate local profiles.
+    """
+    inventory = path.with_name("lesson-inventory.csv")
+    if not inventory.is_file():
+        return families
+
+    def grade_key(value: str) -> str:
+        return value.split(":")[0].casefold().replace(" (", "-").replace(")", "").replace(" ", "-")
+
+    by_title = {f["title"]: f for f in families}
+    additions = defaultdict(set)
+    with inventory.open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {
+            "student",
+            "subject",
+            "grade",
+            "skill_group",
+            "lesson_title",
+            "activity_variant",
+        }
+        if not required.issubset(reader.fieldnames or []):
+            raise ValueError("Unsupported archive inventory")
+        for row in reader:
+            if row["subject"] != "ela" or row["activity_variant"] != "Direct":
+                continue
+            if public_student(row["student"]) != student:
+                continue
+            family = by_title.get(row["lesson_title"])
+            if family and any(
+                grade_key(context["grade"]) == grade_key(row["grade"])
+                and context["skill"] == row["skill_group"]
+                for context in family["contexts"]
+            ):
+                additions[family["title"]].add((row["grade"], row["skill_group"]))
+    return tuple(
+        {
+            **family,
+            "variants": sorted(set(family["variants"]) | {"Direct"}),
+            "archive_variant_contexts": {
+                "Direct": [
+                    {"grade": grade, "skill": skill}
+                    for grade, skill in sorted(additions[family["title"]])
+                ]
+            },
+        }
+        if family["title"] in additions
+        else family
+        for family in families
+    )
+
+
+def _coverage(items: list[dict]) -> dict:
+    """Count already-evaluated topics once; aggregation never grades again."""
+    unique = {item["title"]: item for item in items}
+    mastered = sum(item["state"] == "mastered" for item in unique.values())
+    practicing = sum(item["state"] == "practicing" for item in unique.values())
+    return {
+        "state": "mastered"
+        if unique and mastered == len(unique)
+        else "practicing"
+        if mastered or practicing
+        else "not_assessed",
+        "mastered": mastered,
+        "practicing": practicing,
+        "not_assessed": sum(item["state"] == "not_assessed" for item in unique.values()),
+        "total": len(unique),
+        "weekly_gain": sum(item["weekly_gain"] for item in unique.values()),
+    }
 
 
 def _native_attempts(path: Path, student: str) -> list[dict]:
@@ -299,10 +491,13 @@ def build_journey(
         "as_of": today.isoformat(),
         "available": False,
         "milestones": [],
+        "phases": [],
         "weekly_attempts": 0,
         "weekly_mastered": 0,
         "mastered_families": 0,
         "total_families": 0,
+        "unscored_exposures": 0,
+        "unscored_exposure_titles": [],
         "last_lesson_date": None,
         "forecast": {
             "available": False,
@@ -313,13 +508,11 @@ def build_journey(
         "warnings": [],
     }
     try:
-        attempts = (
-            (_archive_attempts if profile.get("format") == "archive" else _native_attempts)(
-                path, student
-            )
-            if path.is_file()
-            else []
-        )
+        exposures = []
+        if path.is_file() and profile.get("format") == "archive":
+            attempts, exposures = _archive_history(path, student)
+        else:
+            attempts = _native_attempts(path, student) if path.is_file() else []
         durable = (
             set()
             if archived
@@ -332,12 +525,19 @@ def build_journey(
             root / "data/letters-lessons.json",
         )
         families = catalog(root, archive_path.stat().st_mtime_ns, letters_path.stat().st_mtime_ns)
+        if archived and profile.get("format") == "archive":
+            families = _archive_variants(families, path, student)
     except (OSError, ValueError, KeyError, TypeError):
         result["warnings"].append(
             "Reading records could not be validated. Check the local profile configuration; no progress was inferred."
         )
         return result
     use_snapshots = not profile and not archived
+    exposures = [
+        entry for entry in exposures if not entry["date"] or entry["date"] <= today.isoformat()
+    ]
+    result["unscored_exposures"] = len(exposures)
+    result["unscored_exposure_titles"] = sorted({entry["title"] for entry in exposures})
 
     def snapshots_for(family: dict, variant: str) -> list[dict]:
         captured = family["snapshot_date"]
@@ -360,10 +560,25 @@ def build_journey(
         )
         attempts = [a for a in attempts if not a["date"] or a["date"] <= today.isoformat()]
     known_keys = {(f["title"], variant) for f in families for variant in f["variants"]}
-    result["unmapped_attempts"] = sum(
-        (a["title"], a["variant"]) not in known_keys for a in attempts
-    )
-    attempts = [a for a in attempts if (a["title"], a["variant"]) in known_keys]
+    direct_contexts = {
+        f["title"]: f["archive_variant_contexts"]["Direct"]
+        for f in families
+        if f.get("archive_variant_contexts")
+    }
+
+    def mapped(attempt: dict) -> bool:
+        if (attempt["title"], attempt["variant"]) not in known_keys:
+            return False
+        contexts = direct_contexts.get(attempt["title"]) if attempt["variant"] == "Direct" else None
+        return not contexts or any(
+            attempt.get("source_grade") == context["grade"]
+            and (attempt.get("source_context") or "").endswith(": " + context["skill"])
+            for context in contexts
+        )
+
+    result["unmapped_attempts"] = sum(not mapped(a) for a in attempts)
+    attempts = [a for a in attempts if mapped(a)]
+    result["mapped_attempts"] = len(attempts)
     for attempt in attempts:
         grouped[attempt["title"], attempt["variant"]].append(attempt)
     start = today - timedelta(days=6)
@@ -397,7 +612,14 @@ def build_journey(
 
     def assignment_info(title: str, variant: str) -> dict:
         key = (title, variant)
-        matches = [e for e in placements.entries if e.title == title and variant in e.variants]
+        title_matches = [e for e in placements.entries if e.title == title]
+        # Reused titles within one grade are not an exact assignable identity.
+        # Keep their evidence visible, without guessing which placement to edit.
+        matches = [
+            e
+            for e in title_matches
+            if variant in e.variants and sum(other.grade == e.grade for other in title_matches) == 1
+        ]
         return {
             "grade": pins[key].grade if key in pins else matches[0].grade if matches else None,
             "assignment_status": "unknown"
@@ -418,6 +640,7 @@ def build_journey(
         activities = [
             {
                 "variant": variant,
+                "source_contexts": family.get("archive_variant_contexts", {}).get(variant, []),
                 **assignment_info(family["title"], variant),
                 **_evidence(
                     grouped[family["title"], variant],
@@ -451,32 +674,22 @@ def build_journey(
                 "weekly_gain": weekly,
             }
         )
-    result["mastered_families"] = sum(f["state"] == "mastered" for f in indexed)
-    result["total_families"] = len(indexed)
-    result["weekly_mastered"] = sum(f["weekly_gain"] for f in indexed)
+    overall = _coverage(indexed)
+    result["mastered_families"] = overall["mastered"]
+    result["total_families"] = overall["total"]
+    result["weekly_mastered"] = overall["weekly_gain"]
     active = None
     for key, title, description, _headings in MILESTONES:
         items = [f for f in indexed if key in f["milestones"]]
-        mastered = sum(f["state"] == "mastered" for f in items)
-        practicing = sum(f["state"] == "practicing" for f in items)
-        state = (
-            "mastered"
-            if items and mastered == len(items)
-            else "practicing"
-            if practicing or mastered
-            else "not_assessed"
-        )
-        if active is None and practicing:
+        coverage = _coverage(items)
+        if active is None and coverage["practicing"]:
             active = title
         result["milestones"].append(
             {
                 "id": key,
                 "title": title,
                 "description": description,
-                "state": state,
-                "mastered": mastered,
-                "total": len(items),
-                "weekly_gain": sum(f["weekly_gain"] for f in items),
+                **coverage,
                 "lessons": items,
             }
         )
@@ -496,6 +709,22 @@ def build_journey(
             ):
                 milestone["state"] = "next"
     result["current_focus"] = active or "No active scored practice recorded"
+    result["current_milestone_id"] = next(
+        (m["id"] for m in result["milestones"] if m["title"] == active), None
+    )
+    for key, title, description, milestone_ids in PHASES:
+        items = [f for f in indexed if set(f["milestones"]) & set(milestone_ids)]
+        coverage = _coverage(items)
+        result["phases"].append(
+            {
+                "id": key,
+                "title": title,
+                "description": description,
+                "milestone_ids": list(milestone_ids),
+                "supporting": key == "supporting",
+                **coverage,
+            }
+        )
     result["recommendations"] = [] if archived else (report or {}).get("recommendations", [])
     result["coverage_note"] = (
         "Lesson-family coverage: at least one non-Basic variant has mastery evidence. Repeated grades and practice variants are not additional skills. This does not certify independent reading."

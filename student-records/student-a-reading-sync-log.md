@@ -7562,3 +7562,303 @@ Live queue unavailable: workflow stopped before mutation
 ### Duration
 
 50.151 seconds
+
+## 2026-09-18T15:59:43-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 4
+- Desired queue size: 12
+- Assignment changes: 4
+
+### New scores
+
+- Beginning Sound s — Practice 2: 100% on 2026-09-18 (history: 92% → 100%)
+- Beginning Sound t — Practice 2: 100% on 2026-09-18 (history: 67% → 100%)
+- Beginning Sound v — Practice 2: 100% on 2026-09-18 (history: 94% → 84% → 100%)
+- Blend Sounds 2 — Practice 2: 100% on 2026-09-18 (history: 78% → 100%)
+
+### Score controls read
+
+- Beginning Sound s — Practice 2: 100% on 2026-09-18, 92% on 2026-09-18
+- Beginning Sound t — Practice 2: 100% on 2026-09-18, 67% on 2026-09-17
+- Beginning Sound v — Practice 2: 100% on 2026-09-18, 84% on 2026-09-18, 94% on 2026-09-17
+- Rhyming — Basic: 79% on 2026-09-16
+- Blend Sounds 2 — Practice 2: 100% on 2026-09-18, 78% on 2026-09-16
+- Make New Words — Practice 1: 78% on 2026-09-18, 83% on 2026-09-17, 94% on 2026-09-17, 83% on 2026-09-16
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Beginning Sound s — Practice 2
+  - Scores: 92% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound t — Practice 2
+  - Scores: 67% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound v — Practice 2
+  - Scores: 94% → 84% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Blend Sounds 2 — Practice 2
+  - Scores: 78% → 100%
+  - Why: Mastered: latest attempt is 100%; selected lesson family complete
+
+### Applied unchecks
+
+- Beginning Sound s — Practice 2
+  - Scores: 92% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound t — Practice 2
+  - Scores: 67% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound v — Practice 2
+  - Scores: 94% → 84% → 100%
+  - Why: Mastered: latest attempt is 100%
+- Blend Sounds 2 — Practice 2
+  - Scores: 78% → 100%
+  - Why: Mastered: latest attempt is 100%; selected lesson family complete
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Words with i — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Short Vowel Sound o — Practice 1 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Short Vowel Sound u — Practice 1 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Make New Words — Practice 1
+- Words with a — Main
+- Words with i — Main
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with b & d — Main
+- Rhyming — Basic
+- Beginning Sound p — Practice 2
+- Beginning Sound w — Practice 2
+- Beginning Sound y — Practice 2
+- Beginning Sound z — Practice 2
+- Ending Sound d — Practice 2
+
+### Stretch slots
+
+- Words with b & d — Main
+- Rhyming — Basic
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 1: not_mastered (83%, 94%, 83%, 78%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (not attempted)
+- Short Vowel Sound o — Practice 1: not_mastered (not attempted)
+- Short Vowel Sound u — Practice 1: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 130.486 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 91 | 89.732 | 0.986 | 2.102 |
+| workflow.scan_assignments | 6 | 66.034 | 11.006 | 38.99 |
+| phase.remove_and_verify | 4 | 64.323 | 16.081 | 16.616 |
+| phase.review_assignments | 1 | 38.99 | 38.99 | 38.99 |
+| adb.swipe | 23 | 11.462 | 0.498 | 0.654 |
+| wait.assignments_report after score dialog close | 7 | 11.363 | 1.623 | 2.07 |
+| wait.score dialog | 7 | 10.714 | 1.531 | 1.846 |
+| wait.stable Khan navigation state | 11 | 9.888 | 0.899 | 1.456 |
+| phase.fixed_point_verify | 1 | 8.641 | 8.641 | 8.641 |
+| adb.tap | 33 | 6.818 | 0.207 | 0.316 |
+| startup.launch | 1 | 6.817 | 6.817 | 6.817 |
+| wait.assignment saved | 4 | 6.364 | 1.591 | 1.945 |
+| adb.screenshot | 8 | 4.963 | 0.62 | 0.741 |
+| teardown.switch_user | 1 | 4.721 | 4.721 | 4.721 |
+| wait.assignments_report after Class Reports roster card | 2 | 4.621 | 2.311 | 3.342 |
+| adb.other | 16 | 4.18 | 0.261 | 1.234 |
+| wait.assignment dialog | 4 | 3.176 | 0.794 | 0.85 |
+| wait.teacher_roster after Class Report back | 1 | 1.507 | 1.507 | 1.507 |
+| wait.profile_chooser after Switch User | 1 | 1.423 | 1.423 | 1.423 |
+| startup.ui_backend | 1 | 1.406 | 1.406 | 1.406 |
+| adb.keyevent | 6 | 1.274 | 0.212 | 0.251 |
+| adb.settings | 5 | 1.0 | 0.2 | 0.29 |
+| adb.secret_entry | 1 | 0.854 | 0.854 | 0.854 |
+| wait.teacher roster after login | 1 | 0.7 | 0.7 | 0.7 |
+| wait.parent password dialog | 1 | 0.272 | 0.272 | 0.272 |
+| startup.connected | 1 | 0.036 | 0.036 | 0.036 |
+| phase.plan_queue | 1 | 0.019 | 0.019 | 0.019 |
+
+## 2026-09-18T16:31:45.821112-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 13
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Letters & Words — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Beginning Sound p — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Beginning Sound w — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Beginning Sound y — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound p — Practice 2
+- Beginning Sound w — Practice 2
+- Beginning Sound y — Practice 2
+- Beginning Sound z — Practice 2
+- Ending Sound d — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 1
+- Rhyming — Basic
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with a — Main
+- Words with b & d — Main
+- Words with i — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+51.633 seconds
+
+## 2026-09-18T16:32:29.184028-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 14
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Letters & Numbers — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Beginning Sound p — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Beginning Sound w — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Beginning Sound y — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound p — Practice 2
+- Beginning Sound w — Practice 2
+- Beginning Sound y — Practice 2
+- Beginning Sound z — Practice 2
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 1
+- Rhyming — Basic
+- Short Vowel Sound o — Practice 1
+- Short Vowel Sound u — Practice 1
+- Words with a — Main
+- Words with b & d — Main
+- Words with i — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+31.828 seconds

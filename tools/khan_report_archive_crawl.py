@@ -14,7 +14,7 @@ from pathlib import Path
 
 from khan_kids.adb import AndroidDevice, AutomationError, prepare_capture_workspace, run_command
 from khan_kids.automation import KhanKidsAutomation
-from khan_kids.constants import GRADE_NAMES, GRADE_SLUGS
+from khan_kids.constants import GRADE_NAMES, GRADE_SLUGS, KHAN_KIDS_PACKAGE
 from khan_kids.launcher import ensure_khan_kids_open, read_local_secrets
 from khan_kids.report_archive import (
     REPORT_SUBJECTS,
@@ -345,7 +345,7 @@ def main() -> None:
         return any(not history.get("attempts") for history in manifest.get("histories", []))
 
     started = datetime.now().astimezone()
-    with device.awake_session():
+    with device.app_session(KHAN_KIDS_PACKAGE):
         ensure_khan_kids_open(
             device,
             pin_provider=lambda: device_secrets.android_pin,

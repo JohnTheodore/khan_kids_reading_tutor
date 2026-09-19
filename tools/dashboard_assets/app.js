@@ -176,16 +176,18 @@ function updateButton() {
     : /plan_queue|add_and_verify|remove_and_verify/.test(currentPhase)
       ? 1
       : 0;
-  element("sync-stages").querySelectorAll("li").forEach((step, index) => {
-    step.dataset.state =
-      index < stage ? "done" : index === stage ? "current" : "waiting";
-    if (index === stage) step.setAttribute("aria-current", "step");
-    else step.removeAttribute("aria-current");
-    const text =
-      index < stage ? "Done" : index === stage ? "In progress" : "Waiting";
-    if (step.querySelector(".stage-status").textContent !== text)
-      step.querySelector(".stage-status").textContent = text;
-  });
+  element("sync-stages")
+    .querySelectorAll("li")
+    .forEach((step, index) => {
+      step.dataset.state =
+        index < stage ? "done" : index === stage ? "current" : "waiting";
+      if (index === stage) step.setAttribute("aria-current", "step");
+      else step.removeAttribute("aria-current");
+      const text =
+        index < stage ? "Done" : index === stage ? "In progress" : "Waiting";
+      if (step.querySelector(".stage-status").textContent !== text)
+        step.querySelector(".stage-status").textContent = text;
+    });
   document.body.classList.toggle("busy", running || submitted);
   const label =
     (running && !manualRunning) || submitted ? "Syncing… " : "Sync progress ";
@@ -1184,6 +1186,21 @@ function validJourney(reader) {
     reader.forecast &&
     typeof reader.forecast.reason === "string" &&
     Array.isArray(reader.milestones) &&
+    (reader.phases === undefined ||
+      (Array.isArray(reader.phases) &&
+        reader.phases.every(
+          (phase) =>
+            phase &&
+            typeof phase.id === "string" &&
+            typeof phase.title === "string" &&
+            typeof phase.description === "string" &&
+            journeyStates[phase.state] &&
+            Array.isArray(phase.milestone_ids) &&
+            phase.milestone_ids.every((id) => typeof id === "string") &&
+            ["mastered", "total", "weekly_gain"].every(
+              (key) => Number.isInteger(phase[key]) && phase[key] >= 0,
+            ),
+        ))) &&
     reader.milestones.every(
       (milestone) =>
         milestone &&
@@ -1212,6 +1229,18 @@ function renderJourney(problem = "") {
   const signature = JSON.stringify([selected, journeys, problem]);
   if (signature === journeySignature) return;
   const sameReader = element("milestones").dataset.reader === selected;
+  const activeHeading = document.activeElement;
+  const focusedMilestone =
+    sameReader && activeHeading?.matches(".milestone > summary")
+      ? activeHeading.parentElement.dataset.milestone
+      : null;
+  const previousPhases = new Map(
+    sameReader
+      ? [...element("milestones").querySelectorAll(".journey-phase")].map(
+          (detail) => [detail.dataset.phase, detail.open],
+        )
+      : [],
+  );
   const previousMilestones = new Set(
     sameReader
       ? [...element("milestones").querySelectorAll(".milestone[open]")].map(
@@ -1362,15 +1391,15 @@ function renderJourney(problem = "") {
   );
   setText(
     "journey-weekly",
-    `${reader.weekly_mastered} lesson${reader.weekly_mastered === 1 ? "" : "s"} gained mastery evidence · ${reader.weekly_attempts} scored attempts`,
+    `${reader.weekly_mastered} topic${reader.weekly_mastered === 1 ? "" : "s"} mastered · ${reader.weekly_attempts} scored attempts`,
   );
   setText(
     "journey-window",
-    `${formatJourneyDate(reader.weekly_start)}–${formatJourneyDate(reader.as_of)} · lesson dates, not discovery dates`,
+    `${formatJourneyDate(reader.weekly_start)}–${formatJourneyDate(reader.as_of)} · dated practice only`,
   );
   setText(
     "journey-coverage",
-    `${reader.mastered_families} of ${reader.total_families} mapped lesson topics have mastery evidence. This is catalog coverage, not a reading-level percentage.`,
+    `${reader.mastered_families} of ${reader.total_families} mapped topics mastered across the reading map and supporting skills.`,
   );
   setText("reading-level", "Reading level: " + reader.reading_level);
   element("journey-meter").max = reader.total_families || 1;
@@ -1389,227 +1418,315 @@ function renderJourney(problem = "") {
   element("journey-warnings").replaceChildren(
     ...reader.warnings.map((warning) => node("li", "", warning)),
   );
+  const exposure = reader.unscored_exposures || 0;
+  element("journey-exposure").hidden = !exposure;
+  setText(
+    "journey-exposure",
+    `${exposure} unscored reading or listening records are preserved separately. They show exposure, not demonstrated mastery.`,
+  );
+  const currentId = reader.archived
+    ? null
+    : reader.current_milestone_id ||
+      reader.milestones.find((m) => m.title === reader.current_focus)?.id;
   element("milestones").dataset.reader = selected;
-  element("milestones").replaceChildren(
-    ...reader.milestones.map((milestone) => {
-      const detail = node("details", "milestone");
-      detail.dataset.milestone = milestone.id;
-      const summary = node("summary", "");
-      const title = node("span", "milestone-title");
-      title.append(
-        node("strong", "", milestone.title),
-        node("span", "muted", milestone.description),
+  const milestoneElements = reader.milestones.map((milestone) => {
+    const detail = node("details", "milestone");
+    detail.dataset.milestone = milestone.id;
+    const summary = node("summary", "");
+    const title = node("span", "milestone-title");
+    title.append(
+      node("strong", "", milestone.title),
+      node("span", "muted", milestone.description),
+    );
+    if (milestone.id === currentId) {
+      detail.classList.add("is-current");
+      title.append(node("span", "current-focus-label", "Current focus"));
+    }
+    const counts = journeyCounts(milestone, "milestone-counts");
+    summary.append(title, counts);
+    detail.append(summary);
+    let loaded = false;
+    detail.addEventListener("toggle", () => {
+      if (!detail.open || loaded) return;
+      loaded = true;
+      const remaining = milestone.lessons.filter(
+        (lesson) => lesson.state !== "mastered",
       );
-      const counts = node("span", "milestone-counts");
-      counts.append(
-        node(
-          "span",
-          "milestone-state " + milestone.state,
-          journeyStates[milestone.state],
-        ),
-        node(
-          "span",
-          "muted",
-          milestone.mastered
-            ? `${milestone.mastered} of ${milestone.total} lessons have mastery evidence${milestone.weekly_gain ? " · +" + milestone.weekly_gain + " this week" : ""}`
-            : "No mastery evidence recorded yet",
-        ),
+      const practicing = remaining.filter(
+        (lesson) => lesson.state !== "not_assessed",
       );
-      const meter = node("meter", "mastery-meter");
-      meter.min = 0;
-      meter.max = milestone.total || 1;
-      meter.value = milestone.mastered;
-      meter.setAttribute(
-        "aria-label",
-        milestone.title + ": recorded lesson mastery coverage",
+      const unknown = remaining.filter(
+        (lesson) => lesson.state === "not_assessed",
       );
-      meter.textContent = `${milestone.mastered} of ${milestone.total}`;
-      counts.prepend(meter);
-      summary.append(title, counts);
-      detail.append(summary);
-      let loaded = false;
-      detail.addEventListener("toggle", () => {
-        if (!detail.open || loaded) return;
-        loaded = true;
-        const remaining = milestone.lessons.filter(
-          (lesson) => lesson.state !== "mastered",
-        );
-        const practicing = remaining.filter(
-          (lesson) => lesson.state !== "not_assessed",
-        );
-        const unknown = remaining.filter(
-          (lesson) => lesson.state === "not_assessed",
-        );
-        const mastered = milestone.lessons.filter(
-          (lesson) => lesson.state === "mastered",
-        );
-        const evidenceByTitle = new Map();
-        function evidenceFor(lesson) {
-          if (!evidenceByTitle.has(lesson.title))
-            evidenceByTitle.set(
-              lesson.title,
-              lessonEvidence(lesson, previousLessons.get(lesson.title)),
-            );
-          return evidenceByTitle.get(lesson.title);
+      const mastered = milestone.lessons.filter(
+        (lesson) => lesson.state === "mastered",
+      );
+      const evidenceByTitle = new Map();
+      function evidenceFor(lesson) {
+        if (!evidenceByTitle.has(lesson.title))
+          evidenceByTitle.set(
+            lesson.title,
+            lessonEvidence(lesson, previousLessons.get(lesson.title)),
+          );
+        return evidenceByTitle.get(lesson.title);
+      }
+      function groupedLessons(label, lessons, className) {
+        const group = node("details", className);
+        group.append(node("summary", "", `${label} · ${lessons.length}`));
+        let populated = false;
+        function populate() {
+          if (populated) return;
+          populated = true;
+          group.append(...lessons.map(evidenceFor));
         }
-        function groupedLessons(label, lessons, className) {
-          const group = node("details", className);
-          group.append(node("summary", "", `${label} · ${lessons.length}`));
-          let populated = false;
-          function populate() {
-            if (populated) return;
-            populated = true;
-            group.append(...lessons.map(evidenceFor));
-          }
-          group.addEventListener("toggle", () => {
-            if (group.open) populate();
-          });
-          if (
-            previousGroups.has(milestone.id + ":" + className) ||
-            lessons.some((lesson) => previousLessons.get(lesson.title)?.open)
-          ) {
-            populate();
-            group.open = true;
-          }
-          return { group, populate };
-        }
-        const completed = groupedLessons(
-          "Mastery recorded",
-          mastered,
-          "mastered-lessons",
-        );
-        const unrecorded = groupedLessons(
-          "No recorded scores",
-          unknown,
-          "unrecorded-lessons",
-        );
+        group.addEventListener("toggle", () => {
+          if (group.open) populate();
+        });
         if (
-          milestone.lessons.length &&
-          milestone.lessons.every((lesson) =>
-            /^(Lowercase|Uppercase) [a-zA-Z]$/.test(lesson.title),
-          )
+          previousGroups.has(milestone.id + ":" + className) ||
+          lessons.some((lesson) => previousLessons.get(lesson.title)?.open)
         ) {
-          const alphabet = node("div", "alphabet-map");
-          alphabet.setAttribute("role", "group");
-          alphabet.setAttribute("aria-label", milestone.title + " mastery map");
-          let selectedEvidence = null;
-          let selectionFrame = 0;
-          for (const lesson of milestone.lessons) {
-            const button = node(
-              "button",
-              "letter-cell " + lesson.state,
-              lesson.title.slice(-1),
-            );
-            button.type = "button";
-            button.setAttribute(
-              "aria-label",
-              `${lesson.title}: ${journeyStates[lesson.state]}${masteredVariants(lesson).length ? " — " + masteredVariants(lesson).join(", ") : ""}. Show scores`,
-            );
-            if (lesson.state === "mastered") button.append(icon("check"));
-            if (previousLessons.get(lesson.title)?.selected) {
-              selectedEvidence = evidenceFor(lesson);
-              button.setAttribute("aria-current", "true");
-            }
-            button.addEventListener("click", () => {
-              if (lesson.state === "mastered") {
-                completed.populate();
-                completed.group.open = true;
-              } else if (lesson.state === "not_assessed") {
-                unrecorded.populate();
-                unrecorded.group.open = true;
-              }
-              const evidence = evidenceFor(lesson);
-              evidence.open = true;
-              if (selectedEvidence)
-                selectedEvidence.classList.remove("is-selected");
-              selectedEvidence = evidence;
-              evidence.classList.add("is-selected");
-              for (const cell of alphabet.querySelectorAll("button"))
-                cell.removeAttribute("aria-current");
-              button.setAttribute("aria-current", "true");
-              cancelAnimationFrame(selectionFrame);
-              selectionFrame = requestAnimationFrame(() => {
-                if (!evidence.isConnected) return;
-                const heading = evidence.querySelector("summary");
-                heading.focus({ preventScroll: true });
-                const rect = heading.getBoundingClientRect();
-                if (rect.top < 24 || rect.bottom > innerHeight - 24) {
-                  heading.scrollIntoView({
-                    block: "start",
-                    behavior: matchMedia("(prefers-reduced-motion: reduce)")
-                      .matches
-                      ? "instant"
-                      : "smooth",
-                  });
-                }
-              });
-            });
-            alphabet.append(button);
+          populate();
+          group.open = true;
+        }
+        return { group, populate };
+      }
+      const completed = groupedLessons(
+        "Mastery recorded",
+        mastered,
+        "mastered-lessons",
+      );
+      const unrecorded = groupedLessons(
+        "No recorded scores",
+        unknown,
+        "unrecorded-lessons",
+      );
+      const isAlphabet = Boolean(
+        milestone.lessons.length &&
+        milestone.lessons.every((lesson) =>
+          /^(Lowercase|Uppercase) [a-zA-Z]$/.test(lesson.title),
+        ),
+      );
+      if (isAlphabet) {
+        const alphabet = node("div", "alphabet-map");
+        alphabet.setAttribute("role", "group");
+        alphabet.setAttribute("aria-label", milestone.title + " mastery map");
+        let selectedEvidence = null;
+        const selectedPanel = node("div", "selected-letter-evidence");
+        let selectionFrame = 0;
+        for (const lesson of milestone.lessons) {
+          const button = node(
+            "button",
+            "letter-cell " + lesson.state,
+            lesson.title.slice(-1),
+          );
+          button.type = "button";
+          button.setAttribute(
+            "aria-label",
+            `${lesson.title}: ${journeyStates[lesson.state]}${masteredVariants(lesson).length ? " — " + masteredVariants(lesson).join(", ") : ""}. Show scores`,
+          );
+          if (lesson.state === "mastered") button.append(icon("check"));
+          if (previousLessons.get(lesson.title)?.selected) {
+            selectedEvidence = evidenceFor(lesson);
+            selectedPanel.append(selectedEvidence);
+            button.setAttribute("aria-current", "true");
           }
-          detail.append(
-            alphabet,
-            node(
-              "p",
-              "map-legend muted",
-              "Checked letters have mastery evidence. Select a letter to see scores.",
-            ),
-          );
+          button.addEventListener("click", () => {
+            const evidence = evidenceFor(lesson);
+            evidence.open = true;
+            if (selectedEvidence) {
+              selectedEvidence.classList.remove("is-selected");
+              const previousTopic = milestone.lessons.find(
+                (topic) => topic.title === selectedEvidence.dataset.lesson,
+              );
+              if (
+                previousTopic?.state === "practicing" &&
+                selectedEvidence !== evidence
+              )
+                list.append(selectedEvidence);
+            }
+            selectedEvidence = evidence;
+            selectedPanel.replaceChildren(evidence);
+            evidence.classList.add("is-selected");
+            for (const cell of alphabet.querySelectorAll("button"))
+              cell.removeAttribute("aria-current");
+            button.setAttribute("aria-current", "true");
+            cancelAnimationFrame(selectionFrame);
+            selectionFrame = requestAnimationFrame(() => {
+              if (!evidence.isConnected) return;
+              focusJourneyHeading(evidence.querySelector("summary"));
+            });
+          });
+          alphabet.append(button);
         }
-        const list = node("div", "lesson-evidence remaining-lessons");
         detail.append(
+          alphabet,
           node(
-            "h4",
-            "",
-            practicing.length
-              ? `Practice to confirm mastery · ${practicing.length}`
-              : unknown.length
-                ? "No further practice identified from saved scores"
-                : "Mastery recorded for every lesson topic",
+            "p",
+            "map-legend muted",
+            "Checked letters have mastery evidence. Select a letter to see scores.",
           ),
+          selectedPanel,
         );
-        if (practicing.length) {
-          detail.append(
-            node(
-              "p",
-              "muted",
-              "These lessons have scores but no non-Basic mastery evidence yet. The goal is 100% once, or two consecutive scores of at least 90%.",
-            ),
-          );
-          list.append(
-            ...practicing.map((lesson) => {
-              const evidence = evidenceFor(lesson);
-              if (!previousLessons.has(lesson.title))
-                evidence.open = practicing.length === 1;
-              return evidence;
-            }),
-          );
-          detail.append(list);
-        }
-        if (mastered.length) {
-          detail.append(completed.group);
-        }
-        if (unknown.length)
-          detail.append(
-            node(
-              "p",
-              "muted",
-              "Missing scores are not failed lessons. Open the unrecorded list to see what has not been assessed.",
-            ),
-            unrecorded.group,
-          );
+      }
+      const list = node("div", "lesson-evidence remaining-lessons");
+      detail.append(
+        node(
+          "h4",
+          "",
+          practicing.length
+            ? `Practice to confirm mastery · ${practicing.length}`
+            : unknown.length
+              ? "Topics with no recorded scores"
+              : "Mastery recorded for every lesson topic",
+        ),
+      );
+      if (practicing.length) {
         detail.append(
           node(
             "p",
-            "milestone-footnote muted",
-            "Recorded app progress is not an independent reading assessment. Assign or unassign exact variants above; changes are confirmed on the tablet.",
+            "muted",
+            "These topics have recorded practice but still need Main or another non-Basic activity to meet the mastery goal: 100% once, or two consecutive scores of at least 90%. Basic-only scores remain practice evidence.",
           ),
         );
-      });
-      detail.open = previousMilestones.has(milestone.id);
-      return detail;
-    }),
+        list.append(
+          ...practicing
+            .map((lesson) => {
+              const evidence = evidenceFor(lesson);
+              if (!previousLessons.has(lesson.title))
+                evidence.open = practicing.length === 1;
+              return evidence.classList.contains("is-selected") && isAlphabet
+                ? null
+                : evidence;
+            })
+            .filter(Boolean),
+        );
+        detail.append(list);
+      }
+      if (mastered.length && !isAlphabet) {
+        detail.append(completed.group);
+      }
+      if (unknown.length && !isAlphabet)
+        detail.append(
+          node(
+            "p",
+            "muted",
+            "Missing scores are not failed lessons. Open the unrecorded list to see what has not been assessed.",
+          ),
+          unrecorded.group,
+        );
+    });
+    detail.open = previousMilestones.has(milestone.id);
+    return detail;
+  });
+  const byId = new Map(
+    milestoneElements.map((detail) => [detail.dataset.milestone, detail]),
   );
+  const placed = new Set();
+  const phases = (reader.phases || []).map((phase) => {
+    const detail = node("details", "journey-phase");
+    detail.dataset.phase = phase.id;
+    if (phase.supporting) detail.classList.add("supporting-phase");
+    const current = phase.milestone_ids.includes(currentId);
+    if (current) detail.classList.add("is-current");
+    const summary = node("summary", "");
+    const title = node("span", "phase-title");
+    title.append(
+      node("strong", "", phase.title),
+      node("span", "muted", phase.description),
+    );
+    if (current)
+      title.append(node("span", "current-focus-label", "Current focus"));
+    summary.append(title, journeyCounts(phase, "phase-counts"));
+    detail.append(summary);
+    const content = node("div", "phase-content");
+    for (const id of phase.milestone_ids) {
+      if (byId.has(id) && !placed.has(id)) {
+        content.append(byId.get(id));
+        placed.add(id);
+      }
+    }
+    detail.append(content);
+    detail.open = previousPhases.has(phase.id)
+      ? previousPhases.get(phase.id)
+      : current;
+    return detail;
+  });
+  element("milestones").replaceChildren(
+    ...phases,
+    ...milestoneElements.filter(
+      (detail) => !placed.has(detail.dataset.milestone),
+    ),
+  );
+  const practiceLink = element("journey-practice-link");
+  practiceLink.hidden = !currentId || !byId.has(currentId);
+  practiceLink.onclick = () => {
+    const milestone = byId.get(currentId);
+    const phase = milestone.closest(".journey-phase");
+    if (phase) phase.open = true;
+    milestone.open = true;
+    requestAnimationFrame(() => {
+      const liveMilestone = [
+        ...element("milestones").querySelectorAll(".milestone"),
+      ].find((detail) => detail.dataset.milestone === currentId);
+      if (liveMilestone) {
+        const livePhase = liveMilestone.closest(".journey-phase");
+        if (livePhase) livePhase.open = true;
+        liveMilestone.open = true;
+        focusJourneyHeading(liveMilestone.querySelector("summary"));
+      }
+    });
+  };
+  if (focusedMilestone && document.activeElement === document.body)
+    byId
+      .get(focusedMilestone)
+      ?.querySelector("summary")
+      .focus({ preventScroll: true });
   updateButton();
+}
+function focusJourneyHeading(heading) {
+  if (!heading.isConnected) return;
+  heading.focus({ preventScroll: true });
+  const rect = heading.getBoundingClientRect();
+  if (rect.top < 24 || rect.bottom > innerHeight - 24)
+    heading.scrollIntoView({
+      block: "start",
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+}
+function journeyCounts(item, className) {
+  const counts = node("span", className);
+  const meter = node("meter", "mastery-meter");
+  meter.min = 0;
+  meter.max = item.total || 1;
+  meter.value = item.mastered;
+  meter.setAttribute(
+    "aria-label",
+    item.title + ": recorded lesson mastery coverage",
+  );
+  meter.textContent = `${item.mastered} of ${item.total}`;
+  counts.append(
+    node(
+      "span",
+      "milestone-state " + item.state,
+      item.state === "mastered"
+        ? "Topics mastered"
+        : item.state === "practicing"
+          ? "In progress"
+          : item.state === "next"
+            ? "Next practice"
+            : "Not assessed",
+    ),
+    meter,
+    node("span", "muted", `${item.mastered} of ${item.total} topics mastered`),
+  );
+  if (item.weekly_gain)
+    counts.append(
+      node("span", "weekly-gain", `+${item.weekly_gain} this week`),
+    );
+  return counts;
 }
 function masteredVariants(lesson) {
   return lesson.activities
@@ -1641,13 +1758,22 @@ function lessonEvidence(lesson, previous = {}) {
       ...a.scores,
       ...(a.archived_scores || []).map((s) => s.score),
     ]);
+  const basicOnly =
+    !recorded.length &&
+    lesson.activities.some(
+      (activity) =>
+        activity.variant === "Basic" &&
+        (activity.scores.length || activity.archived_scores?.length),
+    );
   heading.append(
     node(
       "span",
       "muted",
       recorded.length
         ? `Best recorded non-Basic score: ${Math.max(...recorded)}%`
-        : "No non-Basic score recorded",
+        : basicOnly
+          ? "Only Basic practice recorded; try Main or another activity"
+          : "No non-Basic score recorded",
     ),
   );
   const mastered = masteredVariants(lesson);
@@ -1657,6 +1783,14 @@ function lessonEvidence(lesson, previous = {}) {
     );
   summary.append(heading);
   detail.append(summary);
+  if (lesson.state === "mastered")
+    detail.append(
+      node(
+        "p",
+        "topic-mastery-note muted",
+        "This topic has mastery evidence from a non-Basic activity. Other variants can still need practice; you do not need to complete every variant for topic coverage.",
+      ),
+    );
   const scores = node("dl", "variant-scores");
   const history = node("details", "lesson-history");
   history.open = Boolean(previous.history);

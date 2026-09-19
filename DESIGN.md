@@ -200,6 +200,25 @@ Reader tiles are selectable buttons with a 16px inset, 12px corners, and a contr
 
 ### Native disclosures and mastery evidence
 
+The reading map groups milestones into six core phases, followed by a separate
+supporting-skills phase for vocabulary, language and writing. Phases remain in
+curriculum order, but do not imply a strict prerequisite gate. The current phase
+opens initially and carries a written Current focus marker; a View current
+practice button opens the containing phase and milestone and focuses its summary.
+Phase coverage deduplicates topic placements. Phase and milestone summaries use
+the same meter/count component, consistent topics-mastered counts and separate
+weekly gains. Native meters have 10px visible tracks. Mobile retains the useful
+plain-language examples instead of hiding them.
+
+Alphabet buttons render only the selected letter's evidence beneath the map,
+never a duplicate list of all mastered letters. Scored topics needing mastery
+evidence remain visible below. Topic mastery and exact activity mastery are
+explained separately: Main or another non-Basic qualifying activity counts the
+topic once; other variants can still need practice. Supporting skills contribute
+to recorded catalog coverage, not a claimed reading-level percentage. Archived
+unscored exposure is separate from scored attempts and mastery; inferred dates
+never contribute to exact weekly gains.
+
 The selected reader persists across reloads and changes through a compact dropdown, not a family tile grid. Next practice and recent mastery lead, followed by the weekly summary and journey. Static horizontal meters show recorded mastery coverage, never a reading-level percentage. An empty meter is paired with “Not assessed” or no-evidence copy, not a judgment of ability. Milestones use details/summary with written state and a plus/minus indicator. Exact variants and dated evidence sit beneath. Assessment guidance and technical sync details are collapsed. Active sync uses a prominent working inset, written steps and a determinate bar; a separate rotating sync icon signals activity, not completion.
 
 Queue, setup, and counting explanations also use native disclosures. Summary hover uses the soft role; all keyboard focus uses the shared visible outline.

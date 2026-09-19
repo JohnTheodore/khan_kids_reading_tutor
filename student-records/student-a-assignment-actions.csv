@@ -111,3 +111,9 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-17,Student A,checked,Beginning Sound z,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.459966-04:00
 2026-09-17,Student A,checked,Ending Sound d,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:09:35.463615-04:00
 2026-09-17,Student A,checked,Beginning Sound p,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-17T20:10:21.707687-04:00
+2026-09-18,Student A,unchecked,Beginning Sound s,Practice 2,mastered: latest attempt is 100%,saved,2026-09-18T15:58:41.409941-04:00
+2026-09-18,Student A,unchecked,Beginning Sound t,Practice 2,mastered: latest attempt is 100%,saved,2026-09-18T15:58:58.161826-04:00
+2026-09-18,Student A,unchecked,Beginning Sound v,Practice 2,mastered: latest attempt is 100%,saved,2026-09-18T15:59:14.006179-04:00
+2026-09-18,Student A,unchecked,Blend Sounds 2,Practice 2,mastered: latest attempt is 100%; selected lesson family complete,saved,2026-09-18T15:59:29.970286-04:00
+2026-09-18,Student A,checked,Letters & Words,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-18T16:32:29.170934-04:00
+2026-09-18,Student A,checked,Letters & Numbers,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-18T16:33:01.012136-04:00
