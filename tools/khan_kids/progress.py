@@ -36,12 +36,15 @@ class ProgressReporter:
             now = time.monotonic()
             self._longest = max(self._longest, now - self._last)
             self._last = now
-            if self._output_available:
-                try:
-                    print(f"[progress] {message}", file=self.stream, flush=True)
-                except (OSError, ValueError):
-                    # A closed diagnostic pipe must never interrupt a saved action.
-                    self._output_available = False
+            self._write(message)
+
+    def _write(self, message: str) -> None:
+        if self._output_available:
+            try:
+                print(f"[progress] {message}", file=self.stream, flush=True)
+            except (OSError, ValueError):
+                # A closed diagnostic pipe must never interrupt a saved action.
+                self._output_available = False
 
     def snapshot(self) -> dict[str, float]:
         with self._lock:
@@ -51,4 +54,6 @@ class ProgressReporter:
 
     def _heartbeat(self) -> None:
         while not self._stop.wait(self.interval):
-            self.emit("Still working; waiting for the current UI operation")
+            with self._lock:
+                # A liveness heartbeat is visible reassurance, not workflow progress.
+                self._write("Still working; waiting for the current UI operation")

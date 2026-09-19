@@ -120,3 +120,6 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-19,Student A,unchecked,Beginning Sound w,Practice 2,mastered: latest attempt is 100%,saved,2026-09-19T09:40:24.001923-04:00
 2026-09-19,Student A,unchecked,Beginning Sound y,Practice 2,mastered: latest attempt is 100%,saved,2026-09-19T09:40:39.737477-04:00
 2026-09-19,Student A,unchecked,Short Vowel Sound o,Practice 1,mastered: latest attempt is 100%; successor waiting for an open queue slot,saved,2026-09-19T09:40:56.568129-04:00
+2026-09-19,Student A,unchecked,Beginning Sound p,Practice 2,mastered: latest attempt is 100%,saved,2026-09-19T14:03:54.838225-04:00
+2026-09-19,Student A,unchecked,Short Vowel Sound u,Practice 1,mastered: latest attempt is 100%; successor waiting for an open queue slot,saved,2026-09-19T14:04:04.676301-04:00
+2026-09-19,Student A,checked,Words with e,Main,first unmastered activity in short_e_cvc_middle,saved; final verification pending,2026-09-19T14:12:33.053648-04:00

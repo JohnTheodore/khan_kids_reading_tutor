@@ -33,6 +33,7 @@ CHILD_PROFILE_RECT = Rect(2365, 13, 2548, 196)
 GUARDED_TRANSITION_ATTEMPTS = 3
 GUARDED_TRANSITION_TIMEOUT_SECONDS = 12
 STABLE_TRANSITION_READS = 2
+SCROLL_BOUNDARY_READS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +42,22 @@ class ActionResult:
     title: str
     variant: str
     result: str
+
+
+@dataclass(slots=True)
+class _ScrollBoundary:
+    """Require repeated unchanged reads before treating a report as exhausted."""
+
+    previous: object = None
+    unchanged_reads: int = 0
+
+    def reached(self, signature: object) -> bool:
+        if signature == self.previous:
+            self.unchanged_reads += 1
+        else:
+            self.unchanged_reads = 0
+        self.previous = signature
+        return self.unchanged_reads >= SCROLL_BOUNDARY_READS
 
 
 class KhanKidsAutomation:
@@ -56,6 +73,7 @@ class KhanKidsAutomation:
         history_lookup: Callable[[AssignmentRow], ScoreHistory | None] | None = None,
         forbidden_students: tuple[str, ...] = (),
         hierarchy_observer: Callable[[ET.Element], None] | None = None,
+        failure_capture: Callable[[Exception], None] | None = None,
     ) -> None:
         if student not in roster:
             raise ValueError(f"Student {student!r} is not in roster {roster!r}")
@@ -68,6 +86,7 @@ class KhanKidsAutomation:
         self.history_lookup = history_lookup
         self.forbidden_students = forbidden_students
         self.hierarchy_observer = hierarchy_observer
+        self.failure_capture = failure_capture
         self._assignments_at_top = False
         self.scratch.mkdir(parents=True, exist_ok=True)
 
@@ -649,11 +668,11 @@ class KhanKidsAutomation:
         root = self._assignment_report_top()
         active_rows: dict[tuple[str, str, str], AssignmentRow] = {}
         histories: dict[tuple[str, str, str], ScoreHistory] = {}
-        prior_signature: tuple[tuple[str, str, str], ...] | None = None
+        boundary = _ScrollBoundary()
         for page in range(80):
             rows = self._assignment_rows(root)
             signature = tuple(row.identity for row in rows)
-            if signature == prior_signature:
+            if boundary.reached(signature):
                 break
             for row in rows:
                 active_rows[row.identity] = row
@@ -689,7 +708,6 @@ class KhanKidsAutomation:
                 histories[row.identity] = history
                 self.device.timing.progress(f"Read score history: {row.title} — {row.variant}")
                 self._close_score_dialog(modal)
-            prior_signature = signature
             root = self._next_assignment_page(f"assignments-{page + 1:03d}")
         else:
             raise AutomationError("Assignments report did not reach the bottom within 80 pages")
@@ -727,7 +745,7 @@ class KhanKidsAutomation:
         if not pending:
             return
         root = self._assignment_report_top()
-        prior_signature: tuple[tuple[str, str, str], ...] | None = None
+        boundary = _ScrollBoundary()
         for page in range(80):
             rows = self._assignment_rows(root)
             visible_matches = [
@@ -739,13 +757,12 @@ class KhanKidsAutomation:
                 yield self._unassign_row(row, row.title, row.variant)
                 if not pending:
                     return
-                prior_signature = None
+                boundary = _ScrollBoundary()
                 root = self.root(f"bulk-unassign-{page:03d}-saved")
                 continue
             signature = tuple(row.identity for row in rows)
-            if signature == prior_signature:
+            if boundary.reached(signature):
                 break
-            prior_signature = signature
             root = self._next_assignment_page(f"bulk-unassign-{page + 1:03d}")
         if pending:
             raise AutomationError(f"Active assignments not found: {sorted(pending)!r}")
@@ -826,7 +843,7 @@ class KhanKidsAutomation:
 
     def _find_assignment(self, title: str, variant: str) -> AssignmentRow:
         root = self._assignment_report_top()
-        prior_signature: tuple[tuple[str, str, str], ...] | None = None
+        boundary = _ScrollBoundary()
         for page in range(80):
             rows = self._assignment_rows(root)
             matches = [row for row in rows if row.title == title and row.variant == variant]
@@ -835,9 +852,8 @@ class KhanKidsAutomation:
             if len(matches) > 1:
                 raise AutomationError(f"Duplicate active assignment {title!r}/{variant!r}")
             signature = tuple(row.identity for row in rows)
-            if signature == prior_signature:
+            if boundary.reached(signature):
                 break
-            prior_signature = signature
             root = self._next_assignment_page(f"find-assignment-{page + 1:03d}")
         raise AutomationError(f"Active assignment not found: {title!r}/{variant!r}")
 
@@ -1040,7 +1056,7 @@ class KhanKidsAutomation:
             root = self._scroll_to_top()
         elif root is None:
             root = self.root("before-find-lesson")
-        prior_signature: tuple[tuple[str, Rect], ...] | None = None
+        boundary = _ScrollBoundary()
         for page in range(200):
             assert root is not None
             nodes = visible_nodes(root)
@@ -1085,9 +1101,8 @@ class KhanKidsAutomation:
                 for item in nodes
                 if item.rect.left <= 564 and item.rect.top >= 385
             )
-            if signature == prior_signature:
+            if boundary.reached(signature):
                 break
-            prior_signature = signature
             self.device.swipe(1200, 1380, 1200, 680, SCROLL_DURATION_MS)
             root = self.root(f"find-lesson-{page + 1:03d}")
         raise AutomationError(f"All Progress lesson not found: {title!r}")

@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+
+from khan_kids.adb import AndroidDevice, AutomationError
+from khan_kids.cancellation import FileCancellationToken, WorkflowCancelled
+from khan_kids.preflight import (
+    assert_tablet_preflight,
+    connectivity_is_validated,
+    tablet_health,
+)
+
+
+class TabletPreflightTests(unittest.TestCase):
+    def test_active_default_network_must_have_internet_and_validation(self) -> None:
+        online = """
+        Active default network: 103
+        NetworkAgentInfo{ network{102} nc{INTERNET&VALIDATED}}
+        NetworkAgentInfo{ network{103} nc{WIFI&INTERNET&VALIDATED}}
+        """
+        offline = """
+        Active default network: 103
+        NetworkAgentInfo{ network{102} nc{INTERNET&VALIDATED}}
+        NetworkAgentInfo{ network{103} nc{WIFI&INTERNET}}
+        """
+        self.assertTrue(connectivity_is_validated(online))
+        self.assertFalse(connectivity_is_validated(offline))
+        self.assertFalse(connectivity_is_validated("Active default network: none"))
+
+    def test_preflight_stops_before_app_navigation_when_offline(self) -> None:
+        device = Mock(spec=AndroidDevice)
+        device.is_locked.return_value = False
+        device.command.return_value = b"Active default network: none"
+        with self.assertRaisesRegex(AutomationError, "no validated Internet"):
+            assert_tablet_preflight(device)
+        device.assert_connected.assert_called_once_with()
+        self.assertEqual(device.command.call_count, 1)
+
+    def test_health_reports_each_read_only_gate(self) -> None:
+        device = Mock(spec=AndroidDevice)
+        device.is_locked.return_value = False
+        device.command.side_effect = [
+            b"Active default network: 7\nNetworkAgentInfo{ network{7} nc{INTERNET&VALIDATED}}",
+            b"package:/data/app/base.apk\n",
+        ]
+        result = tablet_health(device)
+        self.assertTrue(result["ready"])
+        self.assertEqual(
+            [check["id"] for check in result["checks"]], ["adb", "unlocked", "internet", "app"]
+        )
+
+    def test_durable_cancellation_blocks_normal_commands_but_allows_cleanup(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "stop"
+            token = FileCancellationToken(path)
+            device = AndroidDevice("synthetic", cancellation_check=token.check)
+            path.write_text("stop\n")
+            with self.assertRaises(WorkflowCancelled):
+                device.command("get-state")
+            with patch("khan_kids.adb.run_command", return_value=b"device") as command:
+                with device.cleanup_mode():
+                    self.assertEqual(device.command("get-state", capture=True), b"device")
+                command.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -69,6 +69,7 @@ class AndroidDevice:
         *,
         settle_seconds: float = 1.0,
         timing: TimingRecorder | None = None,
+        cancellation_check: Callable[[], None] | None = None,
     ) -> None:
         self.serial = serial
         self.prefix = ("adb", "-s", serial)
@@ -76,6 +77,8 @@ class AndroidDevice:
         self.timing = timing or TimingRecorder()
         self.ui_backend: UiHierarchyBackend | None = None
         self.student_aliases = load_aliases()
+        self._cancellation_check = cancellation_check
+        self._ignore_cancellation = 0
 
     @property
     def ui_backend_name(self) -> str:
@@ -89,8 +92,24 @@ class AndroidDevice:
                 raise AutomationError(str(error)) from error
 
     def command(self, *args: str, timeout: int = 60, capture: bool = False) -> bytes:
+        self._check_cancelled()
         with self.timing.span(_command_metric(args)):
-            return run_command((*self.prefix, *args), timeout=timeout, capture=capture)
+            result = run_command((*self.prefix, *args), timeout=timeout, capture=capture)
+        self._check_cancelled()
+        return result
+
+    def _check_cancelled(self) -> None:
+        if self._cancellation_check is not None and not self._ignore_cancellation:
+            self._cancellation_check()
+
+    @contextmanager
+    def cleanup_mode(self) -> Iterator[None]:
+        """Temporarily allow restoration commands after cancellation."""
+        self._ignore_cancellation += 1
+        try:
+            yield
+        finally:
+            self._ignore_cancellation -= 1
 
     def assert_connected(self) -> None:
         state = self.command("get-state", timeout=10, capture=True).decode().strip()
@@ -225,10 +244,11 @@ class AndroidDevice:
         timeout = self._setting("system", "screen_off_timeout")
         stay_on = self._setting("global", "stay_on_while_plugged_in")
         restore_rotation = self._rotation_restore_command()
-        with ExitStack() as restore:
-            restore.callback(self.command, *restore_rotation)
-            restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
-            restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
+        restore = ExitStack()
+        restore.callback(self.command, *restore_rotation)
+        restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
+        restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
+        try:
             self.keep_awake()
             # WindowManager applies the lock mode and angle in one operation. Separate
             # settings writes briefly lock to a stale portrait fallback before the
@@ -238,6 +258,9 @@ class AndroidDevice:
             if restore_rotation != ("shell", "wm", "user-rotation", "lock", "3"):
                 time.sleep(self.settle_seconds)
             yield
+        finally:
+            with self.cleanup_mode():
+                restore.close()
 
     @contextmanager
     def app_session(
@@ -264,7 +287,7 @@ class AndroidDevice:
                 raise
             finally:
                 try:
-                    with self.timing.span("teardown.android_home"):
+                    with self.cleanup_mode(), self.timing.span("teardown.android_home"):
                         self.return_to_android_home(app_package)
                 except Exception as home_error:
                     if active_error is None:
@@ -349,12 +372,14 @@ class AndroidDevice:
         last_error: Exception | None = None
         for attempt in range(attempts):
             try:
+                self._check_cancelled()
                 with self.timing.span("ui.hierarchy"):
                     if self.ui_backend is None:
                         self.command("shell", "uiautomator", "dump", remote, timeout=60)
                         raw = self.command("exec-out", "cat", remote, timeout=20, capture=True)
                     else:
                         raw = self.ui_backend.dump_hierarchy()
+                    self._check_cancelled()
                     root = ET.fromstring(raw)
                     if self.student_aliases:
                         for node in root.iter():

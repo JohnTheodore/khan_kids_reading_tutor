@@ -879,3 +879,88 @@ is reported, while a primary workflow failure remains primary and carries the
 Home failure as a diagnostic note. Tests cover success, workflow failure,
 simultaneous cleanup failure, transient System UI, and Khan Kids remaining
 foreground.
+
+## KKRT-2026-09-19-AUTO-133832-444346 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260919T173801103781Z-9c644f6c` |
+
+### Observed failure
+
+`AutomationError: Unsupported display orientation or size: Rect(left=0, top=0, right=2560, bottom=72); expected landscape [0,0][2560,1600]`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-19-AUTO-134206-666694 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260919T173843467508Z-57cf1ef5` |
+
+### Observed failure
+
+`AutomationError: Command failed: adb -s [redacted device]: adb: device offline`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-19-AUTO-140438-670350 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260919T180259817078Z-026a23bc` |
+
+### Observed failure
+
+`AutomationError: All Progress lesson not found: 'Words with e'`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: unchecked Beginning Sound p — Practice 2; unchecked Short Vowel Sound u — Practice 1.
+- Live queue after interruption: unavailable.
+- A later verified run added the missing replacement and restored the target of
+  10 assignments.
+
+### Root cause and correction
+
+- A single unchanged report page after a swipe was treated as the end of the
+  catalog. A transiently ineffective or not-yet-rendered swipe could therefore
+  produce a false “lesson not found” result.
+- The workflow removed mastered assignments before confirming their
+  replacements, allowing this lookup failure to leave the queue short.
+- All report-scanning paths now require repeated unchanged reads before
+  declaring the bottom of a list.
+- Queue reconciliation now adds and verifies replacements before removing old
+  assignments. If an add fails, the existing full queue is preserved.
+- Failure evidence is captured before recovery navigation changes the screen.
+  Regression coverage verifies the scroll retry, add-first ordering, preserved
+  queue, and capture-before-reconciliation behavior.

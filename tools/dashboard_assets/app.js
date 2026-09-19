@@ -29,7 +29,8 @@ let teacherSession = "closed",
   completedRequestsSignature = "";
 let manualRunning = false;
 let workflowManual = false,
-  currentPhase = "";
+  currentPhase = "",
+  currentRecoveryState = "none";
 let activityOnscreen = true;
 let completedJourneyKey = "";
 let assignmentControlSequence = 0;
@@ -41,6 +42,11 @@ let connected = false,
   latestSequence = 0,
   statusSequence = 0;
 let retrying = false,
+  checkingConnection = false,
+  needsConnectionCheck = false,
+  stopping = false,
+  failedOperationKey = "",
+  checkedFailureKey = "",
   timer;
 let journeys = [],
   archivedStudents = [],
@@ -48,6 +54,7 @@ let journeys = [],
   journeySignature = "";
 let reportProblem = "",
   jobProblem = "",
+  tabletProblem = "",
   connectionProblem = "";
 function node(tag, className, text) {
   const item = document.createElement(tag);
@@ -67,18 +74,20 @@ function icon(name, className = "") {
 async function api(path, options = {}) {
   let response;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const { timeoutMs = 10000, ...fetchOptions } = options;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     response = await fetch(path, {
-      ...options,
+      ...fetchOptions,
       signal: controller.signal,
-      headers: { "X-Tutor-Token": token, ...options.headers },
+      headers: { "X-Tutor-Token": token, ...fetchOptions.headers },
       cache: "no-store",
     });
     if (response.status === 403) {
       authFailed = true;
+      showAuthFailure();
       throw new Error(
-        "Open the private launch link printed by khan-dashboard in your terminal. This tab no longer has access.",
+        "Dashboard access expired. Reopen the private dashboard to load your readers.",
       );
     }
     let body;
@@ -91,11 +100,14 @@ async function api(path, options = {}) {
         "The local app returned an unreadable response. Restart khan-dashboard after any active sync finishes, then open its new launch link.",
       );
     }
-    if (!response.ok)
-      throw new Error(
+    if (!response.ok) {
+      const failure = new Error(
         body.error ||
           "The local app couldn't complete this request. Reconnect or open troubleshooting.",
       );
+      failure.payload = body;
+      throw failure;
+    }
     return body;
   } catch (e) {
     if (response) throw e;
@@ -134,6 +146,8 @@ function updateButton() {
       ["sending", "queued", "working"].includes(f.state),
     ) ||
     retrying ||
+    checkingConnection ||
+    needsConnectionCheck ||
     !element("student").value;
   if (archivedStudents.includes(element("student").value))
     element("sync").disabled = true;
@@ -145,7 +159,8 @@ function updateButton() {
         ? "Teacher view is ready for more manual edits. Mastery sync becomes available after automatic logout."
         : "Reviews scores and maintains ten assignments, plus protected manual extras. Keep the tablet unlocked while changes are verified.",
   );
-  element("student").disabled = running || submitted || retrying;
+  element("student").disabled =
+    authFailed || !setupLoaded || running || submitted || retrying || checkingConnection;
   element("sync-indicator").hidden = !(running || submitted || progressVisible);
   const fraction = submitted ? 0 : progressFraction;
   element("sync-indicator").setAttribute("aria-valuenow", fraction);
@@ -171,6 +186,9 @@ function updateButton() {
   element("sync").setAttribute("aria-busy", working && !workflowManual);
   element("sync-explanation").hidden = !working;
   element("sync-stages").hidden = !working || workflowManual;
+  element("stop-sync").hidden = !running || manualRunning;
+  element("stop-sync").disabled = stopping;
+  setText("stop-sync", stopping ? "Stopping safely…" : "Stop safely");
   const stage = /fixed_point|teardown/.test(currentPhase)
     ? 2
     : /plan_queue|add_and_verify|remove_and_verify/.test(currentPhase)
@@ -190,7 +208,11 @@ function updateButton() {
     });
   document.body.classList.toggle("busy", running || submitted);
   const label =
-    (running && !manualRunning) || submitted ? "Syncing… " : "Sync progress ";
+    (running && !manualRunning) || submitted
+      ? "Syncing… "
+      : currentRecoveryState === "review_required" || currentRecoveryState === "safe_to_retry"
+        ? "Retry sync "
+        : "Sync progress ";
   if (element("sync").dataset.label !== label) {
     element("sync").replaceChildren(
       document.createTextNode(label),
@@ -203,10 +225,23 @@ function setText(id, text) {
   if (element(id).textContent !== text) element(id).textContent = text;
 }
 function showProblems() {
-  const message = connectionProblem || reportProblem || jobProblem;
+  const message = connectionProblem || tabletProblem || reportProblem || jobProblem;
   element("error").hidden = !message;
   setText("error-message", message);
   element("retry").hidden = !connectionProblem || authFailed;
+  element("check-connection").hidden =
+    authFailed || (!needsConnectionCheck && !tabletProblem);
+  element("auth-recovery").hidden = !authFailed;
+  element("error-setup").hidden = authFailed;
+}
+function showAuthFailure() {
+  const option = node("option", "", "Reopen dashboard to load readers");
+  option.value = "";
+  element("student").replaceChildren(option);
+  element("student").value = "";
+  element("student").disabled = true;
+  setText("state", "Dashboard access expired");
+  setText("phase", "Your reader records are still safely stored on this computer.");
 }
 function error(message) {
   connectionProblem = message;
@@ -401,6 +436,7 @@ async function startWorkflow(assignment = null) {
   );
   updateButton();
   try {
+    if (!assignment) await checkTabletConnection({ startingSync: true });
     await api(assignment ? "/api/assignment" : "/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -420,13 +456,60 @@ async function startWorkflow(assignment = null) {
     schedulePoll();
   } catch (e) {
     if (!assignment) submitted = false;
-    connected = false;
+    if (!e.payload?.checks) connected = false;
     if (feedback) {
       feedback.state = "error";
       feedback.message = e.message;
     }
     updateButton();
-    error(e.message);
+    if (e.payload?.checks) {
+      tabletProblem = e.message;
+      showProblems();
+    } else error(e.message);
+  }
+}
+
+function renderConnectionChecks(checks = []) {
+  const list = element("connection-checks");
+  list.replaceChildren(
+    ...checks.map((check) =>
+      node("li", check.ok ? "ready" : "missing", `${check.ok ? "Ready" : "Needs attention"}: ${check.label}`),
+    ),
+  );
+  list.hidden = checks.length === 0;
+}
+
+async function checkTabletConnection({ startingSync = false } = {}) {
+  if (checkingConnection) return false;
+  checkingConnection = true;
+  tabletProblem = "";
+  setText("state", "Checking the tablet…");
+  setText("phase", "Verifying ADB, unlock state, Internet, and Khan Kids before navigation.");
+  updateButton();
+  try {
+    const result = await api("/api/connection-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      timeoutMs: 30000,
+    });
+    renderConnectionChecks(result.checks);
+    needsConnectionCheck = false;
+    checkedFailureKey = failedOperationKey;
+    jobProblem = "";
+    setText("state", startingSync ? "Tablet ready. Starting check-in…" : "Tablet ready to sync.");
+    setText("phase", `${result.transport || "ADB"} is healthy and Internet is available.`);
+    showProblems();
+    return true;
+  } catch (e) {
+    renderConnectionChecks(e.payload?.checks || []);
+    needsConnectionCheck = true;
+    tabletProblem = e.message;
+    showProblems();
+    throw e;
+  } finally {
+    checkingConnection = false;
+    updateButton();
   }
 }
 async function setup() {
@@ -863,7 +946,9 @@ async function status() {
       "The sync returned an incomplete result. Open troubleshooting; no verified outcome can be shown.",
     );
   connected = true;
-  running = data.state === "running";
+  running = ["running", "stopping", "recovering"].includes(data.state);
+  stopping = data.state === "stopping";
+  currentRecoveryState = data.recovery_state || "none";
   manualRunning = running && !!data.assignment;
   if (running || data.student === element("student").value) {
     workflowManual = !!data.assignment;
@@ -934,11 +1019,18 @@ async function status() {
       running: data.assignment
         ? "Updating " + readerName(data.student) + "'s lesson…"
         : "Syncing " + readerName(data.student) + "'s progress…",
+      stopping: "Stopping safely at the next Android boundary…",
+      recovering: "A sync is still running after the dashboard restarted.",
       succeeded:
         data.report?.status === "review_required"
           ? "Review ready. No changes applied."
           : "Check-in complete.",
-      failed: "Check-in stopped. Your attention is needed.",
+      failed:
+        data.recovery_state === "review_required"
+          ? "Stopped after a partial update. Review required."
+          : data.recovery_state === "safe_to_retry"
+            ? "Stopped before any assignment changes."
+            : "Check-in stopped. Your attention is needed.",
     }[state] || "Checking the local app…",
   );
   setText(
@@ -946,9 +1038,18 @@ async function status() {
     running
       ? (data.assignment
           ? `${data.assignment.action === "assign" ? "Assigning" : "Unassigning"} ${data.assignment.title} — ${data.assignment.variant} · `
-          : "") + friendlyPhase(data.phase)
+          : "") +
+        (data.state === "stopping"
+          ? "No new actions will start. If a change began, the live queue will be reconciled."
+          : data.state === "recovering"
+            ? "The existing operation is being monitored and will not be replayed."
+            : friendlyPhase(data.phase))
       : selected && data.assignment && data.state === "succeeded"
         ? "Only your requested variant was checked; no mastery sync was run."
+        : data.state === "failed" && data.recovery_state === "review_required"
+          ? "Verified changes remain saved. Nothing will be replayed automatically."
+          : data.state === "failed" && data.recovery_state === "safe_to_retry"
+            ? "No assignment change began. Check the tablet connection before retrying."
         : "Your tablet is checked during each sync.",
   );
   if (selected && data.assignment && assignmentFeedback?.state === "success")
@@ -977,6 +1078,15 @@ async function status() {
           ? "The assignment session stopped. Any verified changes remain saved; check the tablet before retrying."
           : "The sync stopped before it could finish normally. Leave unexpected screens visible and open troubleshooting for details.")
       : "";
+  if (data.state === "failed" && selected) {
+    failedOperationKey = JSON.stringify([
+      data.run_id || "unknown-run",
+      data.student,
+      data.report?.timestamp || "unknown-time",
+    ]);
+    needsConnectionCheck = checkedFailureKey !== failedOperationKey;
+    if (!needsConnectionCheck) jobProblem = "";
+  }
   if (running)
     setText(
       "result-meta",
@@ -1066,6 +1176,26 @@ element("student").addEventListener("change", () => {
   status().catch((e) => error(e.message));
 });
 element("sync").addEventListener("click", () => startWorkflow());
+element("check-connection").addEventListener("click", () =>
+  checkTabletConnection().catch(() => {}),
+);
+element("stop-sync").addEventListener("click", async () => {
+  if (!running || stopping) return;
+  stopping = true;
+  setText("state", "Requesting a safe stop…");
+  updateButton();
+  try {
+    await api("/api/stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    await status();
+  } catch (e) {
+    jobProblem = e.message;
+    showProblems();
+  }
+});
 function schedulePoll() {
   clearTimeout(timer);
   if (authFailed || retrying) return;

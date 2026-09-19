@@ -7,10 +7,12 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import secrets
 import shutil
 import signal
+import stat
 import subprocess
 import threading
 import time
@@ -21,16 +23,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from khan_kids.adb import AutomationError
+from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.catalog import CatalogIndex
-from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError
+from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError, resolve_device
 from khan_kids.diagnostics import DiagnosticRun, new_run_id
 from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import read_local_secrets
 from khan_kids.manual_assignments import ManualChange
 from khan_kids.manual_session import ManualAssignmentSession
+from khan_kids.preflight import tablet_health
 from khan_kids.reading_journey import family_journeys
-from khan_kids.records import write_json_atomic
+from khan_kids.records import write_json_atomic, write_text_atomic
 from khan_kids.student_identity import load_aliases
 from khan_kids.sync_report import build_dashboard_report
 
@@ -40,6 +43,29 @@ MAX_OUTPUT_CHARS = 250_000
 PARENT_IDLE_SECONDS = 60
 PARENT_COALESCE_SECONDS = 0.5
 MAX_PARENT_REQUESTS = 50
+SYNC_STALL_SECONDS = 90
+STOP_GRACE_SECONDS = 30
+DASHBOARD_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
+
+
+def load_dashboard_token(path: Path, *, rotate: bool = False) -> str:
+    """Load one owner-private token that survives ordinary service restarts."""
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if path.exists() and not rotate:
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise AutomationError("Dashboard token must be a regular owner-private file")
+        if metadata.st_uid != os.geteuid() or metadata.st_mode & 0o077:
+            raise AutomationError("Dashboard token requires owner-only permissions")
+        raw = path.read_text()
+        token = raw[:-1] if raw.endswith("\n") else raw
+        if raw not in {token, token + "\n"} or not DASHBOARD_TOKEN_PATTERN.fullmatch(token):
+            raise AutomationError("Dashboard token file is invalid")
+        return token
+    token = secrets.token_urlsafe(32)
+    write_text_atomic(path, token + "\n")
+    path.chmod(0o600)
+    return token
 
 
 def sync_progress(output: str, state: str) -> float:
@@ -154,7 +180,14 @@ class SyncJob:
     """Serialize tablet work; parent edits use a reusable, independent session."""
 
     def __init__(
-        self, root: Path, workflow: Path, serial: str | None = None, *, debug: bool = False
+        self,
+        root: Path,
+        workflow: Path,
+        serial: str | None = None,
+        *,
+        debug: bool = False,
+        stall_seconds: float = SYNC_STALL_SECONDS,
+        stop_grace_seconds: float = STOP_GRACE_SECONDS,
     ) -> None:
         self.root, self.workflow, self.serial = root, workflow, serial
         self.debug = debug
@@ -180,6 +213,15 @@ class SyncJob:
         self.manual_batch_size = 0
         self.warm_deadline: float | None = None
         self.stopping = False
+        self.stop_requested = False
+        self.stop_reason: str | None = None
+        self.last_progress_at: float | None = None
+        self.stall_seconds = stall_seconds
+        self.stop_grace_seconds = stop_grace_seconds
+        self.process: subprocess.Popen | None = None
+        self.external_pid: int | None = None
+        self.operation_path = root / "private/dashboard-active-operation.json"
+        self.cancel_path: Path | None = None
         self.requests_path = root / "private/dashboard-assignment-queue.json"
         self.requests = []
         if (
@@ -211,6 +253,135 @@ class SyncJob:
                         error="Dashboard restarted. Check the tablet before explicitly trying this request again; it was not automatically replayed.",
                     )
             self._save_requests()
+        self._restore_operation()
+        self._restore_latest_failure()
+
+    def _restore_operation(self) -> None:
+        """Restore awareness of an uncompleted sync without replaying it."""
+        try:
+            if not self.operation_path.exists():
+                return
+            if self.operation_path.stat().st_mode & 0o077:
+                raise AutomationError("Active dashboard operation requires owner-only permissions")
+            operation = json.loads(self.operation_path.read_text())
+            if (
+                not isinstance(operation, dict)
+                or not isinstance(operation.get("student"), str)
+                or not isinstance(operation.get("run_id"), str)
+                or not isinstance(operation.get("cancel_path"), str)
+                or not isinstance(operation.get("started_at"), (int, float))
+            ):
+                raise AutomationError("Active dashboard operation could not be validated")
+            self.student = operation["student"]
+            self.run_id = operation["run_id"]
+            self.cancel_path = Path(operation["cancel_path"])
+            operations_root = (self.root / "private/dashboard-operations").resolve()
+            if not self.cancel_path.resolve().is_relative_to(operations_root):
+                raise AutomationError("Saved cancellation path is outside private operations")
+            self.started_at = time.monotonic() - max(
+                0, time.time() - float(operation["started_at"])
+            )
+            self.last_progress_at = time.monotonic()
+            saved_state = operation.get("state")
+            if saved_state in {"succeeded", "failed"}:
+                self.report = self.latest_report(self.student)
+                self.state = (
+                    saved_state
+                    if self.report and self.report.get("run_id") == self.run_id
+                    else "failed"
+                )
+                return
+            if not isinstance(operation.get("pid"), int):
+                raise AutomationError("Active dashboard operation has no process identity")
+            self.external_pid = operation["pid"]
+            self.state = "recovering"
+            self._refresh_external_locked()
+        except (OSError, ValueError, TypeError, AutomationError):
+            self.state = "failed"
+            self.stop_reason = "A previous sync state could not be validated. Check the connection before retrying."
+
+    def _restore_latest_failure(self) -> None:
+        """Surface the latest interrupted native result after a clean service restart."""
+        if (
+            self.state != "idle"
+            or self.workflow.resolve() != (self.root / "khan-mastery-sync").resolve()
+        ):
+            return
+        try:
+            configured = DeviceConfig.load(self.root / "private/tablet-device.local.json").student
+            student = load_aliases().get(configured, configured)
+            report = self.latest_report(student)
+        except (DeviceDiscoveryError, OSError, ValueError):
+            return
+        if report and report.get("status") == "interrupted" and report.get("run_id"):
+            self.student = student
+            self.run_id = str(report["run_id"])
+            self.report = report
+            self.state = "failed"
+
+    def _operation_record(self, *, pid: int, state: str) -> dict[str, object]:
+        assert self.student and self.run_id and self.cancel_path
+        return {
+            "version": 1,
+            "state": state,
+            "student": self.student,
+            "run_id": self.run_id,
+            "pid": pid,
+            "cancel_path": str(self.cancel_path.resolve()),
+            "started_at": time.time() - (time.monotonic() - (self.started_at or time.monotonic())),
+        }
+
+    def _persist_operation(self, pid: int) -> None:
+        write_json_atomic(self.operation_path, self._operation_record(pid=pid, state="running"))
+
+    def _persist_finished_operation(self) -> None:
+        if self.cancel_path is None or self.run_id is None or self.student is None:
+            return
+        write_json_atomic(
+            self.operation_path,
+            self._operation_record(pid=0, state=self.state),
+        )
+
+    def _refresh_external_locked(self) -> None:
+        if self.state not in {"recovering", "stopping"} or self.external_pid is None:
+            return
+        try:
+            os.kill(self.external_pid, 0)
+            command = Path(f"/proc/{self.external_pid}/cmdline").read_bytes()
+            if self.run_id.encode() in command and (
+                self.workflow.name.encode() in command
+                or (
+                    self.workflow.resolve() == (self.root / "khan-mastery-sync").resolve()
+                    and b"reading_workflow.py" in command
+                )
+            ):
+                return
+        except (OSError, ProcessLookupError):
+            pass
+        self.external_pid = None
+        self.report = self.latest_report(self.student) if self.student else None
+        self.state = (
+            "succeeded"
+            if self.report
+            and self.report.get("run_id") == self.run_id
+            and self.report.get("status") in {"applied", "no_op", "review_required"}
+            else "failed"
+        )
+        with suppress(OSError):
+            self._persist_finished_operation()
+
+    def check_connection(self) -> dict[str, object]:
+        """Resolve and inspect the tablet without opening Khan Kids or changing UI state."""
+        try:
+            serial = self.serial
+            if not serial:
+                config = DeviceConfig.load(self.root / "private/tablet-device.local.json")
+                serial = resolve_device(config)
+            result = tablet_health(AndroidDevice(serial))
+            result["transport"] = "USB" if ":" not in serial else "wireless ADB"
+            return result
+        except (AutomationError, DeviceDiscoveryError, OSError) as error:
+            return {"ready": False, "checks": [], "error": str(error)}
 
     def _save_requests(self) -> None:
         write_json_atomic(self.requests_path, self.requests)
@@ -238,6 +409,7 @@ class SyncJob:
 
     def snapshot(self) -> dict:
         with self.lock:
+            self._refresh_external_locked()
             fraction = sync_progress(self.output, self.state)
             if self.manual_worker and self.state != "succeeded" and self.manual_batch_size:
                 verified = self.output.count("Finished phase.verify_parent_checkbox")
@@ -258,6 +430,11 @@ class SyncJob:
                 "progress_fraction": fraction,
                 "elapsed_seconds": time.monotonic() - self.started_at if self.started_at else None,
                 "run_id": self.run_id,
+                "recovery_state": self._recovery_state(),
+                "stop_reason": self.stop_reason,
+                "seconds_since_progress": round(time.monotonic() - self.last_progress_at, 1)
+                if self.last_progress_at and self.state in {"running", "stopping", "recovering"}
+                else None,
                 "assignment_requests": [dict(request) for request in self.requests],
                 "teacher_session": "warm"
                 if self.warm_deadline is not None
@@ -268,6 +445,17 @@ class SyncJob:
                 if self.warm_deadline is not None
                 else None,
             }
+
+    def _recovery_state(self) -> str:
+        if self.state == "stopping":
+            return "stopping_safely"
+        if self.state == "recovering":
+            return "operation_continues"
+        if self.state != "failed":
+            return "none"
+        if self.report and self.report.get("status") == "interrupted":
+            return "safe_to_retry" if not self.report.get("applied") else "review_required"
+        return "connection_check_required"
 
     def journeys(self, students: list[str]) -> dict:
         """Only the native workflow may infer native record locations."""
@@ -360,7 +548,7 @@ class SyncJob:
                     self._start_manual_locked()
                 self.condition.notify_all()
                 return True
-            if self.state == "running":
+            if self.state in {"running", "stopping", "recovering"}:
                 return False
             if self.manual_worker:
                 return False
@@ -372,6 +560,14 @@ class SyncJob:
                 self.diagnostic = DiagnosticRun(self.root, self.run_id, student=student)
             self.assignment = assignment
             self.started_at = time.monotonic()
+            self.last_progress_at = self.started_at
+            self.stop_requested = False
+            self.stop_reason = None
+            operation_dir = self.root / "private/dashboard-operations"
+            operation_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+            self.cancel_path = operation_dir / f"{self.run_id}.cancel"
+            with suppress(FileNotFoundError):
+                self.cancel_path.unlink()
             self.thread = threading.Thread(target=self._run, args=(student,))
             self.thread.start()
         return True
@@ -557,6 +753,8 @@ class SyncJob:
     def _append(self, text: str) -> None:
         with self.lock:
             self.output = (self.output + text)[-MAX_OUTPUT_CHARS:]
+            if "Still working; waiting for the current UI operation" not in text:
+                self.last_progress_at = time.monotonic()
             if self.diagnostic is not None:
                 with suppress(OSError):
                     self.diagnostic.append_output(text)
@@ -568,7 +766,10 @@ class SyncJob:
             command.extend(["--run-id", self.run_id])
         if self.serial:
             command.extend(["--serial", self.serial])
+        if self.cancel_path:
+            command.extend(["--cancel-file", str(self.cancel_path)])
         code = 1
+        watchdog_finished = threading.Event()
         try:
             with subprocess.Popen(
                 command,
@@ -580,6 +781,17 @@ class SyncJob:
                 errors="replace",
                 start_new_session=True,
             ) as process:
+                with self.lock:
+                    self.process = process
+                    pid = getattr(process, "pid", None)
+                    if isinstance(pid, int):
+                        self._persist_operation(pid)
+                watchdog = threading.Thread(
+                    target=self._watch_for_stall,
+                    args=(watchdog_finished,),
+                    daemon=True,
+                )
+                watchdog.start()
                 assert process.stdout is not None
                 for line in process.stdout:
                     with suppress(ValueError):
@@ -592,10 +804,15 @@ class SyncJob:
                             continue
                     self._append(line)
                 code = process.wait()
+                watchdog_finished.set()
                 if code == 0 and (
                     not self.report
                     or self.report.get("student") != student
                     or self.report.get("status") not in {"applied", "no_op", "review_required"}
+                    or (
+                        self.workflow.resolve() == (self.root / "khan-mastery-sync").resolve()
+                        and self.report.get("run_id") != self.run_id
+                    )
                 ):
                     code = 1
                     self._append(
@@ -604,6 +821,7 @@ class SyncJob:
         except Exception:
             self._append("Unable to run sync command. Check the local workflow and installation.\n")
         finally:
+            watchdog_finished.set()
             if self.report and self.report.get("student") == student:
                 try:
                     destination = self._result_path(student)
@@ -614,8 +832,15 @@ class SyncJob:
                         "Reading results could not be cached; engine records are unchanged.\n"
                     )
             with self.lock:
+                self.process = None
+                self.external_pid = None
                 self.returncode = code
                 self.state = "succeeded" if code == 0 else "failed"
+                with suppress(OSError):
+                    self._persist_finished_operation()
+                if self.cancel_path:
+                    with suppress(OSError):
+                        self.cancel_path.unlink()
                 if self.diagnostic is not None:
                     with suppress(OSError):
                         self.diagnostic.finish(self.state, returncode=code)
@@ -630,6 +855,68 @@ class SyncJob:
                                     error="Not applied: mastery sync failed. Check the tablet before retrying.",
                                 )
                         self._save_requests()
+
+    def _watch_for_stall(self, finished: threading.Event) -> None:
+        while not finished.wait(1):
+            with self.lock:
+                if self.state != "running" or self.last_progress_at is None:
+                    continue
+                if time.monotonic() - self.last_progress_at < self.stall_seconds:
+                    continue
+                self._request_stop_locked(
+                    "No verified progress was observed within the safety window."
+                )
+                process = self.process
+            if finished.wait(self.stop_grace_seconds):
+                return
+            if process is not None and isinstance(getattr(process, "pid", None), int):
+                with suppress(ProcessLookupError, PermissionError):
+                    os.killpg(process.pid, signal.SIGINT)
+            return
+
+    def request_stop(self, reason: str = "Stopped safely from the dashboard.") -> bool:
+        with self.condition:
+            if self.state not in {"running", "recovering", "stopping"} or self.manual_worker:
+                return False
+            self._request_stop_locked(reason)
+            pid = (
+                getattr(self.process, "pid", None)
+                if self.process is not None
+                else self.external_pid
+            )
+            self.condition.notify_all()
+        if isinstance(pid, int):
+            threading.Thread(target=self._interrupt_after_grace, args=(pid,), daemon=True).start()
+        return True
+
+    def _request_stop_locked(self, reason: str) -> None:
+        if self.stop_requested:
+            return
+        self.stop_requested = True
+        self.stop_reason = reason
+        self.state = "stopping"
+        if self.cancel_path is not None:
+            write_text_atomic(self.cancel_path, reason + "\n")
+
+    def _interrupt_after_grace(self, pid: int) -> None:
+        time.sleep(self.stop_grace_seconds)
+        with self.lock:
+            active = self.state == "stopping" and (
+                self.external_pid == pid
+                or (self.process is not None and getattr(self.process, "pid", None) == pid)
+            )
+        if active:
+            with suppress(Exception):
+                append_failed_sync_incident(
+                    self.root / "INCIDENTS.md",
+                    student=self.student or "unknown",
+                    error=AutomationError(
+                        "Safe stop exceeded its grace period; the workflow was interrupted"
+                    ),
+                    run_id=self.run_id,
+                )
+            with suppress(ProcessLookupError, PermissionError):
+                os.killpg(pid, signal.SIGINT)
 
     def wait(self) -> None:
         with self.condition:
@@ -671,10 +958,22 @@ class SyncJob:
 class DashboardServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, port: int, job: SyncJob) -> None:
+    def __init__(
+        self,
+        port: int,
+        job: SyncJob,
+        *,
+        token: str | None = None,
+        token_path: Path | None = None,
+    ) -> None:
+        token = token or load_dashboard_token(
+            token_path or job.root / "private/dashboard-token.local"
+        )
+        if not DASHBOARD_TOKEN_PATTERN.fullmatch(token):
+            raise AutomationError("Dashboard token is invalid")
         super().__init__(("127.0.0.1", port), DashboardHandler)
         self.job = job
-        self.token = secrets.token_urlsafe(32)
+        self.token = token
         self.origin = f"http://127.0.0.1:{self.server_port}"
 
 
@@ -768,7 +1067,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if self.headers.get("Origin") != self.server.origin:
             self._json(403, {"error": "Local origin required"})
             return
-        if self.path not in {"/api/sync", "/api/assignment"}:
+        if self.path not in {
+            "/api/sync",
+            "/api/assignment",
+            "/api/connection-check",
+            "/api/stop",
+        }:
             self._json(404, {"error": "Not found"})
             return
         try:
@@ -776,15 +1080,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not 0 < size <= 4096 or self.headers.get("Content-Type") != "application/json":
                 raise ValueError
             payload = json.loads(self.rfile.read(size))
-            fields = (
-                {"student"}
-                if self.path == "/api/sync"
-                else {"student", "grade", "title", "variant", "action"}
-            )
+            fields = {
+                "/api/sync": {"student"},
+                "/api/assignment": {"student", "grade", "title", "variant", "action"},
+                "/api/connection-check": set(),
+                "/api/stop": set(),
+            }[self.path]
             if not isinstance(payload, dict) or set(payload) != fields:
                 raise ValueError
             setup = setup_status(self.server.job.root, self.server.job.serial)
-            if (
+            if self.path in {"/api/sync", "/api/assignment"} and (
                 not isinstance(payload["student"], str)
                 or payload["student"] not in setup["students"]
             ):
@@ -806,6 +1111,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 {
                     "error": "Select a configured student and an exact catalog lesson variant; only assign or unassign is accepted"
                 },
+            )
+            return
+        if self.path == "/api/connection-check":
+            result = self.server.job.check_connection()
+            self._json(200 if result.get("ready") else 409, result)
+            return
+        if self.path == "/api/stop":
+            stopped = self.server.job.request_stop()
+            self._json(
+                202 if stopped else 409,
+                {"state": "stopping"}
+                if stopped
+                else {"error": "No safely stoppable mastery sync is running"},
             )
             return
         if payload["student"] in setup.get("archived_students", []):
@@ -842,6 +1160,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument(
+        "--open-existing",
+        action="store_true",
+        help="open the private URL for an already-running dashboard and exit",
+    )
     parser.add_argument("--serial", help="Explicit ADB serial, e.g. a USB-connected tablet")
     parser.add_argument(
         "--debug",
@@ -857,6 +1180,12 @@ def main() -> None:
     args = parser.parse_args()
     if not 0 <= args.port <= 65535:
         parser.error("port must be between 0 and 65535")
+    if args.open_existing:
+        token = load_dashboard_token(ROOT / "private/dashboard-token.local")
+        url = f"http://127.0.0.1:{args.port}/#{token}"
+        print("Opening the private local dashboard.", flush=True)
+        webbrowser.open(url)
+        return
     workflow = args.workflow.resolve()
     if not workflow.is_file():
         parser.error("workflow must be an existing local sync wrapper")

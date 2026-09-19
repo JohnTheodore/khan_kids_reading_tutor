@@ -268,6 +268,8 @@ def build_dashboard_report(payload: dict[str, object]) -> dict[str, object]:
         "queue_count": len(verified) if queue_verified else None,
         "queue_verified": queue_verified,
         "manual_change": payload.get("manual_change"),
+        "applied": _object_list(payload.get("applied")),
+        "recovery": recovery if isinstance(recovery, dict) else None,
         "desired_count": len(_object_list(payload.get("desired_assignments"))),
         "new_scores": _object_list(payload.get("new_attempts")),
         "mastered": [change(item) for item in mastered],

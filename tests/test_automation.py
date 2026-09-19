@@ -601,6 +601,29 @@ class AutomationTests(unittest.TestCase):
             ],
         )
 
+    def test_lesson_lookup_retries_one_unchanged_scroll_before_bottom(self) -> None:
+        device, automation = _automation()
+        first_page = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Earlier lesson", Rect(200, 500, 900, 580)),
+        )
+        target_page = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+            ("Words with e", Rect(200, 500, 900, 580)),
+            ("Main", Rect(239, 600, 800, 680)),
+        )
+        dialog = ET.Element("dialog")
+        automation.root = Mock(side_effect=(first_page, target_page))
+        automation._wait_for_assignment_dialog = Mock(return_value=dialog)
+
+        result = automation._open_report_variant(
+            "Words with e", "Main", root=first_page, reset_to_top=False
+        )
+
+        self.assertIs(result, dialog)
+        self.assertEqual(device.swipe.call_count, 2)
+        device.tap_rect.assert_called_once_with(Rect(239, 600, 800, 680))
+
 
 def _row(title: str, top: int) -> AssignmentRow:
     return AssignmentRow(

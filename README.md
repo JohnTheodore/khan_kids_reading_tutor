@@ -373,6 +373,12 @@ command-line launcher; the dashboard does not implement a second mastery policy.
    now; the dashboard confirms it only after verification. **Unassign** removes
    that variant and pauses its automatic reassignment until you assign it again.
 
+The private dashboard link remains valid across ordinary service restarts, so an
+open tab can refresh without losing its reader. Its token is stored with owner-only
+permissions under ignored `private/` storage. If browser session storage is cleared
+or access is deliberately rotated, run `./khan-dashboard --open-existing` to reopen
+the authenticated local page; this never connects to the tablet.
+
 Assign and Unassign are **direct edits**, not mastery syncs: they change only the
 requested variant, verify its checkbox and live queue, and refresh the browser
 automatically. You can click other lessons while an edit runs; requests are saved
@@ -479,10 +485,14 @@ record paths. The default dashboard uses the repository's default record paths.
 
 Closing the browser does not cancel a sync. Stop the service with Ctrl+C; it waits
 for an active sync to finish safely. `--no-browser` prints the launch URL without
-opening it, and `--port` selects another local port. The setup checklist inspects
-local files and dependencies, not live tablet connectivity; the engine performs
-the actual connection, account, and queue checks. Unexpected startup screens
-stop without restarting and retain private captures for inspection.
+opening it, and `--port` selects another local port. Before a sync navigates Khan
+Kids, the dashboard checks ADB, the unlock state, Android's validated Internet
+connection, and the installed app. After a connection failure, use **Check tablet
+connection**; retry stays disabled until those checks pass. **Stop safely** blocks
+new work, reconciles the live queue if a change had started, and records an
+incident rather than replaying the operation. The last valid reading report stays
+visible throughout recovery. Unexpected startup screens stop without restarting
+and retain private captures for inspection.
 
 
 ### Optional scheduling and background dashboard
@@ -527,7 +537,10 @@ Raspberry Pi/dependency compatibility still needs testing.
 
 Sync reads current state again, applies the desired queue, and verifies it.
 Every change is checked after Save; a second complete queue scan must match
-before success is reported. The app logs out to the profile chooser, then Android
+before success is reported. Replacement lessons are added and verified before
+obsolete assignments are removed, so a failed catalog lookup cannot leave the
+queue short. Report scans also require repeated unchanged reads before treating
+a scroll as the end of the list. The app logs out to the profile chooser, then Android
 Home is pressed and verified. Khan Kids remains suspended in the background, so
 the tablet leaves fullscreen with its system controls available and the next
 launch resumes quickly. This Home handoff also runs after failures, once private

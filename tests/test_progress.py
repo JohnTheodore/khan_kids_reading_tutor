@@ -28,14 +28,14 @@ class ProgressTests(unittest.TestCase):
         stream = io.StringIO()
         reporter = ProgressReporter(stream, interval=0.01)
         heartbeat = threading.Event()
-        original_emit = reporter.emit
+        original_write = reporter._write
 
-        def emit(message: str) -> None:
-            original_emit(message)
+        def write(message: str) -> None:
+            original_write(message)
             if message.startswith("Still working"):
                 heartbeat.set()
 
-        reporter.emit = emit
+        reporter._write = write
         with self.assertRaisesRegex(RuntimeError, "test"), reporter:
             timing = TimingRecorder(reporter.emit)
             with timing.span("phase.review_assignments"):
@@ -49,3 +49,4 @@ class ProgressTests(unittest.TestCase):
         self.assertIn("Still working", text)
         self.assertNotIn("adb.keyevent", text)
         self.assertIn("max_silent_seconds", reporter.snapshot())
+        self.assertGreater(reporter.snapshot()["max_silent_seconds"], reporter.interval)

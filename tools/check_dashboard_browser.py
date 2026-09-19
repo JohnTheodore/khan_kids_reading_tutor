@@ -16,6 +16,7 @@ import io
 import json
 import os
 import tarfile
+import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -205,7 +206,7 @@ class DashboardBrowserTests(unittest.TestCase):
         cls.axe = axe_source()
         root = Path(__file__).resolve().parents[1]
         cls.job = Mock(root=root, serial=None, workflow=root / "khan-mastery-sync")
-        cls.server = DashboardServer(0, cls.job)
+        cls.server = DashboardServer(0, cls.job, token="T" * 43)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.start()
         cls.setup_patch = patch("dashboard.setup_status")
@@ -240,6 +241,17 @@ class DashboardBrowserTests(unittest.TestCase):
         self.job.snapshot.side_effect = lambda: copy.deepcopy(self.state)
         self.job.latest_report.side_effect = lambda student: self.reports.get(student)
         self.job.start.side_effect = self.start_job
+        self.job.check_connection.return_value = {
+            "ready": True,
+            "transport": "synthetic USB",
+            "checks": [
+                {"id": "adb", "label": "Tablet connected", "ok": True},
+                {"id": "unlocked", "label": "Tablet unlocked", "ok": True},
+                {"id": "internet", "label": "Tablet Internet validated", "ok": True},
+                {"id": "app", "label": "Khan Kids available", "ok": True},
+            ],
+        }
+        self.job.request_stop.return_value = True
         self.journeys = [example_journey(student) for student in ("Student A", "Student B")]
         self.job.journeys.side_effect = lambda students: {"readers": copy.deepcopy(self.journeys)}
         self.context = self.browser.new_context(viewport={"width": 1280, "height": 900})
@@ -964,6 +976,76 @@ class DashboardBrowserTests(unittest.TestCase):
         expect(self.page.locator("#sync-stages")).to_be_hidden()
         self.assertNotIn("sync-active", self.page.locator("#activity").get_attribute("class"))
 
+    def test_offline_preflight_preserves_progress_and_requires_recheck(self) -> None:
+        self.job.check_connection.return_value = {
+            "ready": False,
+            "checks": [
+                {"id": "adb", "label": "Tablet connected", "ok": True},
+                {"id": "internet", "label": "Tablet Internet validated", "ok": False},
+            ],
+            "error": "Tablet has no validated Internet connection.",
+        }
+        self.open()
+        expect(self.page.locator("#recent-mastery-list")).to_contain_text("Short Vowel Sound a")
+        self.page.locator("#sync").click()
+        expect(self.page.locator("#error-message")).to_contain_text("no validated Internet")
+        expect(self.page.locator("#connection-checks")).to_contain_text(
+            "Needs attention: Tablet Internet validated"
+        )
+        expect(self.page.locator("#check-connection")).to_be_visible()
+        expect(self.page.locator("#sync")).to_be_disabled()
+        expect(self.page.locator("#recent-mastery-list")).to_contain_text("Short Vowel Sound a")
+        self.job.start.assert_not_called()
+        self.job.check_connection.return_value = {
+            "ready": True,
+            "transport": "synthetic USB",
+            "checks": [
+                {"id": "adb", "label": "Tablet connected", "ok": True},
+                {"id": "unlocked", "label": "Tablet unlocked", "ok": True},
+                {"id": "internet", "label": "Tablet Internet validated", "ok": True},
+                {"id": "app", "label": "Khan Kids available", "ok": True},
+            ],
+        }
+        self.page.locator("#check-connection").click()
+        expect(self.page.locator("#state")).to_contain_text("ready to sync")
+        expect(self.page.locator("#sync")).to_be_enabled()
+        self.job.start.assert_not_called()
+
+    def test_running_sync_has_prominent_cooperative_stop_state(self) -> None:
+        self.state.update(
+            state="running",
+            student="Student A",
+            output="Starting phase.review_assignments\n",
+            report=None,
+            recovery_state="none",
+        )
+        self.open()
+        expect(self.page.locator("#stop-sync")).to_be_visible()
+        self.page.locator("#stop-sync").click()
+        self.job.request_stop.assert_called_once_with()
+        self.state.update(state="stopping", recovery_state="stopping_safely")
+        self.page.evaluate("poll()")
+        expect(self.page.locator("#state")).to_contain_text("Stopping safely")
+        expect(self.page.locator("#phase")).to_contain_text("No new actions")
+        expect(self.page.locator("#stop-sync")).to_be_disabled()
+
+    def test_partial_failure_is_explicit_and_never_replayed(self) -> None:
+        report = copy.deepcopy(self.reports["Student A"])
+        report.update(status="interrupted", error="A lesson could not be found")
+        self.state.update(
+            state="failed",
+            student="Student A",
+            report=report,
+            recovery_state="review_required",
+            run_id="synthetic-partial-run",
+        )
+        self.open()
+        expect(self.page.locator("#state")).to_contain_text("partial update")
+        expect(self.page.locator("#phase")).to_contain_text("Nothing will be replayed")
+        expect(self.page.locator("#sync")).to_be_disabled()
+        expect(self.page.locator("#check-connection")).to_be_visible()
+        self.job.start.assert_not_called()
+
     def test_sync_working_panel_is_prominent_accessible_and_honest(self):
         for width, theme, motion in (
             (1280, "light", "no-preference"),
@@ -1177,6 +1259,41 @@ class DashboardBrowserTests(unittest.TestCase):
             self.page.evaluate("sessionStorage.getItem('tutor-token')"), self.server.token
         )
 
+    def test_reader_selection_survives_local_server_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            token_path = Path(directory) / "private/dashboard-token.local"
+            first = DashboardServer(0, self.job, token_path=token_path)
+            port = first.server_port
+            first_thread = threading.Thread(target=first.serve_forever)
+            first_thread.start()
+            second = None
+            second_thread = None
+            try:
+                self.page.goto(first.origin + "/#" + first.token)
+                self.page.locator("#student").select_option("Student B")
+                expect(self.page.locator("#student")).to_have_value("Student B")
+                first.shutdown()
+                first.server_close()
+                first_thread.join()
+
+                second = DashboardServer(port, self.job, token_path=token_path)
+                second_thread = threading.Thread(target=second.serve_forever)
+                second_thread.start()
+                self.page.reload()
+                expect(self.page.locator("#student")).to_have_value("Student B")
+                expect(self.page.locator("#sync")).to_be_enabled()
+                expect(self.page.locator("#error")).to_be_hidden()
+            finally:
+                if first_thread.is_alive():
+                    first.shutdown()
+                    first.server_close()
+                    first_thread.join()
+                if second is not None:
+                    second.shutdown()
+                    second.server_close()
+                if second_thread is not None:
+                    second_thread.join()
+
     def test_late_reader_response_cannot_replace_current_reader(self) -> None:
         self.open()
         pending = []
@@ -1241,7 +1358,10 @@ class DashboardBrowserTests(unittest.TestCase):
         self.page.unroute("**/api/setup")
         self.page.evaluate("sessionStorage.clear()")
         self.page.goto(self.server.origin)
-        expect(self.page.locator("#error-message")).to_contain_text("private launch link")
+        expect(self.page.locator("#error-message")).to_contain_text("access expired")
+        expect(self.page.locator("#auth-recovery")).to_be_visible()
+        expect(self.page.locator("#student")).to_be_disabled()
+        expect(self.page.locator("#student")).to_contain_text("Reopen dashboard")
         expect(self.page.locator("#retry")).to_be_hidden()
         expect(self.page.locator("#sync")).to_be_disabled()
         self.job.start.assert_not_called()
@@ -1336,7 +1456,7 @@ class DashboardBrowserTests(unittest.TestCase):
         self.assertEqual(len([url for url in requests if "/api/status" in url]), count)
         self.page.evaluate("sessionStorage.clear()")
         self.page.goto(self.server.origin)
-        expect(self.page.locator("#error-message")).to_contain_text("private launch link")
+        expect(self.page.locator("#error-message")).to_contain_text("access expired")
         count = len(requests)
         self.page.clock.fast_forward(30000)
         self.assertEqual(len(requests), count)

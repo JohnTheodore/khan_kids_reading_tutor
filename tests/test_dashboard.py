@@ -6,13 +6,23 @@ import json
 import sys
 import tempfile
 import threading
+import time
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from dashboard import MAX_OUTPUT_CHARS, DashboardServer, SyncJob, setup_status, sync_progress
+from dashboard import (
+    MAX_OUTPUT_CHARS,
+    DashboardServer,
+    SyncJob,
+    load_dashboard_token,
+    main,
+    setup_status,
+    sync_progress,
+)
 from khan_kids.adb import AutomationError
 
 
@@ -32,7 +42,7 @@ class DashboardTests(unittest.TestCase):
         self.job.serial = None
         self.job.snapshot.return_value = {"state": "idle", "output": "", "returncode": None}
         self.job.start.return_value = True
-        self.server = DashboardServer(0, self.job)
+        self.server = DashboardServer(0, self.job, token="T" * 43)
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.start()
         self.setup = patch(
@@ -226,6 +236,80 @@ class DashboardTests(unittest.TestCase):
         connection.close()
         self.job.start.assert_not_called()
 
+    def test_connection_check_and_safe_stop_are_explicit_operations(self) -> None:
+        self.job.check_connection.return_value = {
+            "ready": True,
+            "checks": [{"id": "internet", "label": "Internet", "ok": True}],
+        }
+        code, body, _ = self.request("POST", "/api/connection-check", {})
+        self.assertEqual(code, 200)
+        self.assertTrue(json.loads(body)["ready"])
+        self.job.start.assert_not_called()
+
+        self.job.request_stop.return_value = True
+        self.assertEqual(self.request("POST", "/api/stop", {})[0], 202)
+        self.job.request_stop.assert_called_once_with()
+
+    def test_failed_connection_check_does_not_start_or_mutate(self) -> None:
+        self.job.check_connection.return_value = {
+            "ready": False,
+            "checks": [{"id": "internet", "label": "Internet", "ok": False}],
+            "error": "Tablet is offline",
+        }
+        code, body, _ = self.request("POST", "/api/connection-check", {})
+        self.assertEqual(code, 409)
+        self.assertEqual(json.loads(body)["error"], "Tablet is offline")
+        self.job.start.assert_not_called()
+
+
+class DashboardTokenTests(unittest.TestCase):
+    def test_open_existing_reuses_private_token_without_starting_server(self) -> None:
+        with (
+            patch("sys.argv", ["khan-dashboard", "--open-existing", "--port", "8765"]),
+            patch("dashboard.load_dashboard_token", return_value="T" * 43),
+            patch("dashboard.webbrowser.open") as browser,
+            redirect_stdout(io.StringIO()),
+        ):
+            main()
+        browser.assert_called_once_with("http://127.0.0.1:8765/#" + "T" * 43)
+
+    def test_token_is_private_stable_and_rotates_only_explicitly(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "private/dashboard-token.local"
+            first = load_dashboard_token(path)
+            second = load_dashboard_token(path)
+            rotated = load_dashboard_token(path, rotate=True)
+
+            self.assertEqual(first, second)
+            self.assertNotEqual(first, rotated)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_invalid_or_public_token_file_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "private/dashboard-token.local"
+            path.parent.mkdir()
+            path.write_text("not-a-valid-token\n")
+            path.chmod(0o600)
+            with self.assertRaisesRegex(AutomationError, "invalid"):
+                load_dashboard_token(path)
+            path.write_text("T" * 43 + "\n")
+            path.chmod(0o644)
+            with self.assertRaisesRegex(AutomationError, "owner-only"):
+                load_dashboard_token(path)
+
+    def test_two_server_instances_reuse_the_same_private_token(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            job = Mock(root=root)
+            first = DashboardServer(0, job)
+            token = first.token
+            first.server_close()
+            second = DashboardServer(0, job)
+            try:
+                self.assertEqual(second.token, token)
+            finally:
+                second.server_close()
+
 
 class SyncJobTests(unittest.TestCase):
     def test_manual_worker_uses_direct_session_without_sync_subprocess(self):
@@ -295,7 +379,15 @@ class SyncJobTests(unittest.TestCase):
         process = Mock()
         process.stdout = io.StringIO(
             "[progress] checking\n"
-            + json.dumps({"dashboard_report": {"student": "Student A", "status": "no_op"}})
+            + json.dumps(
+                {
+                    "dashboard_report": {
+                        "student": "Student A",
+                        "status": "no_op",
+                        "run_id": "sync-dashboard-test",
+                    }
+                }
+            )
             + "\n"
         )
         process.wait.return_value = 0
@@ -316,7 +408,15 @@ class SyncJobTests(unittest.TestCase):
         process = Mock()
         process.stdout = io.StringIO(
             "[progress] checking\n"
-            + json.dumps({"dashboard_report": {"student": "Student A", "status": "no_op"}})
+            + json.dumps(
+                {
+                    "dashboard_report": {
+                        "student": "Student A",
+                        "status": "no_op",
+                        "run_id": "sync-dashboard-test",
+                    }
+                }
+            )
             + "\n"
         )
         process.wait.return_value = 0
@@ -358,45 +458,50 @@ class SyncJobTests(unittest.TestCase):
             self.assertIsNone(job.latest_report("Student A"))
 
     def test_command_reuses_wrapper_and_preserves_full_engine_report(self) -> None:
-        job = SyncJob(Path("/repo"), Path("/repo/khan-mastery-sync"), "USB_TEST_SERIAL")
-        process = Mock()
-        process.stdout = io.StringIO(
-            "[progress] checking\n"
-            + json.dumps(
-                {
-                    "dashboard_report": {
-                        "student": "Student A",
-                        "status": "no_op",
-                        "outcome": "verified",
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            job = SyncJob(root, root / "khan-mastery-sync", "USB_TEST_SERIAL")
+            process = Mock()
+            process.stdout = io.StringIO(
+                "[progress] checking\n"
+                + json.dumps(
+                    {
+                        "dashboard_report": {
+                            "student": "Student A",
+                            "status": "no_op",
+                            "outcome": "verified",
+                            "run_id": "sync-test-run",
+                        }
                     }
-                }
+                )
+                + "\n"
             )
-            + "\n"
-        )
-        process.wait.return_value = 0
-        with (
-            patch("dashboard.subprocess.Popen") as popen,
-            patch("dashboard.new_run_id", return_value="sync-test-run"),
-        ):
-            popen.return_value.__enter__.return_value = process
-            self.assertTrue(job.start("Student A"))
-            job.wait()
-        self.assertEqual(
-            popen.call_args.args[0],
-            [
-                "/repo/khan-mastery-sync",
-                "--student",
-                "Student A",
-                "--json",
-                "--run-id",
-                "sync-test-run",
-                "--serial",
-                "USB_TEST_SERIAL",
-            ],
-        )
-        self.assertEqual(job.snapshot()["state"], "succeeded")
-        self.assertTrue(popen.call_args.kwargs["start_new_session"])
-        self.assertEqual(job.snapshot()["report"]["outcome"], "verified")
+            process.wait.return_value = 0
+            with (
+                patch("dashboard.subprocess.Popen") as popen,
+                patch("dashboard.new_run_id", return_value="sync-test-run"),
+            ):
+                popen.return_value.__enter__.return_value = process
+                self.assertTrue(job.start("Student A"))
+                job.wait()
+            self.assertEqual(
+                popen.call_args.args[0],
+                [
+                    str(root / "khan-mastery-sync"),
+                    "--student",
+                    "Student A",
+                    "--json",
+                    "--run-id",
+                    "sync-test-run",
+                    "--serial",
+                    "USB_TEST_SERIAL",
+                    "--cancel-file",
+                    str(root / "private/dashboard-operations/sync-test-run.cancel"),
+                ],
+            )
+            self.assertEqual(job.snapshot()["state"], "succeeded")
+            self.assertTrue(popen.call_args.kwargs["start_new_session"])
+            self.assertEqual(job.snapshot()["report"]["outcome"], "verified")
 
     def test_zero_exit_without_a_structured_result_never_claims_success(self) -> None:
         job = SyncJob(Path("/repo"), Path("/repo/command"))
@@ -428,7 +533,10 @@ class SyncJobTests(unittest.TestCase):
         self.assertNotIn("private details", job.snapshot()["output"])
 
     def test_concurrent_starts_are_rejected_and_wait_preserves_worker(self) -> None:
-        job = SyncJob(Path("/repo"), Path("/repo/command"))
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        job = SyncJob(root, root / "command")
         entered, release = threading.Event(), threading.Event()
 
         def run(student, assignment=None):
@@ -447,6 +555,133 @@ class SyncJobTests(unittest.TestCase):
         job = SyncJob(Path("/repo"), Path("/repo/command"))
         job._append("x" * (MAX_OUTPUT_CHARS + 100))
         self.assertEqual(len(job.snapshot()["output"]), MAX_OUTPUT_CHARS)
+
+    def test_stop_request_is_durable_and_does_not_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            job = SyncJob(root, root / "khan-mastery-sync", stop_grace_seconds=0.01)
+            job.state = "running"
+            job.run_id = "sync-stop-test"
+            job.student = "Student A"
+            job.cancel_path = root / "private/dashboard-operations/sync-stop-test.cancel"
+            job.cancel_path.parent.mkdir(parents=True)
+            self.assertTrue(job.request_stop())
+            self.assertEqual(job.snapshot()["state"], "stopping")
+            self.assertIn("Stopped safely", job.cancel_path.read_text())
+            self.assertFalse(job.start("Student A"))
+
+    def test_watchdog_ignores_heartbeats_and_requests_safe_stop(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            job = SyncJob(
+                root,
+                root / "khan-mastery-sync",
+                stall_seconds=0.01,
+                stop_grace_seconds=0.01,
+            )
+            job.state = "running"
+            job.run_id = "sync-stall-test"
+            job.student = "Student A"
+            job.cancel_path = root / "private/dashboard-operations/sync-stall-test.cancel"
+            job.cancel_path.parent.mkdir(parents=True)
+            job.last_progress_at = 0
+            job._append("[progress] Still working; waiting for the current UI operation\n")
+            watcher = threading.Thread(target=job._watch_for_stall, args=(threading.Event(),))
+            watcher.start()
+            watcher.join(2)
+            self.assertFalse(watcher.is_alive())
+            self.assertEqual(job.snapshot()["state"], "stopping")
+            self.assertTrue(job.cancel_path.exists())
+
+    def test_active_operation_survives_dashboard_restart_without_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            active = root / "private/dashboard-active-operation.json"
+            active.parent.mkdir(parents=True)
+            cancel = root / "private/dashboard-operations/run.cancel"
+            cancel.parent.mkdir()
+            active.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "student": "Student A",
+                        "run_id": "sync-restart-test",
+                        "pid": 12345,
+                        "cancel_path": str(cancel),
+                        "started_at": 1,
+                    }
+                )
+            )
+            active.chmod(0o600)
+            with patch.object(SyncJob, "_refresh_external_locked"):
+                job = SyncJob(root, root / "khan-mastery-sync")
+                self.assertEqual(job.snapshot()["state"], "recovering")
+                self.assertFalse(job.start("Student A"))
+
+    def test_dead_recovered_operation_cannot_claim_an_older_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            private = root / "private"
+            operations = private / "dashboard-operations"
+            operations.mkdir(parents=True)
+            (private / "student-a-reading-plan.json").write_text(
+                json.dumps(
+                    {
+                        "student": "Student A",
+                        "status": "no_op",
+                        "run_id": "older-run",
+                        "generated_at": "2026-09-19T12:00:00-04:00",
+                        "observed_assignments": [],
+                        "actions": [],
+                    }
+                )
+            )
+            active = private / "dashboard-active-operation.json"
+            active.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "student": "Student A",
+                        "run_id": "interrupted-run",
+                        "pid": 999_999_999,
+                        "cancel_path": str(operations / "interrupted-run.cancel"),
+                        "started_at": time.time(),
+                    }
+                )
+            )
+            active.chmod(0o600)
+            job = SyncJob(root, root / "khan-mastery-sync")
+            self.assertEqual(job.snapshot()["state"], "failed")
+            self.assertEqual(job.snapshot()["recovery_state"], "connection_check_required")
+
+    def test_latest_interrupted_result_survives_clean_service_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            private = root / "private"
+            private.mkdir()
+            (private / "student-a-reading-plan.json").write_text(
+                json.dumps(
+                    {
+                        "student": "Student A",
+                        "status": "interrupted",
+                        "run_id": "interrupted-run",
+                        "generated_at": "2026-09-19T12:00:00-04:00",
+                        "observed_assignments": [],
+                        "actions": [],
+                        "applied": [{"action": "unchecked", "title": "A", "variant": "Main"}],
+                        "recovery": {"status": "unavailable"},
+                    }
+                )
+            )
+            with (
+                patch("dashboard.DeviceConfig.load") as config,
+                patch("dashboard.load_aliases", return_value={"Local reader": "Student A"}),
+            ):
+                config.return_value.student = "Local reader"
+                job = SyncJob(root, root / "khan-mastery-sync")
+            self.assertEqual(job.snapshot()["state"], "failed")
+            self.assertEqual(job.snapshot()["run_id"], "interrupted-run")
+            self.assertEqual(job.snapshot()["recovery_state"], "review_required")
 
     def test_setup_uses_existing_private_readers_and_never_returns_credentials(self) -> None:
         with (

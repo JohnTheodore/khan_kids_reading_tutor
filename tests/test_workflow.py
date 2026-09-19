@@ -133,6 +133,8 @@ class WorkflowTests(unittest.TestCase):
         directory: Path,
         day: int,
     ) -> dict[str, object]:
+        if "failure_capture" not in automation.__dict__:
+            automation.failure_capture = None
         args = Namespace(
             student="Student A",
             catalog=CATALOG_PATH,
@@ -600,12 +602,14 @@ class WorkflowTests(unittest.TestCase):
         )
         automation = Mock()
         automation.device.timing.span.return_value = nullcontext()
-        after_removal = AssignmentSnapshot(tuple(_activity_row(item) for item in shared), ())
+        after_addition = AssignmentSnapshot(
+            tuple(_activity_row(item) for item in (*shared, old, desired)), ()
+        )
         automation.unassign.return_value = ActionResult(
             "unchecked", "Blend Sounds 2", "Basic", "saved"
         )
         automation.assign.return_value = ActionResult("checked", "Blend Sounds 2", "Main", "saved")
-        automation.scan_assignments.side_effect = (after_removal, final_snapshot, final_snapshot)
+        automation.scan_assignments.side_effect = (after_addition, final_snapshot, final_snapshot)
 
         with tempfile.TemporaryDirectory() as temporary:
             temporary_path = Path(temporary)
@@ -623,13 +627,13 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("Applied promotions", (temporary_path / "sync-log.md").read_text())
             self.assertEqual(
                 [call[0] for call in automation.method_calls if call[0] in {"assign", "unassign"}],
-                ["unassign", "assign"],
+                ["assign", "unassign"],
             )
             journal = payload["operation_journal"]
             self.assertEqual(journal["status"], "complete")
             self.assertTrue(all(item["state"] == "verified" for item in journal["operations"]))
 
-    def test_interruption_after_full_queue_removal_captures_one_missing_replacement(self) -> None:
+    def test_failed_replacement_preserves_the_existing_full_queue(self) -> None:
         activities = tuple(self.curriculum.activities_by_key.values())[:11]
         desired = activities[:10]
         replacement = desired[-1]
@@ -657,17 +661,26 @@ class WorkflowTests(unittest.TestCase):
             (),
         )
         payload = self._plan_payload(snapshot, plan, 14, new_attempt_records=0)
-        after_removal = AssignmentSnapshot(tuple(_activity_row(item) for item in desired[:-1]), ())
         automation = Mock()
         automation.device.timing.span.return_value = nullcontext()
         automation.device.timing.snapshot.return_value = {"wall_seconds": 3.5, "steps": []}
-        automation.unassign.return_value = ActionResult(
-            "unchecked", displaced.title, displaced.variant, "saved"
-        )
-        automation.scan_assignments.side_effect = (
-            AutomationError("verification hierarchy unavailable"),
-            after_removal,
-        )
+        automation.device.cleanup_mode.return_value = nullcontext()
+        failure_events: list[str] = []
+
+        def fail_assignment(*_args: object, **_kwargs: object) -> None:
+            failure_events.append("assignment failed")
+            raise AutomationError("catalog lookup unavailable")
+
+        def capture_failure(_error: Exception) -> None:
+            failure_events.append("failure captured")
+
+        def reconcile_queue(*_args: object, **_kwargs: object) -> AssignmentSnapshot:
+            failure_events.append("queue reconciled")
+            return snapshot
+
+        automation.assign.side_effect = fail_assignment
+        automation.failure_capture = capture_failure
+        automation.scan_assignments.side_effect = reconcile_queue
 
         with tempfile.TemporaryDirectory() as temporary:
             temporary_path = Path(temporary)
@@ -681,16 +694,21 @@ class WorkflowTests(unittest.TestCase):
                 )
 
             self.assertEqual(payload["status"], "interrupted")
-            self.assertEqual(payload["recovery"]["live_count"], 9)
+            self.assertEqual(payload["recovery"]["live_count"], 10)
             self.assertEqual(
                 payload["recovery"]["missing_assignments"],
                 [{"title": replacement.title, "variant": replacement.variant}],
             )
             operations = payload["operation_journal"]["operations"]
-            self.assertEqual([item["state"] for item in operations], ["saved", "planned"])
-            automation.assign.assert_not_called()
+            self.assertEqual([item["state"] for item in operations], ["planned", "planned"])
+            automation.assign.assert_called_once()
+            automation.unassign.assert_not_called()
+            self.assertEqual(
+                failure_events,
+                ["assignment failed", "failure captured", "queue reconciled"],
+            )
             report = (temporary_path / "sync-log.md").read_text()
-            self.assertIn("Last verified live queue: 9 assignments", report)
+            self.assertIn("Last verified live queue: 10 assignments", report)
             self.assertIn("Applied before interruption promotions\n\nNone.", report)
 
 

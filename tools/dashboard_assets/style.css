@@ -890,6 +890,11 @@ summary:hover {
 .secondary:active:not(:disabled) {
   border-color: var(--accent);
 }
+.stop-sync {
+  color: var(--warning-ink);
+  border-color: var(--warning-line);
+  margin-inline-start: auto;
+}
 .helper {
   grid-column: 1 / -1;
   font-size: 0.875rem;
@@ -1032,6 +1037,17 @@ body[data-state="offline"] .activity-dot {
 }
 .error-banner a {
   margin-inline-start: 16px;
+}
+.connection-checks {
+  width: 100%;
+  margin: 14px 0 0;
+  padding-inline-start: 20px;
+}
+.connection-checks li + li {
+  margin-block-start: 4px;
+}
+.connection-checks .ready {
+  color: var(--ink);
 }
 .section-heading {
   display: flex;

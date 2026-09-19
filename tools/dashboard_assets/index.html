@@ -61,7 +61,9 @@
         <div class="sync-controls">
           <div class="student-field">
             <label for="student">Reader</label
-            ><select id="student"></select>
+            ><select id="student" disabled>
+              <option value="">Loading readers…</option>
+            </select>
           </div>
           <button
             id="sync"
@@ -91,6 +93,9 @@
           <p id="phase" class="muted" aria-live="polite"></p>
         </div>
         <span id="elapsed" class="muted"></span>
+        <button id="stop-sync" class="secondary stop-sync" type="button" hidden>
+          Stop safely
+        </button>
         <div
           id="sync-indicator"
           class="sync-indicator"
@@ -128,9 +133,18 @@
       </details>
       <div id="error" class="error-banner" hidden>
         <p id="error-message" role="alert"></p>
+        <p id="auth-recovery" hidden>
+          Your reading records are safe. Run
+          <code>./khan-dashboard --open-existing</code> to reopen the private
+          dashboard.
+        </p>
         <button id="retry" class="secondary" type="button">
           Reconnect local app
         </button>
+        <button id="check-connection" class="secondary" type="button" hidden>
+          Check tablet connection
+        </button>
+        <ul id="connection-checks" class="connection-checks" hidden></ul>
         <a id="error-setup" href="#setup">Open troubleshooting</a>
       </div>
       <section id="journey" aria-labelledby="journey-title" aria-busy="true">

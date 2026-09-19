@@ -372,7 +372,16 @@ class AssignmentQueueTests(unittest.TestCase):
             entered.set()
             release.wait(5)
             yield (
-                json.dumps({"dashboard_report": {"student": "Student A", "status": "no_op"}}) + "\n"
+                json.dumps(
+                    {
+                        "dashboard_report": {
+                            "student": "Student A",
+                            "status": "no_op",
+                            "run_id": self.job.run_id,
+                        }
+                    }
+                )
+                + "\n"
             )
 
         process.stdout = lines()

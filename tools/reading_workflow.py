@@ -14,6 +14,7 @@ from pathlib import Path
 
 from khan_kids.adb import AndroidDevice, AutomationError, HomeHandoffError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
+from khan_kids.cancellation import FileCancellationToken
 from khan_kids.catalog import CatalogIndex
 from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.curriculum import Activity, ReadingCurriculum
@@ -35,6 +36,7 @@ from khan_kids.planner import (
     build_queue_plan,
     snapshot_fingerprint,
 )
+from khan_kids.preflight import assert_tablet_preflight
 from khan_kids.progress import ProgressReporter
 from khan_kids.quarantine import (
     LessonQuarantine,
@@ -343,6 +345,7 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
     parser.add_argument("--assignment-grade")
     parser.add_argument("--assignment-title")
     parser.add_argument("--assignment-variant")
+    parser.add_argument("--cancel-file", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
     parser.add_argument(
         "--json",
@@ -413,14 +416,15 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
         )
 
     timing = TimingRecorder(progress.emit if progress else None)
-    device = AndroidDevice(args.serial, timing=timing)
+    cancellation = FileCancellationToken(args.cancel_file)
+    device = AndroidDevice(args.serial, timing=timing, cancellation_check=cancellation.check)
     history_cache = HistoryCache.load(cache_path, student=args.student, today=args.today)
     output_payload: dict[str, object]
     teardown_error: AutomationError | None = None
     output_plan_path = args.apply_plan or plan_path
     try:
-        with timing.span("startup.connected"):
-            device.assert_connected()
+        with timing.span("startup.preflight"):
+            assert_tablet_preflight(device)
         with (
             device.app_session(
                 KHAN_KIDS_PACKAGE,
@@ -439,6 +443,9 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
                 scratch=Path(temporary),
                 parent_password_provider=lambda: credentials().khan_parent_password,
                 history_lookup=_history_lookup_for_run(args, history_cache),
+                failure_capture=lambda error: diagnostics.capture_device_failure(
+                    device, error, progress=progress.emit if progress else None
+                ),
             )
             with timing.span("startup.launch"):
                 ensure_khan_kids_open(
@@ -751,7 +758,7 @@ def _apply_reviewed_plan(
         while current_keys != desired_keys:
             missing = desired_keys - current_keys
             unexpected = current_keys - desired_keys
-            if missing and len(current_keys) < max(curriculum.queue_limit, len(desired)):
+            if missing:
                 action = min(
                     (action_by_key[("add", key)] for key in missing),
                     key=lambda candidate: catalog.order_key(candidate.grade, candidate.title),
@@ -763,7 +770,7 @@ def _apply_reviewed_plan(
                     if action.kind == "remove" and action.key in unexpected
                 )
             else:
-                raise AutomationError("Desired assignments cannot fit without a validated removal")
+                raise AutomationError("Desired assignments could not be reconciled")
 
             with automation.device.timing.span(f"phase.{action.kind}_and_verify"):
                 result = _apply_queue_action(automation, action)
@@ -808,8 +815,16 @@ def _apply_reviewed_plan(
             raise AutomationError("Fixed-point verification did not match the desired queue")
     except Exception as error:
         recovery: dict[str, object]
+        if automation.failure_capture is not None:
+            with suppress(Exception):
+                automation.failure_capture(error)
         try:
-            with automation.device.timing.span("phase.interruption_reconcile"):
+            # A stop request blocks new normal work, but must not block the one
+            # read-only reconciliation needed to describe the live queue safely.
+            with (
+                automation.device.cleanup_mode(),
+                automation.device.timing.span("phase.interruption_reconcile"),
+            ):
                 recovery_snapshot = automation.scan_assignments(
                     today=args.today, include_score_histories=False
                 )
