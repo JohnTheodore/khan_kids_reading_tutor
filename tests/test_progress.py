@@ -49,4 +49,6 @@ class ProgressTests(unittest.TestCase):
         self.assertIn("Still working", text)
         self.assertNotIn("adb.keyevent", text)
         self.assertIn("max_silent_seconds", reporter.snapshot())
-        self.assertGreater(reporter.snapshot()["max_silent_seconds"], reporter.interval)
+        # Snapshot values are rounded to milliseconds; an on-time heartbeat can
+        # therefore equal the configured interval on faster CI runners.
+        self.assertGreaterEqual(reporter.snapshot()["max_silent_seconds"], reporter.interval)
