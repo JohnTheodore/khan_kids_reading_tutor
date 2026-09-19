@@ -7862,3 +7862,151 @@ Not applicable.
 ### Duration
 
 31.828 seconds
+
+## 2026-09-19T09:41:05-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 7
+- Desired queue size: 11
+- Assignment changes: 3
+
+### New scores
+
+- Letters & Words — Practice 2: 67% on 2026-09-19 (history: 67%)
+- Beginning Sound w — Practice 2: 100% on 2026-09-19 (history: 100%)
+- Beginning Sound y — Practice 2: 100% on 2026-09-19 (history: 100%)
+- Beginning Sound p — Practice 2: 84% on 2026-09-19 (history: 84%)
+- Rhyming — Basic: 83% on 2026-09-19 (history: 79% → 83%)
+- Make New Words — Practice 1: 81% on 2026-09-19 (history: 83% → 94% → 83% → 78% → 81%)
+- Short Vowel Sound o — Practice 1: 100% on 2026-09-19 (history: 100%)
+
+### Score controls read
+
+- Letters & Words — Practice 2: 67% on 2026-09-19
+- Beginning Sound w — Practice 2: 100% on 2026-09-19
+- Beginning Sound y — Practice 2: 100% on 2026-09-19
+- Beginning Sound p — Practice 2: 84% on 2026-09-19
+- Rhyming — Basic: 83% on 2026-09-19, 79% on 2026-09-16
+- Make New Words — Practice 1: 81% on 2026-09-19, 78% on 2026-09-18, 83% on 2026-09-17, 94% on 2026-09-17, 83% on 2026-09-16
+- Short Vowel Sound o — Practice 1: 100% on 2026-09-19
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Beginning Sound w — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound y — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Short Vowel Sound o — Practice 1
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; successor waiting for an open queue slot
+
+### Applied unchecks
+
+- Beginning Sound w — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Beginning Sound y — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Short Vowel Sound o — Practice 1
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%; successor waiting for an open queue slot
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Beginning Sound p — Practice 2 — 84%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Rhyming — Basic — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Make New Words — Practice 1 — 81%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Make New Words — Practice 1
+- Words with a — Main
+- Words with i — Main
+- Short Vowel Sound u — Practice 1
+- Words with b & d — Main
+- Rhyming — Basic
+- Beginning Sound p — Practice 2
+- Beginning Sound z — Practice 2
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+
+### Stretch slots
+
+- Words with b & d — Main
+- Rhyming — Basic
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 1: not_mastered (83%, 94%, 83%, 78%, 81%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (not attempted)
+- Short Vowel Sound u — Practice 1: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 108.633 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 94 | 76.986 | 0.819 | 2.081 |
+| workflow.scan_assignments | 5 | 57.771 | 11.554 | 40.185 |
+| phase.remove_and_verify | 3 | 47.231 | 15.744 | 16.384 |
+| phase.review_assignments | 1 | 40.185 | 40.185 | 40.185 |
+| wait.stable Khan navigation state | 9 | 14.348 | 1.594 | 6.119 |
+| wait.assignments_report after score dialog close | 8 | 12.847 | 1.606 | 2.124 |
+| wait.score dialog | 8 | 8.396 | 1.05 | 1.713 |
+| adb.swipe | 16 | 7.418 | 0.464 | 0.54 |
+| phase.fixed_point_verify | 1 | 6.264 | 6.264 | 6.264 |
+| teardown.switch_user | 1 | 5.95 | 5.95 | 5.95 |
+| adb.tap | 31 | 5.435 | 0.175 | 0.371 |
+| wait.assignment saved | 3 | 4.583 | 1.528 | 1.591 |
+| adb.other | 17 | 4.203 | 0.247 | 1.223 |
+| adb.screenshot | 6 | 3.617 | 0.603 | 0.766 |
+| startup.launch | 1 | 3.344 | 3.344 | 3.344 |
+| wait.assignment dialog | 3 | 2.609 | 0.87 | 0.904 |
+| wait.teacher_roster after Class Report back | 1 | 2.159 | 2.159 | 2.159 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.552 | 1.552 | 1.552 |
+| wait.profile_chooser after Switch User | 1 | 1.459 | 1.459 | 1.459 |
+| wait.parent password dialog | 1 | 1.425 | 1.425 | 1.425 |
+| startup.ui_backend | 1 | 1.345 | 1.345 | 1.345 |
+| wait.teacher roster after login | 1 | 1.128 | 1.128 | 1.128 |
+| adb.secret_entry | 1 | 0.956 | 0.956 | 0.956 |
+| teardown.android_home | 1 | 0.717 | 0.717 | 0.717 |
+| adb.settings | 5 | 0.629 | 0.126 | 0.174 |
+| adb.keyevent | 1 | 0.144 | 0.144 | 0.144 |
+| phase.plan_queue | 1 | 0.027 | 0.027 | 0.027 |
+| startup.connected | 1 | 0.022 | 0.022 | 0.022 |

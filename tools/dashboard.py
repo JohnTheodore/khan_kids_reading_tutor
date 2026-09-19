@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, urlsplit
 from khan_kids.adb import AutomationError
 from khan_kids.catalog import CatalogIndex
 from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError
+from khan_kids.diagnostics import DiagnosticRun, new_run_id
 from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import read_local_secrets
 from khan_kids.manual_assignments import ManualChange
@@ -173,6 +174,8 @@ class SyncJob:
         self.student: str | None = None
         self.assignment: dict | None = None
         self.started_at: float | None = None
+        self.run_id: str | None = None
+        self.diagnostic: DiagnosticRun | None = None
         self.manual_worker = False
         self.manual_batch_size = 0
         self.warm_deadline: float | None = None
@@ -254,6 +257,7 @@ class SyncJob:
                 "assignment": self.assignment,
                 "progress_fraction": fraction,
                 "elapsed_seconds": time.monotonic() - self.started_at if self.started_at else None,
+                "run_id": self.run_id,
                 "assignment_requests": [dict(request) for request in self.requests],
                 "teacher_session": "warm"
                 if self.warm_deadline is not None
@@ -362,6 +366,10 @@ class SyncJob:
                 return False
             self.state, self.output, self.returncode = "running", "", None
             self.report, self.student = None, student
+            self.run_id = new_run_id()
+            self.diagnostic = None
+            with suppress(OSError):
+                self.diagnostic = DiagnosticRun(self.root, self.run_id, student=student)
             self.assignment = assignment
             self.started_at = time.monotonic()
             self.thread = threading.Thread(target=self._run, args=(student,))
@@ -371,6 +379,7 @@ class SyncJob:
     def _start_manual_locked(self) -> None:
         queued = next(r for r in self.requests if r["state"] == "queued")
         self.student, self.assignment = queued["student"], queued["assignment"]
+        self.run_id, self.diagnostic = None, None
         self.manual_worker = True
         self.state = "running"
         self.warm_deadline = None
@@ -548,10 +557,15 @@ class SyncJob:
     def _append(self, text: str) -> None:
         with self.lock:
             self.output = (self.output + text)[-MAX_OUTPUT_CHARS:]
+            if self.diagnostic is not None:
+                with suppress(OSError):
+                    self.diagnostic.append_output(text)
             self._debug_event("progress", message=text.rstrip())
 
     def _run(self, student: str) -> None:
         command = [str(self.workflow), "--student", student, "--json"]
+        if self.run_id and self.workflow.resolve() == (self.root / "khan-mastery-sync").resolve():
+            command.extend(["--run-id", self.run_id])
         if self.serial:
             command.extend(["--serial", self.serial])
         code = 1
@@ -602,6 +616,9 @@ class SyncJob:
             with self.lock:
                 self.returncode = code
                 self.state = "succeeded" if code == 0 else "failed"
+                if self.diagnostic is not None:
+                    with suppress(OSError):
+                        self.diagnostic.finish(self.state, returncode=code)
                 if any(r["state"] == "queued" for r in self.requests):
                     if code == 0:
                         self._start_manual_locked()

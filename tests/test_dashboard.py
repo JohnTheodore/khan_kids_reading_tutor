@@ -312,6 +312,32 @@ class SyncJobTests(unittest.TestCase):
             self.assertEqual(restarted.latest_report("Student A")["status"], "no_op")
             self.assertEqual(job._result_path("Student A").stat().st_mode & 0o777, 0o600)
 
+    def test_normal_dashboard_run_persists_bounded_correlated_output(self) -> None:
+        process = Mock()
+        process.stdout = io.StringIO(
+            "[progress] checking\n"
+            + json.dumps({"dashboard_report": {"student": "Student A", "status": "no_op"}})
+            + "\n"
+        )
+        process.wait.return_value = 0
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("dashboard.subprocess.Popen") as popen,
+            patch("dashboard.new_run_id", return_value="sync-dashboard-test"),
+        ):
+            root = Path(directory)
+            job = SyncJob(root, root / "khan-mastery-sync")
+            popen.return_value.__enter__.return_value = process
+            self.assertTrue(job.start("Student A"))
+            job.wait()
+
+            run = root / "private/sync-runs/sync-dashboard-test"
+            manifest = json.loads((run / "run.json").read_text())
+            self.assertEqual(job.snapshot()["run_id"], "sync-dashboard-test")
+            self.assertEqual(manifest["status"], "succeeded")
+            self.assertEqual((run / "output.log").read_text(), "[progress] checking\n")
+            self.assertIn("--run-id", popen.call_args.args[0])
+
     def test_latest_result_restores_saved_state_but_does_not_infer_custom_wrapper_paths(
         self,
     ) -> None:
@@ -348,7 +374,10 @@ class SyncJobTests(unittest.TestCase):
             + "\n"
         )
         process.wait.return_value = 0
-        with patch("dashboard.subprocess.Popen") as popen:
+        with (
+            patch("dashboard.subprocess.Popen") as popen,
+            patch("dashboard.new_run_id", return_value="sync-test-run"),
+        ):
             popen.return_value.__enter__.return_value = process
             self.assertTrue(job.start("Student A"))
             job.wait()
@@ -359,6 +388,8 @@ class SyncJobTests(unittest.TestCase):
                 "--student",
                 "Student A",
                 "--json",
+                "--run-id",
+                "sync-test-run",
                 "--serial",
                 "USB_TEST_SERIAL",
             ],

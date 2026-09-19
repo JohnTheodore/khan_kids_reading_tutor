@@ -15,6 +15,7 @@ from .automation import KhanKidsAutomation
 from .catalog import CatalogIndex
 from .constants import KHAN_KIDS_PACKAGE
 from .device_discovery import DeviceConfig, resolve_device
+from .diagnostics import capture_device_failure
 from .launcher import ensure_khan_kids_open, local_secrets_provider
 from .manual_assignments import ManualAssignments, ManualChange, policy_path
 from .records import record_action, write_json_atomic, write_text_atomic
@@ -157,32 +158,7 @@ class ManualAssignmentSession:
 
     def _capture_failure(self, error: Exception) -> None:
         assert self.trace_directory is not None
-        write_text_atomic(self.trace_directory / "error.txt", f"{type(error).__name__}: {error}\n")
-        captures = (
-            ("failure.xml", self.device.dump),
-            ("failure.png", self.device.screenshot),
-        )
-        try:
-            if "Enter Password" in text_set(self.device.hierarchy()):
-                captures = ()
-                self.progress("Debug screen capture skipped for password dialog")
-        except Exception:
-            # If we cannot exclude a sensitive screen, retain error/logs only.
-            captures = ()
-        for name, capture in captures:
-            try:
-                destination = self.trace_directory / name
-                destination.touch(mode=0o600)
-                capture(destination)
-            except Exception:
-                self.progress(f"Debug failure capture unavailable: {name}")
-        try:
-            logs = self.device.command("logcat", "-d", "-t", "200", capture=True).decode(
-                errors="replace"
-            )
-            write_text_atomic(self.trace_directory / "android-logcat.txt", logs)
-        except Exception:
-            self.progress("Debug Android log capture unavailable")
+        capture_device_failure(self.trace_directory, self.device, error, progress=self.progress)
         self.progress(
             f"Private debug evidence saved: private/dashboard-debug/{self.trace_directory.name}"
         )

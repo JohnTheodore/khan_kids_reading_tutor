@@ -8,6 +8,7 @@ import hashlib
 import json
 import sys
 import tempfile
+from contextlib import suppress
 from datetime import date, datetime
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.catalog import CatalogIndex
 from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.curriculum import Activity, ReadingCurriculum
+from khan_kids.diagnostics import DiagnosticRun, new_run_id
 from khan_kids.history_cache import HistoryCache
 from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import ensure_khan_kids_open, local_secrets_provider
@@ -93,6 +95,7 @@ def create_plan_payload(
     score_scan_mode: str = "cache_eligible",
     manual_policy: ManualAssignments | None = None,
     manual_change: ManualChange | None = None,
+    run_id: str | None = None,
 ) -> dict[str, object]:
     stretch_keys = {
         activity.key for stretch in curriculum.stretch_pool for activity in stretch.activities
@@ -110,6 +113,7 @@ def create_plan_payload(
         "path_id": curriculum.path_id,
         "path_name": curriculum.name,
         "path_objective": curriculum.objective,
+        **({"run_id": run_id} if run_id else {}),
         "catalog_sha256": _file_digest(catalog_path),
         "curriculum_sha256": _file_digest(curriculum_path),
         "observed_state_sha256": snapshot_fingerprint(snapshot),
@@ -300,10 +304,11 @@ def _validate_action_result(
             raise AutomationError(f"Plan addition has an invalid grade: {action.key!r}")
 
 
-def main(progress: ProgressReporter | None = None) -> None:
+def main(progress: ProgressReporter | None = None, *, run_id: str | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="ADB serial, usually IP:port")
     parser.add_argument("--student", required=True)
+    parser.add_argument("--run-id", default=run_id or new_run_id(), help=argparse.SUPPRESS)
     parser.add_argument(
         "--secrets-file",
         type=Path,
@@ -352,6 +357,7 @@ def main(progress: ProgressReporter | None = None) -> None:
     )
     args = parser.parse_args()
     args.student = public_student(args.student)
+    diagnostics = DiagnosticRun(Path.cwd(), args.run_id, student=args.student)
     if sum(bool(value) for value in (args.plan, args.apply_plan, args.sync)) > 1:
         parser.error("--plan, --apply-plan, and --sync are mutually exclusive")
     if args.max_actions < 1:
@@ -416,7 +422,12 @@ def main(progress: ProgressReporter | None = None) -> None:
         with timing.span("startup.connected"):
             device.assert_connected()
         with (
-            device.app_session(KHAN_KIDS_PACKAGE),
+            device.app_session(
+                KHAN_KIDS_PACKAGE,
+                on_error=lambda error: diagnostics.capture_device_failure(
+                    device, error, progress=progress.emit if progress else None
+                ),
+            ),
             tempfile.TemporaryDirectory(prefix="khan-reading-") as temporary,
         ):
             credentials = local_secrets_provider(args.secrets_file)
@@ -444,6 +455,7 @@ def main(progress: ProgressReporter | None = None) -> None:
             history_cache.save()
             if args.apply_plan:
                 assert reviewed_payload is not None
+                reviewed_payload.setdefault("run_id", args.run_id)
                 output_payload = _apply_reviewed_plan(
                     args=args,
                     payload=reviewed_payload,
@@ -475,6 +487,9 @@ def main(progress: ProgressReporter | None = None) -> None:
                 with timing.span("teardown.switch_user"):
                     automation.return_to_profile_chooser()
             except Exception as error:
+                diagnostics.capture_device_failure(
+                    device, error, progress=progress.emit if progress else None
+                )
                 output_payload["teardown"] = {
                     "status": "failed",
                     "error": str(error),
@@ -484,13 +499,22 @@ def main(progress: ProgressReporter | None = None) -> None:
                     f"{output_payload['status']!r} had already been saved: {error}"
                 )
     except HomeHandoffError as error:
+        diagnostics.capture_device_failure(
+            device, error, progress=progress.emit if progress else None
+        )
         output_payload["teardown"] = {"status": "failed", "error": str(error)}
         teardown_error = AutomationError(
             f"Sync outcome was saved, but Android Home could not be verified: {error}"
         )
-    except MasterySyncInterrupted:
+    except MasterySyncInterrupted as error:
+        diagnostics.capture_device_failure(
+            device, error.cause, progress=progress.emit if progress else None
+        )
         raise
     except Exception as error:
+        diagnostics.capture_device_failure(
+            device, error, progress=progress.emit if progress else None
+        )
         interrupted = _pre_apply_interruption_payload(
             args=args,
             curriculum=curriculum,
@@ -504,6 +528,7 @@ def main(progress: ProgressReporter | None = None) -> None:
         raise MasterySyncInterrupted(error, interrupted) from error
 
     timing_snapshot = timing.snapshot()
+    output_payload.setdefault("run_id", args.run_id)
     output_payload["next_lesson_recommendations"] = recommend_next_lessons(output_payload)
     output_payload["performance"] = {
         "backend": device.ui_backend_name,
@@ -534,6 +559,7 @@ def main(progress: ProgressReporter | None = None) -> None:
         )
     if teardown_error is not None:
         raise MasterySyncInterrupted(teardown_error, output_payload)
+    diagnostics.record_success(output_payload)
 
 
 def _review_snapshot(
@@ -628,6 +654,7 @@ def _review_snapshot(
             mastered_keys=mastered_keys,
             manual_policy=manual_policy,
             manual_change=manual_change,
+            run_id=getattr(args, "run_id", None),
             score_scan_mode=(
                 "live_all_available" if args.sync or args.full_score_scan else "cache_eligible"
             ),
@@ -894,6 +921,7 @@ def _pre_apply_interruption_payload(
         "generated_at": now,
         "interrupted_at": now,
         "student": args.student,
+        **({"run_id": args.run_id} if getattr(args, "run_id", None) else {}),
         "path_id": curriculum.path_id,
         "new_attempt_records": 0,
         "new_attempts": [],
@@ -1027,9 +1055,10 @@ def _history_lookup_for_run(args: argparse.Namespace, history_cache: HistoryCach
 
 
 def cli() -> None:
+    run_id = _argument_value("--run-id") or new_run_id()
     try:
         with exclusive_workflow_lock(WORKFLOW_LOCK_PATH), ProgressReporter(sys.stderr) as progress:
-            main(progress)
+            main(progress, run_id=run_id)
     except Exception as error:
         incident_line = ""
         interrupted_payload = (
@@ -1038,6 +1067,15 @@ def cli() -> None:
             else _interrupted_payload_from_arguments()
         )
         incident_error = error.cause if isinstance(error, MasterySyncInterrupted) else error
+        with suppress(Exception):
+            DiagnosticRun(
+                Path.cwd(),
+                run_id,
+                student=public_student(_argument_value("--student") or "unknown"),
+            ).record_failure(
+                incident_error,
+                payload=interrupted_payload,
+            )
         if "--sync" in sys.argv:
             try:
                 incident_id = append_failed_sync_incident(
@@ -1045,6 +1083,7 @@ def cli() -> None:
                     student=public_student(_argument_value("--student") or "unknown"),
                     error=incident_error,
                     payload=interrupted_payload,
+                    run_id=run_id,
                 )
                 incident_line = f"\nIncident recorded: {incident_id}\n"
             except Exception as incident_error:

@@ -117,3 +117,6 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-18,Student A,unchecked,Blend Sounds 2,Practice 2,mastered: latest attempt is 100%; selected lesson family complete,saved,2026-09-18T15:59:29.970286-04:00
 2026-09-18,Student A,checked,Letters & Words,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-18T16:32:29.170934-04:00
 2026-09-18,Student A,checked,Letters & Numbers,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-18T16:33:01.012136-04:00
+2026-09-19,Student A,unchecked,Beginning Sound w,Practice 2,mastered: latest attempt is 100%,saved,2026-09-19T09:40:24.001923-04:00
+2026-09-19,Student A,unchecked,Beginning Sound y,Practice 2,mastered: latest attempt is 100%,saved,2026-09-19T09:40:39.737477-04:00
+2026-09-19,Student A,unchecked,Short Vowel Sound o,Practice 1,mastered: latest attempt is 100%; successor waiting for an open queue slot,saved,2026-09-19T09:40:56.568129-04:00

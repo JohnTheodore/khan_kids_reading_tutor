@@ -257,6 +257,7 @@ def build_dashboard_report(payload: dict[str, object]) -> dict[str, object]:
         and recovery.get("status") == "captured"
     )
     return {
+        "run_id": payload.get("run_id"),
         "student": payload.get("student"),
         "status": status,
         "outcome": _outcome(status),

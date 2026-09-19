@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import time
 import xml.etree.ElementTree as ET
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
@@ -240,7 +240,12 @@ class AndroidDevice:
             yield
 
     @contextmanager
-    def app_session(self, app_package: str) -> Iterator[None]:
+    def app_session(
+        self,
+        app_package: str,
+        *,
+        on_error: Callable[[BaseException], None] | None = None,
+    ) -> Iterator[None]:
         """Restore Android state and always hand the foreground back to Home."""
         active_error: BaseException | None = None
         with self.awake_session():
@@ -248,6 +253,14 @@ class AndroidDevice:
                 yield
             except BaseException as error:
                 active_error = error
+                if on_error is not None:
+                    try:
+                        on_error(error)
+                    except Exception as diagnostic_error:
+                        error.add_note(
+                            "Private diagnostic capture also failed: "
+                            f"{type(diagnostic_error).__name__}"
+                        )
                 raise
             finally:
                 try:

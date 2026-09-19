@@ -65,6 +65,25 @@ class AndroidDeviceTests(unittest.TestCase):
             raise RuntimeError("operation failed")
         home.assert_called_once_with("org.khankids.android")
 
+    def test_app_session_captures_failure_before_home_cleanup(self) -> None:
+        device = AndroidDevice("test-device")
+        events = []
+        with (
+            patch.object(device, "awake_session", return_value=nullcontext()),
+            patch.object(
+                device,
+                "return_to_android_home",
+                side_effect=lambda _package: events.append("home"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "operation failed"),
+            device.app_session(
+                "org.khankids.android",
+                on_error=lambda _error: events.append("diagnostic"),
+            ),
+        ):
+            raise RuntimeError("operation failed")
+        self.assertEqual(events, ["diagnostic", "home"])
+
     def test_app_session_preserves_primary_failure_when_home_also_fails(self) -> None:
         device = AndroidDevice("test-device")
         with (

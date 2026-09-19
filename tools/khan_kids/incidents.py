@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from pathlib import Path
 
+from .diagnostics import sanitize_diagnostic_text
 from .records import append_text_atomic
 
 
@@ -16,11 +16,13 @@ def append_failed_sync_incident(
     error: Exception,
     detected_at: datetime | None = None,
     payload: dict[str, object] | None = None,
+    run_id: str | None = None,
 ) -> str:
     """Append one failure record without device identifiers, credentials, or UI contents."""
     timestamp = detected_at or datetime.now().astimezone()
     incident_id = f"KKRT-{timestamp:%Y-%m-%d}-AUTO-{timestamp:%H%M%S-%f}"
     error_text = _safe_error_text(error)
+    diagnostic_row = f"| Diagnostic run | `{run_id}` |\n" if run_id else ""
     report = (
         f"\n## {incident_id} — Mastery sync interruption\n\n"
         "| Field | Value |\n"
@@ -29,7 +31,8 @@ def append_failed_sync_incident(
         "| Severity | SEV-3 — automation interruption; review required before retry |\n"
         "| Status | Open |\n"
         "| Detected by | Automated mastery-sync failure handler |\n"
-        f"| Affected student | {student} |\n\n"
+        f"| Affected student | {student} |\n"
+        f"{diagnostic_row}\n"
         "### Observed failure\n\n"
         f"`{type(error).__name__}: {error_text}`\n\n"
         "### Automatic response\n\n"
@@ -73,7 +76,4 @@ def _recovery_summary(payload: dict[str, object] | None) -> str:
 def _safe_error_text(error: Exception) -> str:
     """Keep diagnostics useful without persisting common local secret forms."""
     text = " ".join(str(error).splitlines()).strip() or type(error).__name__
-    text = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}:\d+\b", "[redacted device]", text)
-    text = re.sub(r"(?<!\d)\d{6}(?!\d)", "[redacted numeric secret]", text)
-    text = re.sub(r"/home/[^/\s]+", "/home/[redacted]", text)
-    return text.replace("`", "'")
+    return sanitize_diagnostic_text(text)

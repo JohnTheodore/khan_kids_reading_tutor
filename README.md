@@ -389,13 +389,20 @@ closing the app. An interruption stops pending requests; a dashboard restart nev
 automatically replays unfinished edits. Check the tablet and explicitly retry them.
 Use **Sync progress** separately to collect scores and apply the mastery algorithm.
 
-Normal runs retain lightweight phase timings and capture private diagnostics only
-on failure. For a failing manual edit, launch `./khan-dashboard --debug`. Timestamped events,
-bounded navigation XML traces and failure screenshots/Android logs stay in
-owner-private `private/dashboard-debug/`; password-dialog screen captures are
-skipped. Open **Connection & setup → Technical details** for current progress.
-Debug mode never automatically replays failed or blocked requests. Stop the
-dashboard and relaunch without `--debug` when diagnosis is complete.
+Every dashboard sync receives a correlation ID and retains a bounded, owner-private
+run record under `private/sync-runs/`. The record connects its sanitized output,
+structured result, phase timings and any incident. On failure it also attempts to
+capture the final UI hierarchy, screenshot and last 200 Android log entries before
+Android Home cleanup changes the screen, plus a Python traceback. Password-dialog UI is never captured,
+common device/secrets patterns are redacted, files use owner-only permissions and
+only the newest 20 runs are retained.
+
+For a failing manual edit, launch `./khan-dashboard --debug`. Timestamped events and
+bounded navigation traces stay in owner-private `private/dashboard-debug/`; normal
+sync failure capture does not require debug mode. Open **Connection & setup →
+Technical details** for current progress. Debug mode never automatically replays
+failed or blocked requests. Stop the dashboard and relaunch without `--debug` when
+diagnosis is complete.
 
 Each variant shows its own mastery evidence and last verified assignment state.
 Assignment status is a snapshot from the last completed operation, not a live
