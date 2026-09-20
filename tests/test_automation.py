@@ -83,6 +83,88 @@ class AutomationTests(unittest.TestCase):
         )
         device.force_stop.assert_not_called()
 
+    def test_delayed_prize_during_profile_navigation_is_collected_then_resumed(self):
+        device, automation = _automation()
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        _add_control(home, Rect(2365, 13, 2548, 196))
+        prize = _prize_screen()
+        chooser = _chooser_screen()
+        device.hierarchy.side_effect = (prize, prize, home, home, chooser, chooser)
+        choice = automation._prize_choices(prize)[1]
+
+        with (
+            patch("khan_kids.automation.secrets.choice", return_value=choice),
+            patch("khan_kids.automation.time.sleep"),
+        ):
+            result = automation._tap_navigation_control(
+                home,
+                source_state="child_home",
+                target_state="profile_chooser",
+                control=lambda candidate: Rect(2365, 13, 2548, 196),
+                control_name="Child profile circle",
+            )
+
+        self.assertIs(result, chooser)
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [call(Rect(2365, 13, 2548, 196)), call(choice), call(Rect(2365, 13, 2548, 196))],
+        )
+        progress = [item.args[0] for item in device.timing.progress.call_args_list]
+        self.assertIn(
+            "Prize collected; resuming Child profile circle from verified child home",
+            progress,
+        )
+
+    def test_delayed_prize_after_assignments_back_completes_home_transition(self):
+        device, automation = _automation()
+        assignments = _screen_with_text(
+            ("Assignments", Rect(353, 443, 754, 521)),
+            ("Lessons assigned to you by dad", Rect(353, 532, 791, 572)),
+        )
+        _add_control(assignments, REPORT_BACK_RECT)
+        prize = _prize_screen()
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        device.hierarchy.side_effect = (prize, prize, home, home)
+        choice = automation._prize_choices(prize)[0]
+
+        with (
+            patch("khan_kids.automation.secrets.choice", return_value=choice),
+            patch("khan_kids.automation.time.sleep"),
+        ):
+            result = automation._tap_until_navigation_target(
+                assignments,
+                source_state="child_assignments",
+                target_state="child_home",
+                control_rect=REPORT_BACK_RECT,
+                control_name="Child library back",
+            )
+
+        self.assertIs(result, home)
+        self.assertEqual(device.tap_rect.call_args_list, [call(REPORT_BACK_RECT), call(choice)])
+
+    def test_delayed_prize_for_different_child_is_never_selected(self):
+        device, automation = _automation()
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        prize = _prize_screen("Student B")
+        device.hierarchy.side_effect = (prize, prize)
+
+        with (
+            patch("khan_kids.automation.time.sleep"),
+            self.assertRaisesRegex(AutomationError, "different student"),
+        ):
+            automation._tap_navigation_control(
+                home,
+                source_state="child_home",
+                target_state="profile_chooser",
+                control=lambda candidate: Rect(2365, 13, 2548, 196),
+                control_name="Child profile circle",
+            )
+
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [call(Rect(2365, 13, 2548, 196))],
+        )
+
     def test_profile_chooser_without_sign_out_requires_aligned_avatar_labels(self):
         _, automation = _automation()
         chooser = _screen_with_text(

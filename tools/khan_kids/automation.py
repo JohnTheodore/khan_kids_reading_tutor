@@ -36,6 +36,10 @@ STABLE_TRANSITION_READS = 2
 SCROLL_BOUNDARY_READS = 2
 
 
+class _PrizeInterruption(RuntimeError):
+    """Signal a verified reward prompt during an otherwise guarded transition."""
+
+
 @dataclass(frozen=True, slots=True)
 class ActionResult:
     action: str
@@ -393,26 +397,63 @@ class KhanKidsAutomation:
         timeout: float,
     ) -> ET.Element:
         """Retry one guarded control only while its validated source remains intact."""
-        for _attempt in range(GUARDED_TRANSITION_ATTEMPTS):
+        action_attempt = 0
+        prize_handled = False
+        prize_allowed = (source_name, target_name) in {
+            ("child_assignments", "child_home"),
+            ("child_home", "profile_chooser"),
+        }
+        while action_attempt < GUARDED_TRANSITION_ATTEMPTS:
             if not source(root):
                 raise AutomationError(
                     f"{control_name} cannot run from unexpected state while expecting "
                     f"{source_name!r}"
                 )
+            action_attempt += 1
             self.device.tap_rect(control(root))
             self.device.timing.progress(
-                f"Opening {target_name}: {control_name}, attempt {_attempt + 1}"
+                f"Opening {target_name}: {control_name}, attempt {action_attempt}"
             )
             first_wait = (
-                min(timeout, 3.0) if _attempt == 0 and source_name == "teacher_roster" else timeout
+                min(timeout, 3.0)
+                if action_attempt == 1 and source_name == "teacher_roster"
+                else timeout
             )
+
+            def target_without_prize(candidate: ET.Element) -> bool:
+                if prize_allowed and self._navigation_state(candidate) == "prize_picker":
+                    raise _PrizeInterruption
+                return target(candidate)
+
             try:
                 return self._wait_for_stable_root(
-                    target,
+                    target_without_prize,
                     description=f"{target_name} after {control_name}",
                     timeout=first_wait,
                     persist=False,
                 )
+            except _PrizeInterruption:
+                if prize_handled:
+                    raise AutomationError(
+                        "A second prize prompt interrupted the same navigation; "
+                        "refusing another automatic selection"
+                    ) from None
+                prize_handled = True
+                root = self.pick_random_prize()
+                if target(root):
+                    return root
+                if not source(root):
+                    state = self._navigation_state(root)
+                    raise AutomationError(
+                        f"Prize selection returned an unexpected navigation state {state!r}"
+                    ) from None
+                # The prompt consumed this navigation action. Resume from the
+                # freshly verified child home without charging a retry attempt.
+                action_attempt -= 1
+                self.device.timing.progress(
+                    f"Prize collected; resuming {control_name} from verified child home"
+                )
+                continue
             except AutomationError:
                 root = self.live_root()
             if first_wait < timeout and not source(root) and not target(root):

@@ -1034,3 +1034,41 @@ saved baseline.
 - The README no longer recommends `scrcpy --stay-awake`.
 - A stale cleanup-only dashboard result no longer disables a fresh sync. The new
   sync still performs its complete connection and app-pinning preflight first.
+
+## KKRT-2026-09-20-AUTO-104532-457307 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-20 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved in code; live verification pending |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260920T144505927790Z-978d7fd8` |
+
+### Observed failure
+
+`AutomationError: Startup blocked; app left open without restarting. Inspect the screen before retrying. Diagnostics: private/startup-blocked-3hakgg6u.`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+### Root cause and correction
+
+Khan Kids displayed its verified three-choice prize prompt asynchronously after
+the child profile circle had been tapped. Existing handling recognized the same
+prompt only when it was already visible during the initial startup reads. The
+guarded transition therefore saw neither its expected child-home source nor the
+profile chooser target and correctly stopped without selecting anything.
+
+Child-side guarded navigation now treats that exact, student-verified prize
+layout as a bounded interruption. It selects one prize with the existing random,
+at-most-once routine, waits for a stable child home, and resumes the interrupted
+navigation from fresh state. A second prompt, a different student's prompt, an
+uncertain selection, or any unrecognized layout still fails closed. Regression
+coverage reproduces the delayed prompt captured by this incident.
