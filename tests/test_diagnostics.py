@@ -35,6 +35,9 @@ class FakeDevice:
     def command(self, *args, capture=False):
         return b"device 192.0.2.1:45678 code 123456 /home/person/file"
 
+    def lock_task_mode(self):
+        return "pinned"
+
 
 class DiagnosticRunTests(unittest.TestCase):
     def test_generated_run_id_is_valid_in_every_timezone(self) -> None:
@@ -67,6 +70,10 @@ class DiagnosticRunTests(unittest.TestCase):
             self.assertTrue((run.path / "failure.xml").exists())
             self.assertTrue((run.path / "failure.png").exists())
             self.assertTrue((run.path / "traceback.txt").exists())
+            self.assertEqual(
+                json.loads((run.path / "android-state.json").read_text()),
+                {"lock_task_mode": "pinned"},
+            )
             self.assertNotIn("192.0.2", combined)
             self.assertNotIn("654321", combined)
             self.assertLessEqual((run.path / "output.log").stat().st_size, 250_000)

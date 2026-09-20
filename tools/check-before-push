@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_dir"
+
+# Match the stable parts of the GitHub runner environment. In particular, UTC
+# catches timezone-sensitive paths that a developer workstation may not reach.
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export PYTHONHASHSEED=0
+export TZ=UTC
+
+run_python() {
+  "$repo_dir/tools/run-python" "$@"
+}
+
+run_ruff() {
+  if command -v uv >/dev/null 2>&1; then
+    uv run --frozen ruff "$@"
+  else
+    python3 -m ruff "$@"
+  fi
+}
+
+run_browser_checks() {
+  if run_python -c "import playwright" >/dev/null 2>&1; then
+    run_python tools/check_dashboard_browser.py -v
+  elif command -v uv >/dev/null 2>&1; then
+    uv run --with playwright==1.63.0 python tools/check_dashboard_browser.py -v
+  else
+    echo "Playwright 1.63.0 is required for browser checks." >&2
+    echo "Install it and Chromium as documented in README.md, then retry." >&2
+    return 1
+  fi
+}
+
+echo "[quality gate] Compile"
+run_python -m compileall -q tools tests
+
+echo "[quality gate] Lint and format"
+run_ruff check .
+run_ruff format --check .
+
+echo "[quality gate] Python tests (UTC)"
+run_python -m unittest discover -s tests -v
+
+echo "[quality gate] Duplication audit"
+run_python tools/audit_code_duplication.py
+
+echo "[quality gate] Browser and accessibility tests"
+run_browser_checks
+
+echo "[quality gate] Passed"

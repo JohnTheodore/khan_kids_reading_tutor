@@ -326,7 +326,7 @@ second tutor implementation. Change its alias when targeting another child.
 Watch the tablet directly or mirror it:
 
 ```bash
-scrcpy --serial "$KHAN_SERIAL" --stay-awake
+scrcpy --serial "$KHAN_SERIAL"
 ```
 
 Start with a review:
@@ -402,6 +402,19 @@ capture the final UI hierarchy, screenshot and last 200 Android log entries befo
 Android Home cleanup changes the screen, plus a Python traceback. Password-dialog UI is never captured,
 common device/secrets patterns are redacted, files use owner-only permissions and
 only the newest 20 runs are retained.
+
+Leave Android **App pinning** off while syncing. The connection check detects
+screen pinning before Khan Kids opens and explains how to unpin it. If pinning is
+enabled during a completed sync, the dashboard preserves the saved scores and
+queue, then offers a cleanup-only action that returns Android to Home without
+running the sync again. This saved cleanup state does not block a later check-in:
+**Sync progress** rechecks the current tablet first and can start fresh.
+
+The tutor wakes the tablet when work begins, but never enables Android's
+persistent stay-awake mode. Every tablet session sets a two-minute automatic
+screen timeout and disables “stay awake while plugged in” at both entry and exit.
+Because unsafe power settings are never enabled, a killed process or computer
+restart cannot strand the tablet in a no-sleep state.
 
 For a failing manual edit, launch `./khan-dashboard --debug`. Timestamped events and
 bounded navigation traces stay in owner-private `private/dashboard-debug/`; normal
@@ -620,14 +633,19 @@ explain why the current lessons were selected.
 - [Connection research](tablet-persistent-adb-research.md): access and reboot limitations.
 - [Performance notes](performance-update-2026-09-16.md): profiling and measured improvements.
 
-For options, run `./khan-reading-sync --help`. Developers can check the code with:
+For options, run `./khan-reading-sync --help`. Developers can run the same
+quality gate used by the pre-push hook and GitHub Actions with:
 
 ```bash
-uv run --frozen python -m unittest discover -s tests -v
-uv run --frozen ruff check .
-uv run --frozen ruff format --check .
-./tools/run-python tools/audit_code_duplication.py
+./tools/check-before-push
 ```
+
+It compiles the code, checks lint and formatting, runs the Python suite under
+UTC, audits duplication, and runs the synthetic browser/accessibility suite.
+The versioned `.githooks/pre-push` hook runs this gate plus the outgoing privacy
+audit, preventing an ordinary `git push` when a check fails. Enable the hooks
+once per clone with `git config core.hooksPath .githooks`; `--no-verify` can
+bypass them and should be reserved for deliberate recovery work.
 
 Browser checks use a synthetic local server and never connect to a tablet:
 

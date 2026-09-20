@@ -509,7 +509,12 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
         diagnostics.capture_device_failure(
             device, error, progress=progress.emit if progress else None
         )
-        output_payload["teardown"] = {"status": "failed", "error": str(error)}
+        output_payload["teardown"] = {
+            "status": "failed",
+            "kind": error.reason,
+            "result_saved": True,
+            "error": str(error),
+        }
         teardown_error = AutomationError(
             f"Sync outcome was saved, but Android Home could not be verified: {error}"
         )

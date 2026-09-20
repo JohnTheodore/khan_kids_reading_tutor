@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import tempfile
 import time
@@ -22,6 +23,45 @@ class AutomationError(RuntimeError):
 
 class HomeHandoffError(AutomationError):
     """Raised when Android does not verify a stable foreground outside the app."""
+
+    def __init__(self, message: str, *, reason: str = "home_unverified") -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+LOCK_TASK_NONE = "none"
+LOCK_TASK_PINNED = "pinned"
+LOCK_TASK_LOCKED = "locked"
+LOCK_TASK_UNKNOWN = "unknown"
+
+# Persistent Android power settings must always permit automatic sleep.  Older
+# releases temporarily used an effectively infinite timeout and relied on
+# teardown to restore it; a killed process could therefore drain the tablet.
+AUTO_SLEEP_TIMEOUT_MS = "120000"
+
+
+def parse_lock_task_mode(output: str) -> str:
+    """Normalize Android's screen-pinning/lock-task dumpsys state."""
+    match = re.search(r"mLockTaskModeState=(?:LOCK_TASK_MODE_)?(NONE|PINNED|LOCKED)\b", output)
+    if not match:
+        return LOCK_TASK_UNKNOWN
+    return match.group(1).casefold()
+
+
+def lock_task_problem(mode: str) -> str | None:
+    if mode == LOCK_TASK_NONE:
+        return None
+    if mode == LOCK_TASK_PINNED:
+        return (
+            "Khan Kids is screen-pinned. Swipe up and hold to unpin it, "
+            "then check the tablet connection again."
+        )
+    if mode == LOCK_TASK_LOCKED:
+        return "The tablet is in managed lock-task mode. Exit kiosk mode before syncing."
+    return (
+        "Android app-pinning state could not be verified. "
+        "Leave app pinning off, then check the tablet connection again."
+    )
 
 
 def run_command(
@@ -141,10 +181,19 @@ class AndroidDevice:
         if settle:
             time.sleep(settle)
 
-    def keep_awake(self) -> None:
-        self.wake()
-        self.command("shell", "svc", "power", "stayon", "true")
-        self._set_setting("system", "screen_off_timeout", "2147483647")
+    def ensure_auto_sleep(self) -> None:
+        """Apply a bounded timeout and disable Android's persistent stay-awake mode."""
+        errors = []
+        for namespace, key, value in (
+            ("system", "screen_off_timeout", AUTO_SLEEP_TIMEOUT_MS),
+            ("global", "stay_on_while_plugged_in", "0"),
+        ):
+            try:
+                self._set_setting(namespace, key, value)
+            except AutomationError as error:
+                errors.append(str(error))
+        if errors:
+            raise AutomationError("Could not restore automatic tablet sleep: " + "; ".join(errors))
 
     def wake(self) -> None:
         state = self.command("shell", "dumpsys", "power", capture=True).decode(errors="replace")
@@ -203,10 +252,20 @@ class AndroidDevice:
             return component.split("/", maxsplit=1)[0]
         return None
 
+    def lock_task_mode(self) -> str:
+        state = self.command(
+            "shell", "dumpsys", "activity", "activities", timeout=8, capture=True
+        ).decode(errors="replace")
+        return parse_lock_task_mode(state)
+
     def return_to_android_home(self, app_package: str, *, timeout: float = 5.0) -> str:
         """Leave one foreground app via Android Home and verify a stable handoff."""
         if not app_package or any(character.isspace() for character in app_package):
             raise ValueError("app_package must be a non-empty package name")
+        mode = self.lock_task_mode()
+        problem = lock_task_problem(mode)
+        if problem:
+            raise HomeHandoffError(problem, reason=f"lock_task_{mode}")
         self.command("shell", "input", "keyevent", "KEYCODE_HOME")
         deadline = time.monotonic() + timeout
         previous = None
@@ -221,9 +280,11 @@ class AndroidDevice:
                 stable_reads = 0
             previous = foreground
             time.sleep(min(0.2, self.settle_seconds))
-        raise HomeHandoffError(
-            f"Android Home did not leave {app_package}; the tablet may still be in fullscreen"
-        )
+        mode = self.lock_task_mode()
+        problem = lock_task_problem(mode)
+        if problem:
+            raise HomeHandoffError(problem, reason=f"lock_task_{mode}")
+        raise HomeHandoffError(f"Android Home did not leave {app_package}")
 
     def start_activity(self, component: str) -> None:
         # Ask ActivityManager to wait for the launch transition itself.  The
@@ -240,16 +301,16 @@ class AndroidDevice:
 
     @contextmanager
     def awake_session(self) -> Iterator[None]:
-        """Keep the screen awake in landscape, then restore all prior settings."""
-        timeout = self._setting("system", "screen_off_timeout")
-        stay_on = self._setting("global", "stay_on_while_plugged_in")
+        """Wake for interactive work while retaining a bounded automatic timeout."""
+        self.ensure_auto_sleep()
         restore_rotation = self._rotation_restore_command()
         restore = ExitStack()
+        # ExitStack runs callbacks in reverse order and continues after one
+        # fails, so automatic sleep is still restored if rotation cleanup fails.
+        restore.callback(self.ensure_auto_sleep)
         restore.callback(self.command, *restore_rotation)
-        restore.callback(self._set_setting, "global", "stay_on_while_plugged_in", stay_on)
-        restore.callback(self._set_setting, "system", "screen_off_timeout", timeout)
         try:
-            self.keep_awake()
+            self.wake()
             # WindowManager applies the lock mode and angle in one operation. Separate
             # settings writes briefly lock to a stale portrait fallback before the
             # landscape angle arrives.

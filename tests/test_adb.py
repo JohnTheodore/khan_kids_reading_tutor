@@ -10,14 +10,36 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from khan_kids.adb import AndroidDevice, AutomationError, HomeHandoffError, run_command
+from khan_kids.adb import (
+    AUTO_SLEEP_TIMEOUT_MS,
+    LOCK_TASK_LOCKED,
+    LOCK_TASK_NONE,
+    LOCK_TASK_PINNED,
+    LOCK_TASK_UNKNOWN,
+    AndroidDevice,
+    AutomationError,
+    HomeHandoffError,
+    parse_lock_task_mode,
+    run_command,
+)
 
 
 class AndroidDeviceTests(unittest.TestCase):
+    def test_lock_task_state_parser_is_explicit_and_fails_unknown_closed(self) -> None:
+        self.assertEqual(parse_lock_task_mode("mLockTaskModeState=NONE"), LOCK_TASK_NONE)
+        self.assertEqual(
+            parse_lock_task_mode("mLockTaskModeState=LOCK_TASK_MODE_PINNED"),
+            LOCK_TASK_PINNED,
+        )
+        self.assertEqual(parse_lock_task_mode("mLockTaskModeState=LOCKED"), LOCK_TASK_LOCKED)
+        self.assertEqual(parse_lock_task_mode("changed format"), LOCK_TASK_UNKNOWN)
+
     def test_android_home_requires_two_stable_non_app_reads(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)
         with (
-            patch.object(device, "command") as command,
+            patch.object(
+                device, "command", side_effect=[b"mLockTaskModeState=NONE", b""]
+            ) as command,
             patch.object(
                 device,
                 "foreground_package",
@@ -31,16 +53,31 @@ class AndroidDeviceTests(unittest.TestCase):
             patch("khan_kids.adb.time.sleep"),
         ):
             self.assertEqual(device.return_to_android_home("org.khankids.android"), "launcher")
-        command.assert_called_once_with("shell", "input", "keyevent", "KEYCODE_HOME")
+        self.assertEqual(
+            command.call_args_list[-1].args,
+            ("shell", "input", "keyevent", "KEYCODE_HOME"),
+        )
+
+    def test_android_home_refuses_screen_pinning_without_sending_home(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(device, "lock_task_mode", return_value=LOCK_TASK_PINNED),
+            patch.object(device, "command") as command,
+            self.assertRaisesRegex(HomeHandoffError, "screen-pinned") as raised,
+        ):
+            device.return_to_android_home("org.khankids.android")
+        self.assertEqual(raised.exception.reason, "lock_task_pinned")
+        command.assert_not_called()
 
     def test_android_home_fails_when_khan_remains_foreground(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)
         with (
-            patch.object(device, "command"),
+            patch.object(device, "command", return_value=b""),
+            patch.object(device, "lock_task_mode", return_value=LOCK_TASK_NONE),
             patch.object(device, "foreground_package", return_value="org.khankids.android"),
             patch("khan_kids.adb.time.monotonic", side_effect=[0, 0, 6]),
             patch("khan_kids.adb.time.sleep"),
-            self.assertRaisesRegex(HomeHandoffError, "may still be in fullscreen"),
+            self.assertRaisesRegex(HomeHandoffError, "did not leave"),
         ):
             device.return_to_android_home("org.khankids.android")
 
@@ -122,14 +159,13 @@ class AndroidDeviceTests(unittest.TestCase):
     def test_existing_landscape_lock_skips_rotation_settle_only(self) -> None:
         device = AndroidDevice("test-device")
         with (
-            patch.object(device, "_setting", side_effect=["120000", "0"]),
-            patch.object(device, "_set_setting"),
+            patch.object(device, "ensure_auto_sleep"),
             patch.object(
                 device,
                 "_rotation_restore_command",
                 return_value=("shell", "wm", "user-rotation", "lock", "3"),
             ),
-            patch.object(device, "keep_awake"),
+            patch.object(device, "wake"),
             patch.object(device, "command"),
             patch("khan_kids.adb.time.sleep") as sleep,
             device.awake_session(),
@@ -154,7 +190,7 @@ class AndroidDeviceTests(unittest.TestCase):
         device = AndroidDevice("test-device")
         command_patch = patch.object(device, "command")
         with command_patch as command, patch("khan_kids.adb.time.sleep"):
-            command.side_effect = [b"120000\n", b"0\n", rotation_state, *([b""] * 10)]
+            command.side_effect = [b"", b"", rotation_state, b"mWakefulness=Awake", *([b""] * 10)]
             if fail:
                 with self.assertRaisesRegex(RuntimeError, "test failure"), device.awake_session():
                     raise RuntimeError("test failure")
@@ -188,23 +224,30 @@ class AndroidDeviceTests(unittest.TestCase):
         self.assertLess(calls.index(landscape_lock), calls.index(compatibility_override))
         self.assertEqual(
             command.call_args_list[-3].args,
-            ("shell", "settings", "put", "system", "screen_off_timeout", "120000"),
+            ("shell", "wm", "user-rotation", "free"),
         )
         self.assertEqual(
             command.call_args_list[-2].args,
-            ("shell", "settings", "put", "global", "stay_on_while_plugged_in", "0"),
+            (
+                "shell",
+                "settings",
+                "put",
+                "system",
+                "screen_off_timeout",
+                AUTO_SLEEP_TIMEOUT_MS,
+            ),
         )
         self.assertEqual(
             command.call_args_list[-1].args,
-            ("shell", "wm", "user-rotation", "free"),
+            ("shell", "settings", "put", "global", "stay_on_while_plugged_in", "0"),
         )
 
     def test_awake_session_restores_prior_fixed_rotation(self) -> None:
         _device, command = self._run_awake_session(b"lock 1\n")
 
-        self.assertEqual(
-            command.call_args_list[-1].args,
+        self.assertIn(
             ("shell", "wm", "user-rotation", "lock", "1"),
+            [call.args for call in command.call_args_list],
         )
 
     def test_awake_session_rejects_unrecognized_rotation_state(self) -> None:
@@ -213,12 +256,30 @@ class AndroidDeviceTests(unittest.TestCase):
             patch.object(
                 device,
                 "command",
-                side_effect=[b"120000\n", b"0\n", b"unexpected\n"],
+                side_effect=[b"", b"", b"unexpected\n"],
             ),
             self.assertRaisesRegex(AutomationError, "Unexpected Android user-rotation"),
             device.awake_session(),
         ):
             pass
+
+    def test_auto_sleep_attempts_both_safety_settings_after_one_failure(self) -> None:
+        device = AndroidDevice("test-device")
+        with (
+            patch.object(
+                device,
+                "_set_setting",
+                side_effect=[AutomationError("timeout write failed"), None],
+            ) as setting,
+            self.assertRaisesRegex(AutomationError, "automatic tablet sleep"),
+        ):
+            device.ensure_auto_sleep()
+        self.assertEqual(setting.call_count, 2)
+
+    def test_automation_never_enables_persistent_stay_awake(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "tools/khan_kids/adb.py").read_text()
+        self.assertNotIn('"stayon", "true"', source)
+        self.assertNotIn('"2147483647"', source)
 
     def test_scroll_to_top_stops_when_visible_ui_repeats(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)

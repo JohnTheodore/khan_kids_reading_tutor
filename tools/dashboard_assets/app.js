@@ -43,6 +43,7 @@ let connected = false,
   statusSequence = 0;
 let retrying = false,
   checkingConnection = false,
+  finishingCleanup = false,
   needsConnectionCheck = false,
   stopping = false,
   failedOperationKey = "",
@@ -145,10 +146,12 @@ function updateButton() {
     [...assignmentFeedbacks.values()].some((f) =>
       ["sending", "queued", "working"].includes(f.state),
     ) ||
-    retrying ||
-    checkingConnection ||
+      retrying ||
+      checkingConnection ||
+      finishingCleanup ||
     needsConnectionCheck ||
     !element("student").value;
+  element("finish-cleanup").disabled = finishingCleanup;
   if (archivedStudents.includes(element("student").value))
     element("sync").disabled = true;
   setText(
@@ -231,6 +234,8 @@ function showProblems() {
   element("retry").hidden = !connectionProblem || authFailed;
   element("check-connection").hidden =
     authFailed || (!needsConnectionCheck && !tabletProblem);
+  element("finish-cleanup").hidden =
+    authFailed || currentRecoveryState !== "cleanup_required";
   element("auth-recovery").hidden = !authFailed;
   element("error-setup").hidden = authFailed;
 }
@@ -779,10 +784,12 @@ function renderReport(report) {
   reportProblem = report.error || "";
   if (report.teardown?.status === "failed")
     reportProblem =
-      (report.queue_count == null
-        ? "The final queue wasn't verified, and leaving Teacher view failed."
-        : "The queue was verified, but leaving Teacher view failed.") +
-      " Inspect the tablet before retrying.";
+      report.teardown.kind === "lock_task_pinned" && report.teardown.result_saved
+        ? "Progress and the verified queue are saved. Android app pinning blocked cleanup; unpin the tablet, then finish cleanup."
+        : (report.queue_count == null
+            ? "The final queue wasn't verified, and leaving Teacher view failed."
+            : "The queue was verified, but leaving Teacher view failed.") +
+          " Inspect the tablet before retrying.";
   showProblems();
 }
 async function latest() {
@@ -1026,7 +1033,9 @@ async function status() {
           ? "Review ready. No changes applied."
           : "Check-in complete.",
       failed:
-        data.recovery_state === "review_required"
+        data.recovery_state === "cleanup_required"
+          ? "Previous check-in saved. Ready for a fresh sync."
+          : data.recovery_state === "review_required"
           ? "Stopped after a partial update. Review required."
           : data.recovery_state === "safe_to_retry"
             ? "Stopped before any assignment changes."
@@ -1046,6 +1055,8 @@ async function status() {
             : friendlyPhase(data.phase))
       : selected && data.assignment && data.state === "succeeded"
         ? "Only your requested variant was checked; no mastery sync was run."
+        : data.state === "failed" && data.recovery_state === "cleanup_required"
+          ? "The earlier Home-screen cleanup did not finish. A fresh sync will recheck the tablet before doing anything."
         : data.state === "failed" && data.recovery_state === "review_required"
           ? "Verified changes remain saved. Nothing will be replayed automatically."
           : data.state === "failed" && data.recovery_state === "safe_to_retry"
@@ -1073,7 +1084,9 @@ async function status() {
   }
   jobProblem =
     data.state === "failed" && selected
-      ? data.report?.error ||
+      ? data.recovery_state === "cleanup_required"
+        ? "The previous result is saved. Start a fresh sync now, or unpin Khan Kids and finish the old Home-screen cleanup."
+        : data.report?.error ||
         (data.assignment
           ? "The assignment session stopped. Any verified changes remain saved; check the tablet before retrying."
           : "The sync stopped before it could finish normally. Leave unexpected screens visible and open troubleshooting for details.")
@@ -1084,7 +1097,11 @@ async function status() {
       data.student,
       data.report?.timestamp || "unknown-time",
     ]);
-    needsConnectionCheck = checkedFailureKey !== failedOperationKey;
+    // A saved teardown-only failure must not trap tomorrow's session. A fresh
+    // sync performs its own connection/app-pinning preflight before navigation.
+    needsConnectionCheck =
+      data.recovery_state !== "cleanup_required" &&
+      checkedFailureKey !== failedOperationKey;
     if (!needsConnectionCheck) jobProblem = "";
   }
   if (running)
@@ -1179,6 +1196,34 @@ element("sync").addEventListener("click", () => startWorkflow());
 element("check-connection").addEventListener("click", () =>
   checkTabletConnection().catch(() => {}),
 );
+element("finish-cleanup").addEventListener("click", async () => {
+  if (finishingCleanup) return;
+  finishingCleanup = true;
+  tabletProblem = "";
+  setText("state", "Finishing tablet cleanup…");
+  setText("phase", "Checking app pinning, then returning Android to Home. The saved sync will not run again.");
+  updateButton();
+  try {
+    const result = await api("/api/finish-cleanup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      timeoutMs: 30000,
+    });
+    renderConnectionChecks(result.checks);
+    needsConnectionCheck = false;
+    reportProblem = jobProblem = "";
+    await status();
+    await latest();
+  } catch (e) {
+    renderConnectionChecks(e.payload?.checks || []);
+    tabletProblem = e.message;
+    showProblems();
+  } finally {
+    finishingCleanup = false;
+    updateButton();
+  }
+});
 element("stop-sync").addEventListener("click", async () => {
   if (!running || stopping) return;
   stopping = true;

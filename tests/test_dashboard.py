@@ -23,7 +23,8 @@ from dashboard import (
     setup_status,
     sync_progress,
 )
-from khan_kids.adb import AutomationError
+from khan_kids.adb import AndroidDevice, AutomationError
+from khan_kids.sync_report import build_dashboard_report
 
 
 class DashboardTests(unittest.TestCase):
@@ -246,6 +247,12 @@ class DashboardTests(unittest.TestCase):
         self.assertTrue(json.loads(body)["ready"])
         self.job.start.assert_not_called()
 
+        self.job.finish_cleanup.return_value = {"ready": True, "cleanup_recovered": True}
+        code, body, _ = self.request("POST", "/api/finish-cleanup", {})
+        self.assertEqual(code, 200)
+        self.assertTrue(json.loads(body)["cleanup_recovered"])
+        self.job.finish_cleanup.assert_called_once_with()
+
         self.job.request_stop.return_value = True
         self.assertEqual(self.request("POST", "/api/stop", {})[0], 202)
         self.job.request_stop.assert_called_once_with()
@@ -312,6 +319,58 @@ class DashboardTokenTests(unittest.TestCase):
 
 
 class SyncJobTests(unittest.TestCase):
+    def test_screen_pinning_cleanup_returns_home_without_replaying_sync(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            private = root / "private"
+            private.mkdir()
+            payload = {
+                "student": "Student A",
+                "run_id": "sync-pinned",
+                "status": "no_op",
+                "generated_at": "2026-09-19T15:24:31-04:00",
+                "observed_assignments": [{"title": "Sounds", "variant": "Main"}],
+                "desired_assignments": [{"title": "Sounds", "variant": "Main"}],
+                "actions": [],
+                "teardown": {
+                    "status": "failed",
+                    "kind": "lock_task_pinned",
+                    "result_saved": True,
+                    "error": "screen-pinned",
+                },
+            }
+            plan = private / "student-a-reading-plan.json"
+            plan.write_text(json.dumps(payload))
+            job = SyncJob(root, root / "khan-mastery-sync", serial="synthetic-usb")
+            job.state = "failed"
+            job.student = "Student A"
+            job.run_id = "sync-pinned"
+            job.cancel_path = private / "dashboard-operations/sync-pinned.cancel"
+            job.cancel_path.parent.mkdir()
+            job.started_at = time.monotonic()
+            job.report = build_dashboard_report(payload)
+            device = Mock(spec=AndroidDevice)
+
+            with (
+                patch.object(job, "_resolved_device", return_value=(device, "synthetic-usb")),
+                patch(
+                    "dashboard.tablet_access_health",
+                    return_value={
+                        "ready": True,
+                        "checks": [{"id": "screen_pinning", "ok": True}],
+                        "error": None,
+                        "lock_task_mode": "none",
+                    },
+                ),
+            ):
+                result = job.finish_cleanup()
+
+            self.assertTrue(result["cleanup_recovered"])
+            device.return_to_android_home.assert_called_once_with("org.khankids.android")
+            self.assertEqual(job.snapshot()["state"], "succeeded")
+            self.assertEqual(json.loads(plan.read_text())["teardown"]["status"], "recovered")
+            self.assertEqual(job.snapshot()["recovery_state"], "none")
+
     def test_manual_worker_uses_direct_session_without_sync_subprocess(self):
         assignment = {
             "grade": "Kindergarten",

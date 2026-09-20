@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from .adb import AndroidDevice, AutomationError
+from .adb import LOCK_TASK_NONE, AndroidDevice, AutomationError, lock_task_problem
 from .constants import KHAN_KIDS_PACKAGE
 
 
@@ -24,9 +24,9 @@ def connectivity_is_validated(output: str) -> bool:
 
 def assert_tablet_preflight(device: AndroidDevice, *, require_unlocked: bool = True) -> None:
     """Fail before Khan Kids navigation when the tablet cannot support a sync."""
-    device.assert_connected()
-    if require_unlocked and device.is_locked():
-        raise AutomationError("Tablet is locked. Unlock it, then check the connection again.")
+    access = tablet_access_health(device, require_unlocked=require_unlocked)
+    if not access["ready"]:
+        raise AutomationError(str(access["error"]))
     connectivity = device.command(
         "shell", "dumpsys", "connectivity", timeout=8, capture=True
     ).decode(errors="replace")
@@ -43,19 +43,12 @@ def assert_tablet_preflight(device: AndroidDevice, *, require_unlocked: bool = T
 
 def tablet_health(device: AndroidDevice) -> dict[str, object]:
     """Return a browser-safe health result without opening or changing the app."""
-    checks: list[dict[str, object]] = []
+    access = tablet_access_health(device)
+    checks = list(access["checks"])
+    if not access["ready"]:
+        return access
+    mode = str(access["lock_task_mode"])
     try:
-        device.assert_connected()
-        checks.append({"id": "adb", "label": "Tablet connected", "ok": True})
-    except AutomationError as error:
-        return {
-            "ready": False,
-            "checks": [{"id": "adb", "label": "Tablet connected", "ok": False}],
-            "error": str(error),
-        }
-    try:
-        unlocked = not device.is_locked()
-        checks.append({"id": "unlocked", "label": "Tablet unlocked", "ok": unlocked})
         connectivity = device.command(
             "shell", "dumpsys", "connectivity", timeout=8, capture=True
         ).decode(errors="replace")
@@ -74,5 +67,43 @@ def tablet_health(device: AndroidDevice) -> dict[str, object]:
         "checks": checks,
         "error": None
         if ready
-        else "Unlock the tablet and restore its Internet connection before retrying.",
+        else "Unlock the tablet, turn off app pinning, and restore Internet before retrying.",
+        "lock_task_mode": mode,
     }
+
+
+def tablet_access_health(
+    device: AndroidDevice, *, require_unlocked: bool = True
+) -> dict[str, object]:
+    """Check only the device access needed for cleanup; never change tablet state."""
+    checks: list[dict[str, object]] = []
+    try:
+        device.assert_connected()
+        checks.append({"id": "adb", "label": "Tablet connected", "ok": True})
+        unlocked = not device.is_locked()
+        checks.append({"id": "unlocked", "label": "Tablet unlocked", "ok": unlocked})
+        if require_unlocked and not unlocked:
+            return {
+                "ready": False,
+                "checks": checks,
+                "error": "Tablet is locked. Unlock it, then check the connection again.",
+            }
+        mode = device.lock_task_mode()
+        pinning_off = mode == LOCK_TASK_NONE
+        checks.append(
+            {
+                "id": "screen_pinning",
+                "label": "Android app pinning is off",
+                "ok": pinning_off,
+            }
+        )
+        return {
+            "ready": pinning_off,
+            "checks": checks,
+            "error": None if pinning_off else lock_task_problem(mode),
+            "lock_task_mode": mode,
+        }
+    except AutomationError as error:
+        if not checks:
+            checks.append({"id": "adb", "label": "Tablet connected", "ok": False})
+        return {"ready": False, "checks": checks, "error": str(error)}

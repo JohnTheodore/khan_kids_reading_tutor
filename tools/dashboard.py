@@ -25,13 +25,14 @@ from urllib.parse import parse_qs, urlsplit
 
 from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.catalog import CatalogIndex
+from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError, resolve_device
 from khan_kids.diagnostics import DiagnosticRun, new_run_id
 from khan_kids.incidents import append_failed_sync_incident
 from khan_kids.launcher import read_local_secrets
 from khan_kids.manual_assignments import ManualChange
 from khan_kids.manual_session import ManualAssignmentSession
-from khan_kids.preflight import tablet_health
+from khan_kids.preflight import tablet_access_health, tablet_health
 from khan_kids.reading_journey import family_journeys
 from khan_kids.records import write_json_atomic, write_text_atomic
 from khan_kids.student_identity import load_aliases
@@ -373,15 +374,65 @@ class SyncJob:
     def check_connection(self) -> dict[str, object]:
         """Resolve and inspect the tablet without opening Khan Kids or changing UI state."""
         try:
-            serial = self.serial
-            if not serial:
-                config = DeviceConfig.load(self.root / "private/tablet-device.local.json")
-                serial = resolve_device(config)
-            result = tablet_health(AndroidDevice(serial))
+            device, serial = self._resolved_device()
+            result = tablet_health(device)
             result["transport"] = "USB" if ":" not in serial else "wireless ADB"
             return result
         except (AutomationError, DeviceDiscoveryError, OSError) as error:
             return {"ready": False, "checks": [], "error": str(error)}
+
+    def finish_cleanup(self) -> dict[str, object]:
+        """Finish only a saved sync's screen-pinning cleanup; never replay the sync."""
+        with self.lock:
+            if self._recovery_state() != "cleanup_required" or not self.student or not self.run_id:
+                return {"ready": False, "checks": [], "error": "No saved cleanup is pending"}
+            student, run_id = self.student, self.run_id
+            self.state = "recovering"
+        try:
+            device, serial = self._resolved_device()
+            access = tablet_access_health(device)
+            access["transport"] = "USB" if ":" not in serial else "wireless ADB"
+            if not access["ready"]:
+                return access
+            device.return_to_android_home(KHAN_KIDS_PACKAGE)
+            plan_path = (
+                self.root / "private" / f"{student.casefold().replace(' ', '-')}-reading-plan.json"
+            )
+            payload = json.loads(plan_path.read_text())
+            teardown = payload.get("teardown") if isinstance(payload, dict) else None
+            if (
+                not isinstance(payload, dict)
+                or payload.get("student") != student
+                or payload.get("run_id") != run_id
+                or not isinstance(teardown, dict)
+                or teardown.get("status") != "failed"
+            ):
+                raise AutomationError("Saved cleanup result no longer matches this operation")
+            teardown.update(
+                status="recovered",
+                recovered_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+            )
+            write_json_atomic(plan_path, payload)
+            report = build_dashboard_report(payload)
+            with self.lock:
+                self.report = report
+                self.state = "succeeded"
+                self.returncode = 0
+                self._persist_finished_operation()
+            return {**access, "ready": True, "cleanup_recovered": True}
+        except (AutomationError, DeviceDiscoveryError, OSError, ValueError, TypeError) as error:
+            return {"ready": False, "checks": [], "error": str(error)}
+        finally:
+            with self.lock:
+                if self.state == "recovering":
+                    self.state = "failed"
+
+    def _resolved_device(self) -> tuple[AndroidDevice, str]:
+        serial = self.serial
+        if not serial:
+            config = DeviceConfig.load(self.root / "private/tablet-device.local.json")
+            serial = resolve_device(config)
+        return AndroidDevice(serial), serial
 
     def _save_requests(self) -> None:
         write_json_atomic(self.requests_path, self.requests)
@@ -455,6 +506,14 @@ class SyncJob:
             return "none"
         if self.report and self.report.get("status") == "interrupted":
             return "safe_to_retry" if not self.report.get("applied") else "review_required"
+        teardown = self.report.get("teardown") if self.report else None
+        if (
+            isinstance(teardown, dict)
+            and teardown.get("status") == "failed"
+            and teardown.get("result_saved") is True
+            and teardown.get("kind") == "lock_task_pinned"
+        ):
+            return "cleanup_required"
         return "connection_check_required"
 
     def journeys(self, students: list[str]) -> dict:
@@ -1071,6 +1130,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "/api/sync",
             "/api/assignment",
             "/api/connection-check",
+            "/api/finish-cleanup",
             "/api/stop",
         }:
             self._json(404, {"error": "Not found"})
@@ -1084,6 +1144,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 "/api/sync": {"student"},
                 "/api/assignment": {"student", "grade", "title", "variant", "action"},
                 "/api/connection-check": set(),
+                "/api/finish-cleanup": set(),
                 "/api/stop": set(),
             }[self.path]
             if not isinstance(payload, dict) or set(payload) != fields:
@@ -1115,6 +1176,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/connection-check":
             result = self.server.job.check_connection()
+            self._json(200 if result.get("ready") else 409, result)
+            return
+        if self.path == "/api/finish-cleanup":
+            result = self.server.job.finish_cleanup()
             self._json(200 if result.get("ready") else 409, result)
             return
         if self.path == "/api/stop":

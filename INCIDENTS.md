@@ -141,7 +141,7 @@ state to reach code that relies on fixed landscape coordinates.
 | Capture `accelerometer_rotation` and `user_rotation` at workflow entry | Complete |
 | Temporarily lock the workflow to 2560×1600 `ROTATION_270` landscape | Complete |
 | Make Android honor Khan Kids' landscape request before launching automation | Complete |
-| Restore timeout, stay-awake, rotation, and auto-rotation on success or failure | Complete |
+| Restore timeout, stay-awake, rotation, and auto-rotation on success or failure | Superseded 2026-09-20: power settings now always permit sleep |
 | Reject any UI hierarchy that is not exactly 2560×1600 before navigation or taps | Complete |
 | Add regression coverage for restoration after an exception | Complete |
 | Verify the guard and restoration during a live sync | Complete |
@@ -157,9 +157,10 @@ and Khan remained full-screen landscape with
 ### Operating rule
 
 Do not issue coordinate taps when the UI hierarchy is not the calibrated
-2560×1600 landscape geometry. Device settings changed for a workflow must be
-captured first, scoped to a restoration context, and restored even when the run
-fails.
+2560×1600 landscape geometry. Rotation changed for a workflow must be captured,
+scoped to a restoration context, and restored even when the run fails. Power
+settings must always retain a bounded automatic-sleep timeout; they must never
+depend on teardown to undo a persistent stay-awake state.
 
 ## KKRT-2026-09-10-002 — Add Students near-miss
 
@@ -964,3 +965,72 @@ foreground.
 - Failure evidence is captured before recovery navigation changes the screen.
   Regression coverage verifies the scroll retry, add-first ordering, preserved
   queue, and capture-before-reconciliation behavior.
+
+## KKRT-2026-09-19-AUTO-152442-953643 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Prevented in code; current tablet cleanup pending |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260919T192356173635Z-2e0fddf2` |
+
+### Observed failure
+
+`AutomationError: Sync outcome was saved, but Android Home could not be verified: Android Home did not leave org.khankids.android; the tablet may still be in fullscreen`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- The saved result verified 10 live assignments and recorded four new scores;
+  no assignment action was needed.
+
+### Root cause and prevention
+
+Android screen pinning was active. System UI logged repeated `ScreenPinningNotify`
+events and the instruction “To unpin this app, swipe up & hold,” so Android
+intentionally rejected Home while Khan Kids remained on the correctly logged-out
+profile chooser.
+
+Sync and dashboard preflight now read Android lock-task state before navigating
+Khan Kids and stop with an unpin instruction when app pinning is active. Unknown
+and managed lock-task states also fail closed. Diagnostics record the state
+directly. A saved sync with only this cleanup failure is presented as “progress
+saved,” and its dedicated cleanup action checks that pinning is off, returns to
+Android Home, and marks cleanup recovered without replaying the sync.
+
+## KKRT-2026-09-20-001 — Tablet automatic sleep disabled after interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-20 |
+| Severity | SEV-2 — unattended battery drain |
+| Status | Resolved in code; next tablet session repairs existing settings |
+| Detected by | Tablet found with an empty battery the next morning |
+
+### Root cause
+
+The automation temporarily wrote an effectively infinite Android screen timeout
+and enabled “stay awake while plugged in,” then relied on Python teardown to
+restore the prior values. A hard process interruption cannot run teardown. Worse,
+a later session captured those already-unsafe values as its “prior” state and
+restored them again. Diagnostic logs from the preceding run showed restoration
+writes of `screen_off_timeout=2147483647` and
+`stay_on_while_plugged_in=15`, confirming that the unsafe values had become the
+saved baseline.
+
+### Prevention
+
+- Automation no longer enables either persistent stay-awake mechanism.
+- Tablet sessions enforce a two-minute timeout and disable plugged-in stay-awake
+  at both entry and exit; startup therefore repairs settings left by old builds.
+- Both safety writes are attempted even if one fails.
+- A repository regression test rejects reintroduction of the old infinite
+  timeout or persistent stay-awake command.
+- The README no longer recommends `scrcpy --stay-awake`.
+- A stale cleanup-only dashboard result no longer disables a fresh sync. The new
+  sync still performs its complete connection and app-pinning preflight first.

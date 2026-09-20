@@ -1,3 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec ./tools/run-python tools/audit_student_privacy.py --outgoing
+
+repo_dir="$(git rev-parse --show-toplevel)"
+cd "$repo_dir"
+
+./tools/run-python tools/audit_student_privacy.py --outgoing
+exec ./tools/check-before-push

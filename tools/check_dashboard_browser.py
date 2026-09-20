@@ -247,6 +247,7 @@ class DashboardBrowserTests(unittest.TestCase):
             "checks": [
                 {"id": "adb", "label": "Tablet connected", "ok": True},
                 {"id": "unlocked", "label": "Tablet unlocked", "ok": True},
+                {"id": "screen_pinning", "label": "Android app pinning is off", "ok": True},
                 {"id": "internet", "label": "Tablet Internet validated", "ok": True},
                 {"id": "app", "label": "Khan Kids available", "ok": True},
             ],
@@ -1339,6 +1340,39 @@ class DashboardBrowserTests(unittest.TestCase):
         self.page.locator("#refresh").click()
         expect(self.page.locator("#error")).to_contain_text("leaving Teacher view failed")
         expect(self.page.locator("#setup")).to_have_attribute("open", "")
+
+    def test_screen_pinning_preserves_result_and_offers_cleanup_without_resync(self) -> None:
+        report = self.reports["Student A"]
+        report["teardown"] = {
+            "status": "failed",
+            "kind": "lock_task_pinned",
+            "result_saved": True,
+            "error": "Khan Kids is screen-pinned.",
+        }
+        self.state.update(
+            state="failed",
+            student="Student A",
+            report=report,
+            recovery_state="cleanup_required",
+        )
+
+        def finish_cleanup():
+            report["teardown"]["status"] = "recovered"
+            self.state.update(state="succeeded", report=report, recovery_state="none")
+            return {"ready": True, "cleanup_recovered": True, "checks": []}
+
+        self.job.finish_cleanup.side_effect = finish_cleanup
+        self.open()
+        expect(self.page.locator("#state")).to_contain_text("Ready for a fresh sync")
+        expect(self.page.locator("#error")).to_contain_text("verified queue are saved")
+        expect(self.page.locator("#finish-cleanup")).to_be_visible()
+        expect(self.page.locator("#sync")).to_be_enabled()
+
+        self.page.locator("#finish-cleanup").click()
+        expect(self.page.locator("#state")).to_contain_text("Check-in complete")
+        expect(self.page.locator("#error")).to_be_hidden()
+        self.job.finish_cleanup.assert_called_once_with()
+        self.job.start.assert_not_called()
 
     def test_connection_failure_has_direct_recovery_without_resubmission(self) -> None:
         self.page.route("**/api/status", lambda route: route.abort())

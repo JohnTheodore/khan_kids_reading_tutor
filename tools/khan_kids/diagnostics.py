@@ -49,6 +49,12 @@ def capture_device_failure(
     """Write a password-safe device snapshot and bounded Android logs."""
     _write_private_text(directory / "error.txt", f"{type(error).__name__}: {error}\n")
     try:
+        mode = device.lock_task_mode()  # type: ignore[attr-defined]
+        write_json_atomic(directory / "android-state.json", {"lock_task_mode": mode})
+        (directory / "android-state.json").chmod(0o600)
+    except Exception:
+        pass
+    try:
         root = device.hierarchy()  # type: ignore[attr-defined]
         if _has_password_prompt(root):
             if progress:
