@@ -240,6 +240,22 @@ class DashboardBrowserTests(unittest.TestCase):
         self.job.reset_mock()
         self.job.snapshot.side_effect = lambda: copy.deepcopy(self.state)
         self.job.latest_report.side_effect = lambda student: self.reports.get(student)
+        self.job.checkin_history.side_effect = lambda student: {
+            "version": 1,
+            "student": student,
+            "events": [
+                {
+                    "version": 1,
+                    "run_id": "sync-synthetic-latest",
+                    "kind": "mastery_sync",
+                    "student": student,
+                    "started_at": "2026-09-17T11:59:00-04:00",
+                    "completed_at": "2026-09-17T12:00:00-04:00",
+                    "report": self.reports[student],
+                }
+            ],
+            "backfill_note": "Synthetic older records are not grouped.",
+        }
         self.job.start.side_effect = self.start_job
         self.job.check_connection.return_value = {
             "ready": True,
@@ -305,9 +321,16 @@ class DashboardBrowserTests(unittest.TestCase):
 
     def assert_no_overflow(self) -> None:
         sizes = self.page.evaluate(
-            "({width:innerWidth,scroll:document.documentElement.scrollWidth})"
+            """({
+              width: innerWidth,
+              scroll: document.documentElement.scrollWidth,
+              offenders: [...document.querySelectorAll('body *')]
+                .filter(e => e.getBoundingClientRect().right > innerWidth + 1)
+                .slice(0, 8)
+                .map(e => `${e.tagName.toLowerCase()}#${e.id}.${e.className}`)
+            })"""
         )
-        self.assertLessEqual(sizes["scroll"], sizes["width"])
+        self.assertLessEqual(sizes["scroll"], sizes["width"], sizes["offenders"])
 
     def test_assign_exact_variant_waits_for_native_verification(self):
         self.open()
@@ -624,6 +647,52 @@ class DashboardBrowserTests(unittest.TestCase):
         self.assertEqual(enlarged, normal * 2)
         self.page.locator(".queue-details:not(#sync-details) > summary").click()
         self.assert_no_overflow()
+
+    def test_checkin_timeline_groups_scores_and_actions_by_detection_run(self) -> None:
+        first = copy.deepcopy(self.reports["Student A"])
+        second = copy.deepcopy(first)
+        second["new_scores"] = []
+        second["mastered"] = []
+        second["unchecked"] = []
+        second["added"] = []
+        second["outcome"] = "No changes needed"
+        self.job.checkin_history.side_effect = lambda student: {
+            "version": 1,
+            "student": student,
+            "events": [
+                {
+                    "version": 1,
+                    "run_id": "manual-newer",
+                    "kind": "manual_assignment",
+                    "student": student,
+                    "started_at": "2026-09-17T13:00:00-04:00",
+                    "completed_at": "2026-09-17T13:00:08-04:00",
+                    "report": second,
+                },
+                {
+                    "version": 1,
+                    "run_id": "sync-older",
+                    "kind": "mastery_sync",
+                    "student": student,
+                    "started_at": "2026-09-17T12:00:00-04:00",
+                    "completed_at": "2026-09-17T12:00:42-04:00",
+                    "report": first,
+                },
+            ],
+            "backfill_note": "Earlier records were not grouped.",
+        }
+        self.open()
+        events = self.page.locator(".checkin-event")
+        expect(events).to_have_count(2)
+        expect(events.nth(0)).to_have_attribute("open", "")
+        expect(events.nth(0)).to_contain_text("Manual assignment")
+        expect(events.nth(0)).to_contain_text("no new scores")
+        expect(events.nth(1)).not_to_have_attribute("open", "")
+        events.nth(1).locator("summary").click()
+        expect(events.nth(1)).to_contain_text("Detected during the check-in completed")
+        expect(events.nth(1)).to_contain_text("2026-09-17")
+        expect(events.nth(1)).to_contain_text("94%")
+        expect(events.nth(1)).to_contain_text("Unchecked")
 
     def test_journey_evidence_and_weekly_gains_do_not_claim_reading_level(self) -> None:
         self.open()

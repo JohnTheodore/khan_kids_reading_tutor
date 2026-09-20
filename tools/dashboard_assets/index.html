@@ -255,6 +255,20 @@
         </div>
         <div id="result-content" hidden>
           <p id="outcome" class="outcome"></p>
+          <section id="checkin-history" aria-labelledby="checkin-history-title">
+            <div class="section-heading">
+              <div>
+                <h2 id="checkin-history-title">Check-in history</h2>
+                <p class="muted">What each sync detected and changed</p>
+              </div>
+            </div>
+            <p class="history-explanation">
+              Khan provides a lesson date, not an exact completion time. Scores
+              below are grouped by the check-in that first detected them.
+            </p>
+            <div id="checkin-timeline" class="checkin-timeline"></div>
+            <p id="history-backfill-note" class="muted"></p>
+          </section>
           <div id="daily-practice" class="daily-practice">
             <section id="recent-mastery" aria-labelledby="recent-mastery-title">
               <h2 id="recent-mastery-title">Recently mastered</h2>

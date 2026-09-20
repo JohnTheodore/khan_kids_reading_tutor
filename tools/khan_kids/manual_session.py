@@ -13,9 +13,10 @@ from pathlib import Path
 from .adb import AndroidDevice, AutomationError
 from .automation import KhanKidsAutomation
 from .catalog import CatalogIndex
+from .checkin_history import record_checkin
 from .constants import KHAN_KIDS_PACKAGE
 from .device_discovery import DeviceConfig, resolve_device
-from .diagnostics import capture_device_failure
+from .diagnostics import capture_device_failure, new_run_id
 from .launcher import ensure_khan_kids_open, local_secrets_provider
 from .manual_assignments import ManualAssignments, ManualChange, policy_path
 from .records import record_action, write_json_atomic, write_text_atomic
@@ -118,6 +119,7 @@ class ManualAssignmentSession:
                             "error": "Parent edit was not verified. Check the tablet before retrying.",
                         },
                     )
+                    record_checkin(self.root, payload)
                 except Exception:
                     self.progress(
                         "Parent operation journal could not be finalized; check the tablet before retrying."
@@ -209,6 +211,7 @@ class ManualAssignmentSession:
         journal = self.root / f"private/{slug}-manual-operation.json"
         self.current_journal = journal
         payload = {
+            "run_id": new_run_id().replace("sync-", "manual-", 1),
             "student": student,
             "manual_change": change.as_dict(),
             "status": "applying",
@@ -319,6 +322,7 @@ class ManualAssignmentSession:
         activities = [{"title": title, "variant": variant} for title, variant in sorted(keys)]
         payload.update(
             status="applied" if changed else "no_op",
+            applied_at=datetime.now().astimezone().isoformat(timespec="seconds"),
             observed_assignments=activities,
             desired_assignments=activities,
             verified_assignments=activities,
@@ -338,6 +342,7 @@ class ManualAssignmentSession:
         self._write_batch_journal(payload)
         write_json_atomic(saved_plan, payload)
         append_sync_report(self.root / f"student-records/{slug}-reading-sync-log.md", payload)
+        record_checkin(self.root, payload)
         return build_dashboard_report(payload)
 
     def __exit__(self, kind, error, traceback) -> None:

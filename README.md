@@ -368,6 +368,10 @@ command-line launcher; the dashboard does not implement a second mastery policy.
    uncertain dates are excluded from weekly gains.
 4. After a session, click **Sync progress**. **Latest check-in** shows new scores,
    verified assignment changes and the best next lessons from the ten assignments.
+   **Check-in history** groups every score, mastery decision and queue change by
+   the sync that detected it, so multiple sessions in one day stay distinguishable.
+   Khan supplies a lesson date rather than an exact completion time; the dashboard
+   labels the later detection time separately and never presents it as play time.
 5. To choose practice yourself, open a lesson and click **Assign** beside its
    exact variant (Basic, Main, Practice 1 or Practice 2). The tablet saves it
    now; the dashboard confirms it only after verification. **Unassign** removes
@@ -395,20 +399,24 @@ closing the app. An interruption stops pending requests; a dashboard restart nev
 automatically replays unfinished edits. Check the tablet and explicitly retry them.
 Use **Sync progress** separately to collect scores and apply the mastery algorithm.
 
-Every dashboard sync receives a correlation ID and retains a bounded, owner-private
-run record under `private/sync-runs/`. The record connects its sanitized output,
-structured result, phase timings and any incident. On failure it also attempts to
+Every dashboard sync and direct assignment receives a correlation ID. Its final,
+owner-private timeline entry is retained under `private/checkin-history/`; writes
+are atomic and repeated copies of the same run ID are deduplicated. Older retained
+structured results are imported without guessing associations from prose logs.
+The newest 20 diagnostic runs also remain under `private/sync-runs/`, connecting
+sanitized output, structured results, phase timings and incidents. On failure it attempts to
 capture the final UI hierarchy, screenshot and last 200 Android log entries before
 Android Home cleanup changes the screen, plus a Python traceback. Password-dialog UI is never captured,
 common device/secrets patterns are redacted, files use owner-only permissions and
 only the newest 20 runs are retained.
 
-Leave Android **App pinning** off while syncing. The connection check detects
-screen pinning before Khan Kids opens and explains how to unpin it. If pinning is
-enabled during a completed sync, the dashboard preserves the saved scores and
-queue, then offers a cleanup-only action that returns Android to Home without
-running the sync again. This saved cleanup state does not block a later check-in:
-**Sync progress** rechecks the current tablet first and can start fresh.
+Ordinary Android **App pinning** is removed automatically over ADB before a sync
+and verified off before navigation continues. Managed kiosk/lock-task mode and
+unknown states still stop safely. If unpinning cannot be verified during cleanup,
+the dashboard preserves the saved scores and queue, then offers a cleanup-only
+action that returns Android to Home without running the sync again. This saved
+cleanup state does not block a later check-in: **Sync progress** rechecks the
+current tablet first and can start fresh.
 
 The tutor wakes the tablet when work begins, but never enables Android's
 persistent stay-awake mode. Every tablet session sets a two-minute automatic

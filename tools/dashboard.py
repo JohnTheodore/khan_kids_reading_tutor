@@ -25,6 +25,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.catalog import CatalogIndex
+from khan_kids.checkin_history import checkin_history
 from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError, resolve_device
 from khan_kids.diagnostics import DiagnosticRun, new_run_id
@@ -372,7 +373,7 @@ class SyncJob:
             self._persist_finished_operation()
 
     def check_connection(self) -> dict[str, object]:
-        """Resolve and inspect the tablet without opening Khan Kids or changing UI state."""
+        """Inspect the tablet without opening Khan Kids, repairing screen pinning if needed."""
         try:
             device, serial = self._resolved_device()
             result = tablet_health(device)
@@ -1008,6 +1009,9 @@ class SyncJob:
             pass
         return None
 
+    def checkin_history(self, student: str) -> dict:
+        return checkin_history(self.root, student)
+
     def _result_path(self, student: str) -> Path:
         namespace = hashlib.sha256(str(self.workflow.resolve()).encode()).hexdigest()[:20]
         slug = student.casefold().replace(" ", "-")
@@ -1107,6 +1111,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json(400, {"error": "Select a configured student"})
             else:
                 self._json(200, {"report": self.server.job.latest_report(student)})
+        elif urlsplit(self.path).path == "/api/history":
+            student = parse_qs(urlsplit(self.path).query).get("student", [""])[0]
+            if (
+                student
+                not in setup_status(self.server.job.root, self.server.job.serial)["students"]
+            ):
+                self._json(400, {"error": "Select a configured student"})
+            else:
+                self._json(200, self.server.job.checkin_history(student))
         else:
             assets = {
                 "/": ("index.html", "text/html"),

@@ -58,15 +58,44 @@ class AndroidDeviceTests(unittest.TestCase):
             ("shell", "input", "keyevent", "KEYCODE_HOME"),
         )
 
-    def test_android_home_refuses_screen_pinning_without_sending_home(self) -> None:
+    def test_android_home_unpins_before_sending_home(self) -> None:
+        device = AndroidDevice("test-device", settle_seconds=0)
+        with (
+            patch.object(
+                device,
+                "lock_task_mode",
+                side_effect=[LOCK_TASK_PINNED, LOCK_TASK_NONE],
+            ),
+            patch.object(device, "foreground_package", side_effect=["launcher", "launcher"]),
+            patch.object(device, "command") as command,
+            patch("khan_kids.adb.time.sleep"),
+        ):
+            self.assertEqual(device.return_to_android_home("org.khankids.android"), "launcher")
+        self.assertEqual(
+            [call.args for call in command.call_args_list],
+            [
+                ("shell", "am", "task", "lock", "stop"),
+                ("shell", "input", "keyevent", "KEYCODE_HOME"),
+            ],
+        )
+
+    def test_unpin_requires_verified_none_and_never_touches_managed_mode(self) -> None:
         device = AndroidDevice("test-device", settle_seconds=0)
         with (
             patch.object(device, "lock_task_mode", return_value=LOCK_TASK_PINNED),
             patch.object(device, "command") as command,
-            self.assertRaisesRegex(HomeHandoffError, "screen-pinned") as raised,
+            patch("khan_kids.adb.time.monotonic", side_effect=[0, 0, 4]),
+            patch("khan_kids.adb.time.sleep"),
+            self.assertRaisesRegex(AutomationError, "remained active"),
         ):
-            device.return_to_android_home("org.khankids.android")
-        self.assertEqual(raised.exception.reason, "lock_task_pinned")
+            device.ensure_screen_unpinned()
+        command.assert_called_once_with("shell", "am", "task", "lock", "stop")
+
+        with (
+            patch.object(device, "command") as command,
+            self.assertRaisesRegex(AutomationError, "managed lock-task"),
+        ):
+            device.ensure_screen_unpinned(initial_mode=LOCK_TASK_LOCKED)
         command.assert_not_called()
 
     def test_android_home_fails_when_khan_remains_foreground(self) -> None:

@@ -69,13 +69,14 @@ def tablet_health(device: AndroidDevice) -> dict[str, object]:
         if ready
         else "Unlock the tablet, turn off app pinning, and restore Internet before retrying.",
         "lock_task_mode": mode,
+        "screen_pinning_recovered": bool(access.get("screen_pinning_recovered")),
     }
 
 
 def tablet_access_health(
     device: AndroidDevice, *, require_unlocked: bool = True
 ) -> dict[str, object]:
-    """Check only the device access needed for cleanup; never change tablet state."""
+    """Check device access and safely repair ordinary Android screen pinning."""
     checks: list[dict[str, object]] = []
     try:
         device.assert_connected()
@@ -88,7 +89,8 @@ def tablet_access_health(
                 "checks": checks,
                 "error": "Tablet is locked. Unlock it, then check the connection again.",
             }
-        mode = device.lock_task_mode()
+        screen_pinning_recovered = device.ensure_screen_unpinned()
+        mode = LOCK_TASK_NONE
         pinning_off = mode == LOCK_TASK_NONE
         checks.append(
             {
@@ -102,6 +104,7 @@ def tablet_access_health(
             "checks": checks,
             "error": None if pinning_off else lock_task_problem(mode),
             "lock_task_mode": mode,
+            "screen_pinning_recovered": screen_pinning_recovered,
         }
     except AutomationError as error:
         if not checks:

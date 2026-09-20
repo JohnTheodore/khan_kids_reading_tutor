@@ -8658,3 +8658,133 @@ Live queue unavailable: workflow stopped before mutation
 ### Duration
 
 25.546 seconds
+
+## 2026-09-20T14:39:56-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 2
+- Desired queue size: 10
+- Assignment changes: 2
+
+### New scores
+
+- Letters & Words — Practice 2: 87% on 2026-09-20 (history: 67% → 93% → 88% → 87%)
+- Make New Words — Practice 1: 90% on 2026-09-20 (history: 83% → 94% → 83% → 78% → 81% → 90% → 90%)
+
+### Score controls read
+
+- Words with e — Main: 63% on 2026-09-19
+- Letters & Words — Practice 2: 87% on 2026-09-20, 88% on 2026-09-20, 93% on 2026-09-19, 67% on 2026-09-19
+- Make New Words — Practice 1: 90% on 2026-09-20, 90% on 2026-09-19, 81% on 2026-09-19, 78% on 2026-09-18, 83% on 2026-09-17, 94% on 2026-09-17, 83% on 2026-09-16
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Make New Words — Practice 1
+  - Scores: 83% → 94% → 83% → 78% → 81% → 90% → 90%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Make New Words — Practice 2
+
+### Applied unchecks
+
+- Make New Words — Practice 1
+  - Scores: 83% → 94% → 83% → 78% → 81% → 90% → 90%
+  - Why: Mastered: two consecutive attempts are at least 90%; promote to Make New Words — Practice 2
+
+### Applied promotions
+
+- Make New Words — Practice 1 → Make New Words — Practice 2
+
+### Applied additions
+
+- Make New Words — Practice 2: Next difficulty after Make New Words — Practice 1 met the mastery rule.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Letters & Words — Practice 2 — 87%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Words with i — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words with o — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Words with a — Main
+- Words with i — Main
+- Words with e — Main
+- Words with o — Main
+- Words with b & d — Main
+- Beginning Sound z — Practice 2
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+
+### Stretch slots
+
+- Words with b & d — Main
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 2: not_mastered (not attempted)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (not attempted)
+- Words with e — Main: not_mastered (63%)
+- Words with o — Main: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 84.869 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 74 | 55.187 | 0.746 | 2.036 |
+| workflow.scan_assignments | 4 | 40.931 | 10.233 | 26.095 |
+| phase.add_and_verify | 1 | 26.952 | 26.952 | 26.952 |
+| phase.review_assignments | 1 | 26.095 | 26.095 | 26.095 |
+| phase.remove_and_verify | 1 | 14.669 | 14.669 | 14.669 |
+| wait.stable Khan navigation state | 7 | 10.758 | 1.537 | 6.163 |
+| adb.swipe | 14 | 7.514 | 0.537 | 0.697 |
+| wait.assignments_report after score dialog close | 4 | 6.14 | 1.535 | 1.574 |
+| adb.other | 21 | 5.066 | 0.241 | 0.94 |
+| adb.tap | 23 | 4.993 | 0.217 | 0.35 |
+| wait.score dialog | 4 | 4.307 | 1.077 | 1.443 |
+| teardown.switch_user | 1 | 4.014 | 4.014 | 4.014 |
+| startup.launch | 1 | 3.971 | 3.971 | 3.971 |
+| wait.lesson variant 'Make New Words'/'Practice 2' after expand lesson 'Make New Words' | 1 | 3.949 | 3.949 | 3.949 |
+| phase.fixed_point_verify | 1 | 3.644 | 3.644 | 3.644 |
+| wait.assignment saved | 2 | 3.22 | 1.61 | 1.813 |
+| wait.assignments_report after Assignments tab | 1 | 2.963 | 2.963 | 2.963 |
+| adb.screenshot | 4 | 2.728 | 0.682 | 0.818 |
+| wait.assignment dialog | 2 | 2.232 | 1.116 | 1.312 |
+| startup.ui_backend | 1 | 1.731 | 1.731 | 1.731 |
+| wait.profile_chooser after Switch User | 1 | 1.5 | 1.5 | 1.5 |
+| wait.all_progress_report after All Progress tab | 1 | 1.451 | 1.451 | 1.451 |
+| wait.teacher_roster after Class Report back | 1 | 1.44 | 1.44 | 1.44 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.39 | 1.39 | 1.39 |
+| teardown.android_home | 1 | 1.171 | 1.171 | 1.171 |
+| adb.secret_entry | 1 | 1.024 | 1.024 | 1.024 |
+| wait.teacher roster after login | 1 | 0.825 | 0.825 | 0.825 |
+| adb.settings | 4 | 0.824 | 0.206 | 0.248 |
+| startup.preflight | 1 | 0.808 | 0.808 | 0.808 |
+| wait.parent password dialog | 1 | 0.539 | 0.539 | 0.539 |
+| adb.keyevent | 1 | 0.218 | 0.218 | 0.218 |
+| phase.plan_queue | 1 | 0.012 | 0.012 | 0.012 |

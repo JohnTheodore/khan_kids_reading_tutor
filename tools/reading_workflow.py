@@ -16,6 +16,7 @@ from khan_kids.adb import AndroidDevice, AutomationError, HomeHandoffError
 from khan_kids.automation import ActionResult, KhanKidsAutomation
 from khan_kids.cancellation import FileCancellationToken
 from khan_kids.catalog import CatalogIndex
+from khan_kids.checkin_history import record_checkin
 from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.curriculum import Activity, ReadingCurriculum
 from khan_kids.diagnostics import DiagnosticRun, new_run_id
@@ -550,6 +551,7 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
         **(progress.snapshot() if progress else {}),
     }
     write_json_atomic(output_plan_path, output_payload)
+    record_checkin(Path.cwd(), output_payload)
     append_performance_report(
         report_path,
         timing_snapshot,
@@ -1086,6 +1088,10 @@ def cli() -> None:
             if isinstance(error, MasterySyncInterrupted)
             else _interrupted_payload_from_arguments()
         )
+        if interrupted_payload is not None:
+            interrupted_payload.setdefault("run_id", run_id)
+            with suppress(Exception):
+                record_checkin(Path.cwd(), interrupted_payload)
         incident_error = error.cause if isinstance(error, MasterySyncInterrupted) else error
         with suppress(Exception):
             DiagnosticRun(

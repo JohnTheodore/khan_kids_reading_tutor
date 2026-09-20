@@ -258,14 +258,40 @@ class AndroidDevice:
         ).decode(errors="replace")
         return parse_lock_task_mode(state)
 
+    def ensure_screen_unpinned(
+        self, *, timeout: float = 3.0, initial_mode: str | None = None
+    ) -> bool:
+        """End ordinary Android screen pinning and verify it actually stopped."""
+        mode = initial_mode if initial_mode is not None else self.lock_task_mode()
+        if mode == LOCK_TASK_NONE:
+            return False
+        if mode != LOCK_TASK_PINNED:
+            raise AutomationError(lock_task_problem(mode) or "Android lock-task mode is unsafe")
+        self.command("shell", "am", "task", "lock", "stop")
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            mode = self.lock_task_mode()
+            if mode == LOCK_TASK_NONE:
+                return True
+            if mode != LOCK_TASK_PINNED:
+                raise AutomationError(
+                    lock_task_problem(mode) or "Android lock-task mode became unsafe"
+                )
+            time.sleep(min(0.2, self.settle_seconds))
+        raise AutomationError(
+            "Android accepted the unpin command, but screen pinning remained active. "
+            "Swipe up and hold to unpin it manually."
+        )
+
     def return_to_android_home(self, app_package: str, *, timeout: float = 5.0) -> str:
         """Leave one foreground app via Android Home and verify a stable handoff."""
         if not app_package or any(character.isspace() for character in app_package):
             raise ValueError("app_package must be a non-empty package name")
         mode = self.lock_task_mode()
-        problem = lock_task_problem(mode)
-        if problem:
-            raise HomeHandoffError(problem, reason=f"lock_task_{mode}")
+        try:
+            self.ensure_screen_unpinned(initial_mode=mode)
+        except AutomationError as error:
+            raise HomeHandoffError(str(error), reason=f"lock_task_{mode}") from error
         self.command("shell", "input", "keyevent", "KEYCODE_HOME")
         deadline = time.monotonic() + timeout
         previous = None

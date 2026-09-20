@@ -53,6 +53,9 @@ let journeys = [],
   archivedStudents = [],
   journeySequence = 0,
   journeySignature = "";
+let checkinEvents = [],
+  checkinSignature = "",
+  checkinSequence = 0;
 let reportProblem = "",
   jobProblem = "",
   tabletProblem = "",
@@ -591,6 +594,136 @@ function lessonRow(item) {
     );
   return row;
 }
+function historyTime(value, options) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? "Time unavailable" : date.toLocaleString([], options);
+}
+function checkinLabel(event) {
+  if (event.kind === "manual_assignment") return "Manual assignment";
+  if (event.kind === "manual_unassignment") return "Manual unassignment";
+  return "Mastery sync";
+}
+function historySection(title, items, empty = "None") {
+  const section = node("section", "history-change-group");
+  section.append(node("h4", "", title));
+  const list = node("ul");
+  list.replaceChildren(
+    ...(items?.length ? items.map(lessonRow) : [node("li", "lesson-detail", empty)]),
+  );
+  section.append(list);
+  return section;
+}
+function renderCheckinHistory(data) {
+  const events = data?.events || [];
+  const signature = JSON.stringify(events);
+  if (signature === checkinSignature) return;
+  checkinSignature = signature;
+  checkinEvents = events;
+  const timeline = element("checkin-timeline");
+  if (!events.length) {
+    timeline.replaceChildren(node("p", "muted", "No completed check-ins recorded yet."));
+    setText("history-backfill-note", data?.backfill_note || "");
+    return;
+  }
+  const groups = new Map();
+  for (const event of events) {
+    const date = new Date(event.completed_at);
+    const day = Number.isNaN(date.valueOf())
+      ? "Earlier check-ins"
+      : date.toDateString() === new Date().toDateString()
+        ? "Today"
+        : date.toLocaleDateString([], { dateStyle: "long" });
+    if (!groups.has(day)) groups.set(day, []);
+    groups.get(day).push(event);
+  }
+  let eventIndex = 0;
+  timeline.replaceChildren(
+    ...[...groups.entries()].map(([day, dayEvents]) => {
+      const group = node("section", "history-day");
+      group.append(node("h3", "history-day-title", day));
+      for (const event of dayEvents) {
+        const report = event.report;
+        const details = node("details", "checkin-event");
+        if (eventIndex++ === 0) details.open = true;
+        const summary = node("summary");
+        const identity = node("span", "checkin-identity");
+        identity.append(
+          node(
+            "time",
+            "checkin-time",
+            historyTime(event.completed_at, { hour: "numeric", minute: "2-digit" }),
+          ),
+          node("span", "checkin-kind", checkinLabel(event)),
+        );
+        const scoreCount = report.new_scores.length;
+        const changeCount = report.unchecked.length + report.added.length;
+        const summaryText = [
+          scoreCount ? `${scoreCount} new score${scoreCount === 1 ? "" : "s"}` : "no new scores",
+          changeCount ? `${changeCount} queue change${changeCount === 1 ? "" : "s"}` : "queue unchanged",
+        ].join(" · ");
+        summary.append(
+          identity,
+          node("span", `checkin-status status-${report.status}`, report.outcome),
+          node("span", "checkin-summary", summaryText),
+        );
+        details.append(summary);
+        const body = node("div", "checkin-body");
+        body.append(
+          node(
+            "p",
+            "history-capture-note",
+            `Detected during the check-in completed ${historyTime(event.completed_at, { dateStyle: "medium", timeStyle: "short" })}.`,
+          ),
+          historySection("Scores detected", report.new_scores),
+          historySection("Mastery found", report.mastered),
+          historySection(
+            report.status === "review_required" ? "Proposed assignment changes" : "Assignment changes",
+            [
+              ...report.unchecked.map((item) => ({ ...item, reason: `Unchecked · ${item.reason || "queue update"}` })),
+              ...report.added.map((item) => ({ ...item, reason: `Added · ${item.reason || "queue update"}` })),
+            ],
+          ),
+        );
+        const facts = node("dl", "checkin-facts");
+        for (const [term, value] of [
+          ["Final queue", report.queue_count == null ? "Not verified" : `${report.queue_count} assignments`],
+          ["Duration", report.duration == null ? "Not recorded" : `${Math.round(report.duration)} seconds`],
+        ]) {
+          facts.append(node("dt", "", term), node("dd", "", value));
+        }
+        body.append(facts);
+        if (report.error) body.append(node("p", "history-error", report.error));
+        details.append(body);
+        group.append(details);
+      }
+      return group;
+    }),
+  );
+  setText("history-backfill-note", data?.backfill_note || "");
+}
+async function loadCheckins() {
+  const sequence = ++checkinSequence;
+  const student = element("student").value;
+  if (!student) {
+    renderCheckinHistory({ events: [] });
+    return;
+  }
+  const data = await api("/api/history?student=" + encodeURIComponent(student));
+  if (sequence !== checkinSequence || student !== element("student").value) return;
+  if (
+    data.student !== student ||
+    !Array.isArray(data.events) ||
+    !data.events.every(
+      (event) =>
+        event &&
+        event.student === student &&
+        typeof event.run_id === "string" &&
+        validReport(event.report, student),
+    )
+  )
+    throw new Error("Check-in history is incomplete or belongs to another reader.");
+  renderCheckinHistory(data);
+}
 function validReport(report, student) {
   return (
     report &&
@@ -804,9 +937,10 @@ async function latest() {
     return;
   }
   try {
-    const data = await api(
-      "/api/latest?student=" + encodeURIComponent(student),
-    );
+    const [data] = await Promise.all([
+      api("/api/latest?student=" + encodeURIComponent(student)),
+      loadCheckins(),
+    ]);
     if (sequence !== latestSequence || student !== element("student").value)
       return;
     if (data.report && !validReport(data.report, student))
@@ -1130,6 +1264,7 @@ async function status() {
     if (requestsChanged || key !== completedJourneyKey) {
       completedJourneyKey = key;
       if (requestsChanged) await latest();
+      else await loadCheckins();
       // Queue evidence is already verified; don't depend on a second request
       // succeeding before the currently open lesson reflects its new state.
       document
@@ -1187,6 +1322,7 @@ element("student").addEventListener("change", () => {
   storage("tutor-student", element("student").value);
   jobProblem = "";
   renderReport(null);
+  renderCheckinHistory({ events: [] });
   renderJourney();
   updateButton();
   latest().catch((e) => error(e.message));

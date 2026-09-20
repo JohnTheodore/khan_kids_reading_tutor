@@ -43,6 +43,12 @@ class DashboardTests(unittest.TestCase):
         self.job.serial = None
         self.job.snapshot.return_value = {"state": "idle", "output": "", "returncode": None}
         self.job.start.return_value = True
+        self.job.checkin_history.return_value = {
+            "version": 1,
+            "student": "Student A",
+            "events": [],
+            "backfill_note": "",
+        }
         self.server = DashboardServer(0, self.job, token="T" * 43)
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.start()
@@ -86,6 +92,13 @@ class DashboardTests(unittest.TestCase):
             self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
             self.assertNotIn("Access-Control-Allow-Origin", headers)
         self.job.start.assert_not_called()
+
+    def test_history_is_authenticated_and_scoped_to_registered_reader(self) -> None:
+        code, body, _ = self.request("GET", "/api/history?student=Student%20A")
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body)["student"], "Student A")
+        self.job.checkin_history.assert_called_once_with("Student A")
+        self.assertEqual(self.request("GET", "/api/history?student=Unknown")[0], 400)
 
     def test_auth_origin_and_host_are_required(self) -> None:
         cases = [
