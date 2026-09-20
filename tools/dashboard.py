@@ -30,7 +30,7 @@ from khan_kids.constants import KHAN_KIDS_PACKAGE
 from khan_kids.device_discovery import DeviceConfig, DeviceDiscoveryError, resolve_device
 from khan_kids.diagnostics import DiagnosticRun, new_run_id
 from khan_kids.incidents import append_failed_sync_incident
-from khan_kids.launcher import read_local_secrets
+from khan_kids.launcher import ensure_device_unlocked, read_local_secrets
 from khan_kids.manual_assignments import ManualChange
 from khan_kids.manual_session import ManualAssignmentSession
 from khan_kids.preflight import tablet_access_health, tablet_health
@@ -376,7 +376,7 @@ class SyncJob:
         """Inspect the tablet without opening Khan Kids, repairing screen pinning if needed."""
         try:
             device, serial = self._resolved_device()
-            result = tablet_health(device)
+            result = tablet_health(device, allow_automatic_unlock=True)
             result["transport"] = "USB" if ":" not in serial else "wireless ADB"
             return result
         except (AutomationError, DeviceDiscoveryError, OSError) as error:
@@ -391,11 +391,18 @@ class SyncJob:
             self.state = "recovering"
         try:
             device, serial = self._resolved_device()
-            access = tablet_access_health(device)
-            access["transport"] = "USB" if ":" not in serial else "wireless ADB"
-            if not access["ready"]:
-                return access
-            device.return_to_android_home(KHAN_KIDS_PACKAGE)
+            with device.awake_session():
+                ensure_device_unlocked(
+                    device,
+                    pin_provider=lambda: (
+                        read_local_secrets(self.root / ".secrets.json").android_pin
+                    ),
+                )
+                access = tablet_access_health(device)
+                access["transport"] = "USB" if ":" not in serial else "wireless ADB"
+                if not access["ready"]:
+                    return access
+                device.return_to_android_home(KHAN_KIDS_PACKAGE)
             plan_path = (
                 self.root / "private" / f"{student.casefold().replace(' ', '-')}-reading-plan.json"
             )
@@ -732,6 +739,10 @@ class SyncJob:
                         raise AutomationError(
                             "The parent batch did not return exact verified assignment results"
                         )
+                    # Keep the authenticated parent session warm, but never leave Khan Kids
+                    # foregrounded while waiting for another dashboard request. Its fullscreen
+                    # activity can retain media/system-key focus on the physical tablet.
+                    session.park_at_android_home()
                     with self.condition:
                         self.report = reports[-1]
                         for request in batch:

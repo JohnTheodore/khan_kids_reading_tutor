@@ -96,6 +96,7 @@ class ManualAssignmentSession:
                 try:
                     payload = json.loads(self.current_journal.read_text())
                     # Read-only reconciliation: never replay a Save after a failure.
+                    self._discard_open_dialog_before_reconciliation()
                     self._reconcile_batch()
                     payload["batch_operations"] = json.loads(self.current_journal.read_text()).get(
                         "batch_operations", []
@@ -172,7 +173,8 @@ class ManualAssignmentSession:
         if student not in self.catalog.roster:
             raise AutomationError("The configured student is not in the lesson catalog")
         timing = self.device.timing = TimingRecorder(self.progress)
-        if self.automation is None or self.automation.student != student:
+        new_automation = self.automation is None or self.automation.student != student
+        if new_automation:
             self.automation = KhanKidsAutomation(
                 self.device,
                 student=student,
@@ -181,13 +183,13 @@ class ManualAssignmentSession:
                 parent_password_provider=lambda: self.credentials().khan_parent_password,
                 hierarchy_observer=self._trace_hierarchy if self.debug else None,
             )
-            with timing.span("startup.launch"):
-                ensure_khan_kids_open(
-                    self.device,
-                    pin_provider=lambda: self.credentials().android_pin,
-                    fresh_start=True,
-                    reuse_ready=self.automation.ready_for_sync,
-                )
+        with timing.span("startup.launch"):
+            ensure_khan_kids_open(
+                self.device,
+                pin_provider=lambda: self.credentials().android_pin,
+                fresh_start=new_automation,
+                reuse_ready=self.automation.ready_for_sync,
+            )
         grade = change.activity.grade
         seen = set()
         while raw_change is not None:
@@ -204,6 +206,11 @@ class ManualAssignmentSession:
         for entry in self.batch_entries:
             self.verified_reports.append(self._finish_entry(entry, keys))
         return self.verified_reports
+
+    def park_at_android_home(self) -> None:
+        """Release foreground system controls while retaining the warm parent login."""
+        with self.device.timing.span("teardown.park_android_home"):
+            self.device.return_to_android_home(KHAN_KIDS_PACKAGE)
 
     def _save_entry(self, student: str, change: ManualChange, *, reset_to_top: bool) -> None:
         automation = self.automation
@@ -223,9 +230,6 @@ class ManualAssignmentSession:
         entry = {"change": change, "payload": payload, "locally_verified": False, "result": None}
         self.batch_entries.append(entry)
         self._write_batch_journal(payload)
-        # Persist explicit intent under the same tablet lock, before writing the UI.
-        preferences = policy_path(self.root, student)
-        ManualAssignments.load(preferences, student, self.catalog).changed(change).save(preferences)
         desired = "checked" if change.action == "assign" else "unchecked"
         reason = (
             "parent assigned this variant; protected until mastered or unassigned"
@@ -308,10 +312,26 @@ class ManualAssignmentSession:
                 "Read-only batch reconciliation unavailable; saved edits were not replayed"
             )
 
+    def _discard_open_dialog_before_reconciliation(self) -> None:
+        if not self.batch_entries or self.automation is None:
+            return
+        current = self.batch_entries[-1]["change"]
+        try:
+            if self.automation.discard_open_assignment_dialog(current.activity.title):
+                self.progress("Discarded the incomplete unsaved dialog before queue verification")
+        except Exception:
+            self.progress(
+                "Could not safely dismiss the open dialog; queue verification was skipped"
+            )
+            raise
+
     def _finish_entry(self, entry: dict, keys: set[tuple[str, str]]) -> dict:
         payload, result = entry["payload"], entry["result"]
         student = payload["student"]
         slug = student.casefold().replace(" ", "-")
+        change = entry["change"]
+        preferences = policy_path(self.root, student)
+        ManualAssignments.load(preferences, student, self.catalog).changed(change).save(preferences)
         saved_plan = self.root / f"private/{slug}-reading-plan.json"
         changed = result is not None
         # Carry forward previously saved evidence, without inventing fresh scores/dates.

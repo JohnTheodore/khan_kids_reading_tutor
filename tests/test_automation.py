@@ -433,6 +433,29 @@ class AutomationTests(unittest.TestCase):
         with self.assertRaisesRegex(AutomationError, "expected landscape"):
             automation.root()
 
+    def test_one_pixel_uiautomator_screen_rounding_is_accepted(self) -> None:
+        _, automation = _automation()
+        rounded = ET.Element("hierarchy")
+        ET.SubElement(rounded, "node", bounds="[0,0][2559,1600]", text="")
+
+        automation._validate_screen(rounded)
+
+    def test_screen_rounding_tolerance_does_not_accept_wrong_geometry(self) -> None:
+        _, automation = _automation()
+        wrong = ET.Element("hierarchy")
+        ET.SubElement(wrong, "node", bounds="[0,0][2558,1600]", text="")
+
+        with self.assertRaisesRegex(AutomationError, "expected landscape"):
+            automation._validate_screen(wrong)
+
+    def test_screen_geometry_uses_largest_top_left_root_candidate(self) -> None:
+        _, automation = _automation()
+        hierarchy = ET.Element("hierarchy")
+        ET.SubElement(hierarchy, "node", bounds="[0,0][2560,72]", text="")
+        ET.SubElement(hierarchy, "node", bounds="[0,0][2560,1600]", text="")
+
+        automation._validate_screen(hierarchy)
+
     def test_password_submit_uses_bounds_refreshed_after_keyboard_opens(self) -> None:
         device = _device()
         automation = KhanKidsAutomation(
@@ -627,6 +650,58 @@ class AutomationTests(unittest.TestCase):
             "Lowercase l", "Main", root=progress, reset_to_top=False
         )
 
+    def test_assignment_dialog_waits_through_delayed_variant_and_controls(self):
+        _, automation = _automation()
+        heading_only = _screen_with_text(
+            ("Assign\nWords on Signs 2", Rect(900, 120, 1700, 220)),
+        )
+        complete = _assignment_dialog("Words on Signs 2", "Practice 2")
+        reads = []
+
+        def wait(predicate, **_kwargs):
+            for candidate in (heading_only, complete, complete):
+                reads.append(candidate)
+                if predicate(candidate):
+                    return candidate
+            self.fail("complete assignment dialog never stabilized")
+
+        automation._wait_for_root = Mock(side_effect=wait)
+        self.assertIs(
+            automation._wait_for_assignment_dialog("Words on Signs 2", "Practice 2"),
+            complete,
+        )
+        self.assertEqual(reads, [heading_only, complete, complete])
+
+    def test_assignment_dialog_rejects_a_real_variant_mismatch_immediately(self):
+        _, automation = _automation()
+        wrong = _assignment_dialog("Words on Signs 2", "Main")
+
+        def wait(predicate, **_kwargs):
+            predicate(wrong)
+            self.fail("variant mismatch was treated as a loading state")
+
+        automation._wait_for_root = Mock(side_effect=wait)
+        with self.assertRaisesRegex(AutomationError, "Assignment dialog mismatch"):
+            automation._wait_for_assignment_dialog("Words on Signs 2", "Practice 2")
+
+    def test_incomplete_unsaved_dialog_is_dismissed_before_recovery(self):
+        device, automation = _automation()
+        incomplete = _screen_with_text(
+            ("Assign\nWords on Signs 2", Rect(900, 120, 1700, 220)),
+            ("Save", Rect(1800, 150, 2000, 240)),
+        )
+        report = _screen_with_text(
+            ("Class Report: All Progress", Rect(600, 20, 1900, 120)),
+        )
+        automation.live_root = Mock(return_value=incomplete)
+        automation._wait_for_stable_root = Mock(return_value=report)
+
+        self.assertTrue(automation.discard_open_assignment_dialog("Words on Signs 2"))
+        device.command.assert_called_once_with("shell", "input", "keyevent", "KEYCODE_BACK")
+        predicate = automation._wait_for_stable_root.call_args.args[0]
+        self.assertTrue(predicate(report))
+        self.assertFalse(predicate(incomplete))
+
     def test_in_place_variant_lookup_never_scrolls_to_top(self):
         device, automation = _automation()
         expanded = _screen_with_text(
@@ -776,6 +851,16 @@ def _assignment_screen() -> ET.Element:
         ("Class Report: Assignments", Rect(600, 20, 1900, 120)),
         ("Assignments", Rect(900, 130, 1200, 190)),
         ("All Progress", Rect(1250, 130, 1550, 190)),
+    )
+
+
+def _assignment_dialog(title: str, variant: str) -> ET.Element:
+    return _screen_with_text(
+        (f"Assign\n{title}", Rect(900, 120, 1700, 220)),
+        (variant, Rect(374, 266, 750, 340)),
+        ("Save", Rect(1800, 150, 2000, 240)),
+        ("Student A", Rect(800, 600, 1100, 680)),
+        ("Student B", Rect(800, 800, 1100, 880)),
     )
 
 

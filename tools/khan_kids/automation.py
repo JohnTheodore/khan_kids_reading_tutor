@@ -34,6 +34,8 @@ GUARDED_TRANSITION_ATTEMPTS = 3
 GUARDED_TRANSITION_TIMEOUT_SECONDS = 12
 STABLE_TRANSITION_READS = 2
 SCROLL_BOUNDARY_READS = 2
+EXPECTED_SCREEN_RECT = Rect(0, 0, 2560, 1600)
+SCREEN_EDGE_TOLERANCE_PX = 1
 
 
 class _PrizeInterruption(RuntimeError):
@@ -119,7 +121,13 @@ class KhanKidsAutomation:
     @staticmethod
     def _validate_screen(root: ET.Element) -> None:
         screen = _screen_rect(root)
-        if screen != Rect(0, 0, 2560, 1600):
+        edge_error = max(
+            abs(actual - expected)
+            for actual, expected in zip(
+                screen.as_list(), EXPECTED_SCREEN_RECT.as_list(), strict=True
+            )
+        )
+        if edge_error > SCREEN_EDGE_TOLERANCE_PX:
             raise AutomationError(
                 "Unsupported display orientation or size: "
                 f"{screen}; expected landscape [0,0][2560,1600]"
@@ -761,7 +769,7 @@ class KhanKidsAutomation:
         """Open and validate an active assignment, then close it without saving."""
         row = self._find_assignment(title, variant)
         self.device.tap(115, row.rect.center[1])
-        root = self._wait_for_assignment_dialog()
+        root = self._wait_for_assignment_dialog(title, variant)
         return self._inspect_open_assignment(title, variant, "probe-active", root=root)
 
     def inspect_catalog_assignment(
@@ -810,8 +818,7 @@ class KhanKidsAutomation:
 
     def _unassign_row(self, row: AssignmentRow, title: str, variant: str) -> ActionResult:
         self.device.tap(115, row.rect.center[1])
-        root = self._wait_for_assignment_dialog()
-        self._validate_assignment_dialog(root, title, variant)
+        root = self._wait_for_assignment_dialog(title, variant)
         self._change_checkbox(root, desired=CheckboxState.UNCHECKED, prefix="unassign")
         self._save_dialog(expected_report="assignments")
         return ActionResult("unchecked", title, variant, "saved")
@@ -1132,7 +1139,7 @@ class KhanKidsAutomation:
                 target = [item for item in variants if item.text == variant]
                 if len(target) == 1:
                     self.device.tap_rect(target[0].rect)
-                    return self._wait_for_assignment_dialog()
+                    return self._wait_for_assignment_dialog(title, variant)
                 if variants:
                     raise AutomationError(
                         f"Variant {variant!r} is unavailable for visible lesson {title!r}"
@@ -1174,25 +1181,66 @@ class KhanKidsAutomation:
     def _validate_assignment_dialog(
         self, root: ET.Element, expected_title: str, expected_variant: str
     ) -> None:
-        assign_title = next(
-            (
-                item.text.removeprefix("Assign\n")
-                for item in visible_nodes(root)
-                if item.text.startswith("Assign\n")
-            ),
-            None,
-        )
-        variants = [
-            item.text
-            for item in visible_nodes(root)
-            if item.text in LEARNING_SEQUENCE and item.rect.left < 600 and item.rect.top < 400
-        ]
-        if assign_title != expected_title or variants != [expected_variant]:
+        titles, variants = self._assignment_dialog_identity(root)
+        if titles != [expected_title] or variants != [expected_variant]:
             raise AutomationError(
                 "Assignment dialog mismatch: "
-                f"expected {expected_title!r}/{expected_variant!r}, got {assign_title!r}/{variants!r}"
+                f"expected {expected_title!r}/{expected_variant!r}, got {titles!r}/{variants!r}"
             )
         _dialog_student_labels(root, self.roster)
+        save = [item for item in find_text(root, "Save") if item.rect.top < 350]
+        if len(save) != 1:
+            raise AutomationError(f"Expected one assignment Save button, found {len(save)}")
+
+    @staticmethod
+    def _assignment_dialog_identity(root: ET.Element) -> tuple[list[str], list[str]]:
+        """Read only the modal header and preview, excluding the report behind it."""
+        nodes = visible_nodes(root)
+        titles = [
+            item.text.removeprefix("Assign\n") for item in nodes if item.text.startswith("Assign\n")
+        ]
+        variants = [
+            item.text
+            for item in nodes
+            if item.text in LEARNING_SEQUENCE and item.rect.left < 600 and item.rect.top < 400
+        ]
+        return titles, variants
+
+    def _assignment_dialog_controls_complete(self, root: ET.Element) -> bool:
+        """Distinguish a still-rendering dialog from duplicated unsafe controls."""
+        complete = True
+        for student in self.roster:
+            count = len([item for item in find_text(root, student) if item.rect.top > 400])
+            if count > 1:
+                raise AutomationError(f"Expected one dialog label for {student!r}, found {count}")
+            complete = complete and count == 1
+        save_count = len([item for item in find_text(root, "Save") if item.rect.top < 350])
+        if save_count > 1:
+            raise AutomationError(f"Expected one assignment Save button, found {save_count}")
+        return complete and save_count == 1
+
+    def discard_open_assignment_dialog(self, expected_title: str) -> bool:
+        """Dismiss one exact unsaved dialog so read-only recovery can inspect the queue."""
+        root = self.live_root()
+        titles, _variants = self._assignment_dialog_identity(root)
+        if not titles:
+            return False
+        if titles != [expected_title]:
+            raise AutomationError(
+                "Refusing to dismiss an unexpected assignment dialog: "
+                f"expected {expected_title!r}, got {titles!r}"
+            )
+        self.device.command("shell", "input", "keyevent", "KEYCODE_BACK")
+        self._wait_for_stable_root(
+            lambda candidate: (
+                not self._assignment_dialog_identity(candidate)[0]
+                and "Class Report: All Progress" in text_set(candidate)
+            ),
+            description="unsaved assignment discarded",
+            timeout=GUARDED_TRANSITION_TIMEOUT_SECONDS,
+            persist=True,
+        )
+        return True
 
     def _change_checkbox(self, root: ET.Element, *, desired: CheckboxState, prefix: str) -> None:
         labels = _dialog_student_labels(root, self.roster)
@@ -1302,12 +1350,31 @@ class KhanKidsAutomation:
         self._assignments_at_top = True
         return root
 
-    def _wait_for_assignment_dialog(self) -> ET.Element:
-        return self._wait_for_root(
-            lambda candidate: any(
-                item.text.startswith("Assign\n") for item in visible_nodes(candidate)
-            ),
-            description="assignment dialog",
+    def _wait_for_assignment_dialog(self, expected_title: str, expected_variant: str) -> ET.Element:
+        """Wait for two complete renders; React Native exposes the header first."""
+
+        def complete(candidate: ET.Element) -> bool:
+            titles, variants = self._assignment_dialog_identity(candidate)
+            if not titles:
+                return False
+            if titles != [expected_title] or (variants and variants != [expected_variant]):
+                raise AutomationError(
+                    "Assignment dialog mismatch: "
+                    f"expected {expected_title!r}/{expected_variant!r}, "
+                    f"got {titles!r}/{variants!r}"
+                )
+            if variants != [expected_variant]:
+                return False
+            if not self._assignment_dialog_controls_complete(candidate):
+                return False
+            self._validate_assignment_dialog(candidate, expected_title, expected_variant)
+            return True
+
+        return self._wait_for_stable_root(
+            complete,
+            description=f"complete assignment dialog for {expected_title} — {expected_variant}",
+            timeout=GUARDED_TRANSITION_TIMEOUT_SECONDS,
+            persist=True,
         )
 
     @staticmethod
@@ -1369,10 +1436,13 @@ def _filter_value(root: ET.Element, label_text: str) -> UiText:
 
 
 def _screen_rect(root: ET.Element) -> Rect:
-    for node in root.iter("node"):
-        rect = node_rect(node)
-        if rect and rect.left == 0 and rect.top == 0:
-            return rect
+    candidates = [
+        rect
+        for node in root.iter("node")
+        if (rect := node_rect(node)) is not None and rect.left == 0 and rect.top == 0
+    ]
+    if candidates:
+        return max(candidates, key=lambda rect: (rect.width * rect.height, rect.width, rect.height))
     raise AutomationError("UI hierarchy has no screen-sized root node")
 
 

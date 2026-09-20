@@ -8,7 +8,7 @@ import tempfile
 import threading
 import time
 import unittest
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -363,6 +363,8 @@ class SyncJobTests(unittest.TestCase):
             job.started_at = time.monotonic()
             job.report = build_dashboard_report(payload)
             device = Mock(spec=AndroidDevice)
+            device.awake_session.return_value = nullcontext()
+            device.is_locked.return_value = False
 
             with (
                 patch.object(job, "_resolved_device", return_value=(device, "synthetic-usb")),
@@ -414,6 +416,7 @@ class SyncJobTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0].args[:2], ("Student A", assignment))
             self.assertIsNone(calls[0].args[2]())
+            session.return_value.__enter__.return_value.park_at_android_home.assert_called_once()
             popen.assert_not_called()
             self.assertEqual(job.snapshot()["assignment_requests"][0]["state"], "succeeded")
             custom = SyncJob(root, root / "custom-workflow")

@@ -41,9 +41,11 @@ def assert_tablet_preflight(device: AndroidDevice, *, require_unlocked: bool = T
         raise AutomationError("Khan Kids is not available on the connected tablet.")
 
 
-def tablet_health(device: AndroidDevice) -> dict[str, object]:
-    """Return a browser-safe health result without opening or changing the app."""
-    access = tablet_access_health(device)
+def tablet_health(
+    device: AndroidDevice, *, allow_automatic_unlock: bool = False
+) -> dict[str, object]:
+    """Return browser-safe health, optionally treating keyguard as sync-recoverable."""
+    access = tablet_access_health(device, require_unlocked=not allow_automatic_unlock)
     checks = list(access["checks"])
     if not access["ready"]:
         return access
@@ -70,6 +72,7 @@ def tablet_health(device: AndroidDevice) -> dict[str, object]:
         else "Unlock the tablet, turn off app pinning, and restore Internet before retrying.",
         "lock_task_mode": mode,
         "screen_pinning_recovered": bool(access.get("screen_pinning_recovered")),
+        "automatic_unlock_required": bool(access.get("automatic_unlock_required")),
     }
 
 
@@ -82,7 +85,16 @@ def tablet_access_health(
         device.assert_connected()
         checks.append({"id": "adb", "label": "Tablet connected", "ok": True})
         unlocked = not device.is_locked()
-        checks.append({"id": "unlocked", "label": "Tablet unlocked", "ok": unlocked})
+        unlock_recoverable = not require_unlocked
+        checks.append(
+            {
+                "id": "unlocked",
+                "label": (
+                    "Tablet unlocked" if unlocked else "Tablet sleeping · automatic unlock ready"
+                ),
+                "ok": unlocked or unlock_recoverable,
+            }
+        )
         if require_unlocked and not unlocked:
             return {
                 "ready": False,
@@ -105,6 +117,7 @@ def tablet_access_health(
             "error": None if pinning_off else lock_task_problem(mode),
             "lock_task_mode": mode,
             "screen_pinning_recovered": screen_pinning_recovered,
+            "automatic_unlock_required": not unlocked,
         }
     except AutomationError as error:
         if not checks:

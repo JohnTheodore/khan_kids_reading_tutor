@@ -142,7 +142,7 @@ state to reach code that relies on fixed landscape coordinates.
 | Temporarily lock the workflow to 2560×1600 `ROTATION_270` landscape | Complete |
 | Make Android honor Khan Kids' landscape request before launching automation | Complete |
 | Restore timeout, stay-awake, rotation, and auto-rotation on success or failure | Superseded 2026-09-20: power settings now always permit sleep |
-| Reject any UI hierarchy that is not exactly 2560×1600 before navigation or taps | Complete |
+| Reject any UI hierarchy outside the verified 2560×1600 surface (allowing one-pixel UIAutomator edge rounding) before navigation or taps | Complete |
 | Add regression coverage for restoration after an exception | Complete |
 | Verify the guard and restoration during a live sync | Complete |
 
@@ -714,7 +714,23 @@ assignment drift.
 - The normal workflow safety guards remained in force.
 - Completed assignment actions: none recorded.
 - Live queue after interruption: unavailable.
-- Diagnose the exact device state before retrying.
+- No assignment changes were attempted.
+
+### Root cause and correction
+
+This was not an orientation change. The failing live UIAutomator hierarchy
+reported a transient `2559×1600` root; the automatic failure capture immediately
+afterward reported the correct `2560×1600` landscape root. Android remained in
+the expected landscape rotation. The prior exact-equality check therefore treated
+one pixel of accessibility-boundary rounding as a dangerous display change.
+
+Screen validation now selects the largest top-left root candidate instead of the
+first one, preventing a status-bar-sized node from masquerading as the display.
+It accepts at most one pixel of error on an expected screen edge, which is too
+small to affect guarded tap regions. Portrait, split-screen and any geometry two
+or more pixels outside the tested surface still fail closed. Regression tests
+cover the captured `2559×1600` case, the one-pixel boundary, portrait rejection
+and competing status-bar/full-screen roots.
 
 ## KKRT-2026-09-16-AUTO-155144-441822 — Mastery sync interruption
 
@@ -859,16 +875,17 @@ tests use synthetic hierarchy fixtures.
 |---|---|
 | Date | 2026-09-19 |
 | Severity | SEV-3 — tablet usability impaired after an otherwise bounded workflow |
-| Status | Resolved preventively; physical acceptance check pending next live run |
+| Status | Resolved |
 | Detected by | Parent report |
 | Affected surface | Android system controls after Khan Kids automation |
 
 ### Findings
 
 The automation did not send volume keys or modify audio, mute, or Do Not Disturb
-settings. Successful workflows deliberately logged out to the Khan Kids profile
-chooser but left the fullscreen app foregrounded. Wireless ADB was unavailable
-during diagnosis, so the exact Android audio-routing cause could not be proven.
+settings. A later live inspection reproduced the unsafe handoff: Do Not Disturb
+was off and screen pinning was inactive, but the fullscreen Khan Kids activity
+was foregrounded with its media player active. Returning to verified Android Home
+paused that player and released foreground system-key focus.
 
 ### Prevention
 
@@ -880,6 +897,13 @@ is reported, while a primary workflow failure remains primary and carries the
 Home failure as a diagnostic note. Tests cover success, workflow failure,
 simultaneous cleanup failure, transient System UI, and Khan Kids remaining
 foreground.
+
+The follow-up correction also parks Khan Kids at verified Android Home after each
+successful direct-assignment batch. The authenticated parent session remains warm
+for 60 seconds in the backend and resumes automatically for another request, but
+the idle window no longer leaves the fullscreen app or its media player in control
+of the physical tablet. Regression coverage verifies parking before the warm state
+is announced and resuming without a force-stop or second backend session.
 
 ## KKRT-2026-09-19-AUTO-133832-444346 — Mastery sync interruption
 
@@ -1072,3 +1096,83 @@ at-most-once routine, waits for a stable child home, and resumes the interrupted
 navigation from fresh state. A second prompt, a different student's prompt, an
 uncertain selection, or any unrecognized layout still fails closed. Regression
 coverage reproduces the delayed prompt captured by this incident.
+
+## KKRT-2026-09-20-AUTO-151233-048204 — Parent assignment interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-20 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved preventively |
+| Detected by | Automated parent-assignment failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Assignment dialog mismatch: expected 'Words on Signs 2'/'Practice 2', got 'Words on Signs 2'/[]`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- `Words on Signs 1 — Practice 2` was saved and its checkbox was locally
+  verified, but final live-queue verification was unavailable.
+- `Words on Signs 2 — Practice 2` was not saved.
+- Recovery did not replay either action.
+
+### Root cause and correction
+
+Khan Kids renders its React Native assignment modal in stages. The exact lesson
+heading appeared before the variant preview; the automation treated the heading
+alone as a complete dialog and immediately rejected the temporarily empty variant.
+Its read-only recovery then tried to scan the queue while that modal was still
+open, so it could not promote the earlier locally verified save into a completed
+result.
+
+Assignment dialogs now require two complete consecutive reads containing one
+exact title, the expected variant in the modal preview, every configured student
+control and one Save button. A correct title with incomplete controls remains a
+bounded loading state; a wrong title or populated wrong variant still fails
+immediately. Before read-only batch reconciliation, the automation dismisses only
+the exact current unsaved dialog, never taps Save, and then scans the live queue
+once. Regression coverage reproduces the delayed render, true mismatch and safe
+dismissal paths.
+
+## KKRT-2026-09-20-AUTO-154226-447912 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-20 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved preventively |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260920T194203986641Z-cea0d1f2` |
+
+### Observed failure
+
+`AutomationError: Unsupported display orientation or size: Rect(left=0, top=0, right=2559, bottom=1600); expected landscape [0,0][2560,1600]`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- No assignment changes were attempted.
+
+### Root cause and correction
+
+This was not an orientation change. The failing live UIAutomator hierarchy
+reported a transient `2559×1600` root; the automatic failure capture immediately
+afterward reported the correct `2560×1600` landscape root. Android remained in
+the expected landscape rotation. The prior exact-equality check therefore treated
+one pixel of accessibility-boundary rounding as a dangerous display change.
+
+Screen validation now selects the largest top-left root candidate instead of the
+first one, preventing a status-bar-sized node from masquerading as the display.
+It accepts at most one pixel of error on an expected screen edge, which is too
+small to affect guarded tap regions. Portrait, split-screen and any geometry two
+or more pixels outside the tested surface still fail closed. Regression tests
+cover the captured `2559×1600` case, the one-pixel boundary, portrait rejection
+and competing status-bar/full-screen roots.

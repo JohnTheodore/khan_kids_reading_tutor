@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from khan_kids.adb import AndroidDevice, AutomationError
 from khan_kids.automation import ActionResult
+from khan_kids.manual_assignments import ManualAssignments, policy_path
 from khan_kids.manual_session import ManualAssignmentSession
 from khan_kids.reports import AssignmentRow, AssignmentSnapshot
 from khan_kids.ui import Rect
@@ -68,6 +69,10 @@ class ManualSessionTests(unittest.TestCase):
         self.assertEqual(report["queue_count"], 1)
         self.assertEqual(report["manual_change"], CHANGE)
         self.assertEqual(report["new_scores"], [])
+        policy = ManualAssignments.load(
+            policy_path(self.root, "Student A"), "Student A", session.catalog
+        )
+        self.assertEqual(policy.last_change.as_dict(), CHANGE)
         self.automation.set_catalog_assignment.assert_called_once_with(
             "Kindergarten", "Lowercase l", "Main", assigned=True, reset_to_top=True
         )
@@ -87,8 +92,18 @@ class ManualSessionTests(unittest.TestCase):
         self.AndroidDevice.assert_called_once()
         self.device.enable_ui_backend.assert_called_once()
         self.device.app_session.assert_called_once_with("org.khankids.android")
-        self.launch.assert_called_once()
+        self.assertEqual(self.launch.call_count, 2)
+        self.assertEqual(
+            [item.kwargs["fresh_start"] for item in self.launch.call_args_list], [True, False]
+        )
         self.KhanKidsAutomation.assert_called_once()
+
+    def test_warm_session_parks_at_home_without_logging_out(self):
+        with self.session() as session:
+            session.apply("Student A", CHANGE)
+            session.park_at_android_home()
+            self.automation.return_to_profile_chooser.assert_not_called()
+        self.device.return_to_android_home.assert_called_once_with("org.khankids.android")
 
     def test_already_unassigned_variant_is_a_verified_noop(self):
         self.automation.set_catalog_assignment.return_value = (None, {"Student A": "unchecked"})
@@ -119,6 +134,7 @@ class ManualSessionTests(unittest.TestCase):
         journal = json.loads((self.root / "private/student-a-manual-operation.json").read_text())
         self.assertEqual(journal["status"], "interrupted")
         self.assertEqual(journal["applied"][0]["title"], "Lowercase l")
+        self.assertFalse(policy_path(self.root, "Student A").exists())
 
     def test_verification_rejects_missing_live_assignment(self):
         self.automation.scan_assignments.return_value = AssignmentSnapshot((), ())
@@ -202,6 +218,7 @@ class ManualSessionTests(unittest.TestCase):
                 [report["manual_change"] for report in session.verified_reports], [CHANGE]
             )
         self.assertEqual(self.automation.set_catalog_assignment.call_count, 2)
+        self.automation.discard_open_assignment_dialog.assert_called_once_with("Lowercase m")
         self.automation.scan_assignments.assert_called_once()
         journal = json.loads((self.root / "private/student-a-manual-operation.json").read_text())
         self.assertEqual(journal["status"], "interrupted")

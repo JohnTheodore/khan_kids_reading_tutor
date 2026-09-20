@@ -86,6 +86,40 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(device.calls.count(("unlock", "1234")), 1)
         self.assertIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
 
+    def test_prelaunch_check_runs_after_unlock_and_before_app_navigation(self) -> None:
+        device = FakeDevice(locked=True, foreground="com.android.systemui")
+
+        def check() -> None:
+            self.assertFalse(device.locked)
+            device.calls.append("prelaunch_check")
+
+        ensure_khan_kids_open(
+            device,
+            pin_provider=lambda: "1234",
+            prelaunch_check=check,
+        )
+
+        self.assertLess(
+            device.calls.index(("unlock", "1234")), device.calls.index("prelaunch_check")
+        )
+        self.assertLess(device.calls.index("prelaunch_check"), device.calls.index("foreground"))
+
+    def test_failed_prelaunch_check_never_starts_or_restarts_app(self) -> None:
+        device = FakeDevice(locked=False, foreground=KHAN_KIDS_PACKAGE)
+
+        def offline() -> None:
+            raise AutomationError("offline")
+
+        with self.assertRaisesRegex(AutomationError, "offline"):
+            ensure_khan_kids_open(
+                device,
+                fresh_start=True,
+                prelaunch_check=offline,
+            )
+
+        self.assertNotIn(("force_stop", KHAN_KIDS_PACKAGE), device.calls)
+        self.assertNotIn(("start", KHAN_KIDS_ACTIVITY), device.calls)
+
     def test_locked_device_without_provider_fails_before_launch(self) -> None:
         device = FakeDevice(locked=True, foreground="com.android.systemui")
 

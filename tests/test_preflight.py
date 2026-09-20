@@ -58,6 +58,21 @@ class TabletPreflightTests(unittest.TestCase):
             ["adb", "unlocked", "screen_pinning", "internet", "app"],
         )
 
+    def test_dashboard_health_treats_sleep_as_automatic_unlock_ready(self) -> None:
+        device = Mock(spec=AndroidDevice)
+        device.is_locked.return_value = True
+        device.ensure_screen_unpinned.return_value = False
+        device.command.side_effect = [
+            b"Active default network: 7\nNetworkAgentInfo{ network{7} nc{INTERNET&VALIDATED}}",
+            b"package:/data/app/base.apk\n",
+        ]
+
+        result = tablet_health(device, allow_automatic_unlock=True)
+
+        self.assertTrue(result["ready"])
+        self.assertTrue(result["automatic_unlock_required"])
+        self.assertEqual(result["checks"][1]["label"], "Tablet sleeping · automatic unlock ready")
+
     def test_screen_pinning_is_repaired_before_network_and_app_checks(self) -> None:
         device = Mock(spec=AndroidDevice)
         device.is_locked.return_value = False

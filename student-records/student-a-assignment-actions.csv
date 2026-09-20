@@ -127,3 +127,5 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-20,Student A,unchecked,Rhyming,Basic,waiting for an open stretch slot,saved,2026-09-20T09:39:36.864056-04:00
 2026-09-20,Student A,checked,Make New Words,Practice 2,first unmastered activity in phoneme_manipulation,saved; final verification pending,2026-09-20T14:39:30.273778-04:00
 2026-09-20,Student A,unchecked,Make New Words,Practice 1,mastered: two consecutive attempts are at least 90%; promote to Make New Words — Practice 2,saved,2026-09-20T14:39:50.553368-04:00
+2026-09-20,Student A,checked,Words with u,Main,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_u_cvc_middle,saved; final verification pending,2026-09-20T15:10:35.214181-04:00
+2026-09-20,Student A,unchecked,Beginning Sound z,Practice 2,mastered: latest attempt is 100%,saved,2026-09-20T15:10:55.310880-04:00

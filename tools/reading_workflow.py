@@ -423,9 +423,12 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
     output_payload: dict[str, object]
     teardown_error: AutomationError | None = None
     output_plan_path = args.apply_plan or plan_path
-    try:
+
+    def prelaunch_check() -> None:
         with timing.span("startup.preflight"):
             assert_tablet_preflight(device)
+
+    try:
         with (
             device.app_session(
                 KHAN_KIDS_PACKAGE,
@@ -454,6 +457,7 @@ def main(progress: ProgressReporter | None = None, *, run_id: str | None = None)
                     pin_provider=lambda: credentials().android_pin,
                     fresh_start=True,
                     reuse_ready=automation.ready_for_sync,
+                    prelaunch_check=prelaunch_check,
                 )
             with timing.span("phase.review_assignments"):
                 snapshot = automation.scan_assignments(

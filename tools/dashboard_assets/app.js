@@ -957,6 +957,8 @@ async function latest() {
   }
 }
 function friendlyPhase(last = "") {
+  if (/park_android_home/.test(last))
+    return "Releasing the tablet while keeping the parent session ready.";
   if (/verify_parent_assignment/.test(last))
     return "Verifying this assignment on the tablet.";
   if (/save_parent_assignment|inspect_parent_assignment/.test(last))
@@ -977,7 +979,7 @@ function renderAssignmentRequests(data) {
   setText(
     "parent-session",
     teacherSession === "warm"
-      ? "Teacher view is ready for another assignment. It logs out 60 seconds after the last update."
+      ? "Parent session is ready for another assignment. The tablet is free to use and logs out after 60 seconds."
       : "",
   );
   element("parent-session").hidden = teacherSession !== "warm";

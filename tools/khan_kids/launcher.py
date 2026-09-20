@@ -40,21 +40,13 @@ def ensure_khan_kids_open(
     pin_provider: PinProvider | None = None,
     fresh_start: bool = False,
     reuse_ready: Callable[[], bool] | None = None,
+    prelaunch_check: Callable[[], None] | None = None,
 ) -> LaunchResult:
-    """Wake, unlock once, and wait for Khan Kids to become stably foreground."""
-    device.wake()
-    unlocked = False
-    if _wait_for_stable_value(device.is_locked, description="Android lock state"):
-        if pin_provider is None:
-            raise AutomationError("Tablet is PIN-locked; a PIN provider is required")
-        device.unlock_with_pin(pin_provider())
-        try:
-            _wait_for_value(device.is_locked, False, description="tablet unlock")
-        except AutomationError as error:
-            raise AutomationError(
-                "Tablet remained locked after one PIN attempt; refusing to retry"
-            ) from error
-        unlocked = True
+    """Wake and unlock, run any prelaunch check, then open Khan Kids."""
+    unlocked = ensure_device_unlocked(device, pin_provider=pin_provider)
+
+    if prelaunch_check is not None:
+        prelaunch_check()
 
     if fresh_start and reuse_ready is not None and device.foreground_package() == KHAN_KIDS_PACKAGE:
         fresh_start = not reuse_ready()
@@ -69,6 +61,25 @@ def ensure_khan_kids_open(
         description="Khan Kids foreground focus",
     )
     return LaunchResult(unlocked=unlocked, launched=launched)
+
+
+def ensure_device_unlocked(
+    device: AndroidDevice, *, pin_provider: PinProvider | None = None
+) -> bool:
+    """Wake a device and make at most one verified, secret-safe PIN attempt."""
+    device.wake()
+    if _wait_for_stable_value(device.is_locked, description="Android lock state"):
+        if pin_provider is None:
+            raise AutomationError("Tablet is PIN-locked; a PIN provider is required")
+        device.unlock_with_pin(pin_provider())
+        try:
+            _wait_for_value(device.is_locked, False, description="tablet unlock")
+        except AutomationError as error:
+            raise AutomationError(
+                "Tablet remained locked after one PIN attempt; refusing to retry"
+            ) from error
+        return True
+    return False
 
 
 def _wait_for_value(

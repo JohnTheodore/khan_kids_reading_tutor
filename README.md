@@ -392,10 +392,14 @@ traversal: each saved checkbox is checked in place, followed by one shared live
 queue verification. Compatible clicks received during that traversal can join it;
 earlier lessons and different readers/grades get a separate batch. A newer request
 replaces an opposite request only if the older one has not started. Partial
-failures are reconciled read-only; saved edits are never blindly replayed.
-Teacher view stays open for **60 seconds after the last edit**, so another request
-reuses the connection and login. Then it logs out through Khan Kids' UI without
-closing the app. An interruption stops pending requests; a dashboard restart never
+failures are reconciled read-only; saved edits are never blindly replayed. A
+dialog is not actionable until its title, exact variant, student controls and
+Save button have rendered consistently twice.
+The authenticated parent session stays warm for **60 seconds after the last
+edit**, so another request reuses the connection and login. Khan Kids is parked
+at Android Home during that idle window, releasing fullscreen media and hardware
+volume-key focus; the next request resumes it automatically. Then it logs out
+through Khan Kids' UI without closing the app. An interruption stops pending requests; a dashboard restart never
 automatically replays unfinished edits. Check the tablet and explicitly retry them.
 Use **Sync progress** separately to collect scores and apply the mastery algorithm.
 
@@ -436,9 +440,10 @@ Assignment status is a snapshot from the last completed operation, not a live
 tablet connection. Manual additions are protected extras and may take the queue
 above ten. Automatic top-ups pause at ten or more; subsequent syncs retire mastered
 manual lessons and resume filling below ten. Archived reader profiles are read-only.
-Keep the tablet unlocked on the configured account when making changes. Overrides
-are saved locally in owner-private `private/*-manual-assignments.json` files and
-are not published to Git. Controls require the native `khan-mastery-sync` launcher.
+The tablet may sleep normally between changes; the native workflow wakes it and
+makes one verified attempt with the stored Android PIN. Overrides are saved locally
+in owner-private `private/*-manual-assignments.json` files and are not published to
+Git. Controls require the native `khan-mastery-sync` launcher.
 You can assign a mastered variant for review; a later sync may retire it using
 its existing mastery evidence.
 
@@ -507,9 +512,11 @@ record paths. The default dashboard uses the repository's default record paths.
 Closing the browser does not cancel a sync. Stop the service with Ctrl+C; it waits
 for an active sync to finish safely. `--no-browser` prints the launch URL without
 opening it, and `--port` selects another local port. Before a sync navigates Khan
-Kids, the dashboard checks ADB, the unlock state, Android's validated Internet
-connection, and the installed app. After a connection failure, use **Check tablet
-connection**; retry stays disabled until those checks pass. **Stop safely** blocks
+Kids, the dashboard checks ADB, automatic-unlock readiness, Android's validated
+Internet connection, and the installed app. Ordinary sleep is not a connection
+failure: a sync wakes and unlocks the tablet before its final preflight. After a
+connection failure, use **Check tablet connection**; retry stays disabled until
+those checks pass. **Stop safely** blocks
 new work, reconciles the live queue if a change had started, and records an
 incident rather than replaying the operation. The last valid reading report stays
 visible throughout recovery. Unexpected startup screens stop without restarting
