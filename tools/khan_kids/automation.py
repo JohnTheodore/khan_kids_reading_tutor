@@ -12,7 +12,7 @@ from datetime import date
 from pathlib import Path
 
 from .adb import AndroidDevice, AutomationError
-from .constants import LEARNING_SEQUENCE, REPORT_GRADE_LABELS
+from .constants import KHAN_KIDS_PACKAGE, LEARNING_SEQUENCE, REPORT_GRADE_LABELS
 from .reports import (
     DEFAULT_REPORT_LAYOUT,
     AssignmentRow,
@@ -30,6 +30,17 @@ SCROLL_DURATION_MS = 300
 REPORT_BACK_RECT = Rect(38, 38, 171, 171)
 SWITCH_USER_RECT = Rect(2259, 12, 2529, 74)
 CHILD_PROFILE_RECT = Rect(2365, 13, 2548, 196)
+CHILD_LIBRARY_TITLE_RECT = Rect(1102, 53, 1452, 153)
+CHILD_LIBRARY_BANNER_RECT = Rect(0, 0, 2560, 416)
+CHILD_LIBRARY_FIRST_TAB_RECT = Rect(381, 167, 564, 391)
+CHILD_LIBRARY_LAST_TAB_RECT = Rect(2027, 167, 2202, 391)
+CHILD_LIBRARY_ANCHORS = (
+    ("android.view.ViewGroup", REPORT_BACK_RECT, 1),
+    ("android.widget.ImageView", CHILD_LIBRARY_BANNER_RECT, 1),
+    ("android.view.ViewGroup", CHILD_LIBRARY_TITLE_RECT, 1),
+    ("android.view.ViewGroup", CHILD_LIBRARY_FIRST_TAB_RECT, 2),
+    ("android.view.ViewGroup", CHILD_LIBRARY_LAST_TAB_RECT, 2),
+)
 GUARDED_TRANSITION_ATTEMPTS = 3
 GUARDED_TRANSITION_TIMEOUT_SECONDS = 12
 STABLE_TRANSITION_READS = 2
@@ -195,7 +206,7 @@ class KhanKidsAutomation:
             if state == "prize_picker":
                 root = self.pick_random_prize()
                 state = self._navigation_state(root)
-            if state == "child_assignments":
+            if state in {"child_assignments", "child_library"}:
                 root = self._tap_until_navigation_target(
                     root,
                     source_state=state,
@@ -219,12 +230,14 @@ class KhanKidsAutomation:
                 "assignments_report",
                 "all_progress_report",
             }:
-                raise AutomationError("Unrecognized foreground startup screen")
-        except AutomationError:
+                raise AutomationError(
+                    f"Unrecognized foreground startup screen ({_startup_state_summary(root)})"
+                )
+        except AutomationError as error:
             diagnostic = self._capture_blocked_startup()
             raise AutomationError(
                 "Startup blocked; app left open without restarting. "
-                f"Inspect the screen before retrying. {diagnostic}"
+                f"Reason: {error}. Inspect the screen before retrying. {diagnostic}"
             ) from None
         return states[0] in {
             "profile_chooser",
@@ -409,6 +422,7 @@ class KhanKidsAutomation:
         prize_handled = False
         prize_allowed = (source_name, target_name) in {
             ("child_assignments", "child_home"),
+            ("child_library", "child_home"),
             ("child_home", "profile_chooser"),
         }
         while action_attempt < GUARDED_TRANSITION_ATTEMPTS:
@@ -585,6 +599,8 @@ class KhanKidsAutomation:
             return "report_tabs"
         if {"Assignments", "Lessons assigned to you by dad"}.issubset(texts):
             return "child_assignments"
+        if _is_child_library(root):
+            return "child_library"
         labels = [item for item in visible_nodes(root) if item.text in self.roster]
         if (
             len(labels) == 1
@@ -1394,16 +1410,46 @@ def _unique_visible(root: ET.Element, text: str) -> UiText:
 
 def _guarded_unlabeled_control(root: ET.Element, bounds: Rect, description: str) -> Rect:
     """Resolve one image-backed control only after its screen has been identified."""
-    matches = [
-        node
-        for node in root.iter()
-        if node.attrib.get("class") == "android.view.ViewGroup" and node_rect(node) == bounds
-    ]
+    matches = _nodes_at(root, "android.view.ViewGroup", bounds)
     if len(matches) != 1:
         raise AutomationError(
             f"Expected one {description} control at {bounds}, found {len(matches)}"
         )
     return bounds
+
+
+def _nodes_at(root: ET.Element, class_name: str, bounds: Rect) -> list[ET.Element]:
+    """Return nodes matching one class and exact, validated screen geometry."""
+    return [
+        node
+        for node in root.iter("node")
+        if node.get("class") == class_name and node_rect(node) == bounds
+    ]
+
+
+def _is_child_library(root: ET.Element) -> bool:
+    """Recognize Khan's image-backed child Library independently of scroll position."""
+    packages = {node.get("package") for node in root.iter("node") if node.get("package")}
+    if packages != {KHAN_KIDS_PACKAGE}:
+        return False
+    return _matching_child_library_anchors(root) == len(CHILD_LIBRARY_ANCHORS)
+
+
+def _matching_child_library_anchors(root: ET.Element) -> int:
+    return sum(
+        len(_nodes_at(root, class_name, bounds)) == count
+        for class_name, bounds, count in CHILD_LIBRARY_ANCHORS
+    )
+
+
+def _startup_state_summary(root: ET.Element) -> str:
+    """Describe only non-sensitive classifier signals for failure diagnostics."""
+    packages = {node.get("package") for node in root.iter("node") if node.get("package")}
+    khan_package = "yes" if packages == {KHAN_KIDS_PACKAGE} else "no"
+    anchors = _matching_child_library_anchors(root)
+    return (
+        f"Khan package={khan_package}; child Library anchors={anchors}/{len(CHILD_LIBRARY_ANCHORS)}"
+    )
 
 
 def _dialog_student_labels(root: ET.Element, roster: Iterable[str]) -> dict[str, Rect]:

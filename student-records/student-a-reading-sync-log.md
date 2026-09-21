@@ -9044,3 +9044,1620 @@ Live queue unavailable: workflow stopped before mutation
 ### Duration
 
 21.851 seconds
+
+## 2026-09-20T15:50:32-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 4
+- Desired queue size: 11
+- Assignment changes: 2
+
+### New scores
+
+- Make New Words — Practice 2: 73% on 2026-09-20 (history: 73%)
+- Words on Signs 1 — Practice 2: 100% on 2026-09-20 (history: 100%)
+- Letters & Numbers — Practice 2: 61% on 2026-09-20 (history: 61% → 83%)
+- Letters & Numbers — Practice 2: 83% on 2026-09-20 (history: 61% → 83%)
+
+### Score controls read
+
+- Make New Words — Practice 2: 73% on 2026-09-20
+- Words on Signs 1 — Practice 2: 100% on 2026-09-20
+- Words with e — Main: 63% on 2026-09-19
+- Letters & Words — Practice 2: 77% on 2026-09-20, 83% on 2026-09-20, 87% on 2026-09-20, 88% on 2026-09-20, 93% on 2026-09-19, 67% on 2026-09-19
+- Letters & Numbers — Practice 2: 83% on 2026-09-20, 61% on 2026-09-20
+- Words with i — Main: 29% on 2026-09-20
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Words on Signs 1 — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied unchecks
+
+- Words on Signs 1 — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Words on Signs 2 — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Words with o — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words with u — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Make New Words — Practice 2
+- Words with a — Main
+- Words with i — Main
+- Words with e — Main
+- Words with o — Main
+- Words with u — Main
+- Words with b & d — Main
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Words on Signs 2 — Practice 2
+
+### Stretch slots
+
+- Words with b & d — Main
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 2: not_mastered (73%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (29%)
+- Words with e — Main: not_mastered (63%)
+- Words with o — Main: not_mastered (not attempted)
+- Words with u — Main: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 119.335 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 93 | 82.786 | 0.89 | 1.976 |
+| workflow.scan_assignments | 4 | 68.047 | 17.012 | 43.569 |
+| phase.review_assignments | 1 | 43.569 | 43.569 | 43.569 |
+| phase.add_and_verify | 1 | 29.027 | 29.027 | 29.027 |
+| phase.remove_and_verify | 1 | 18.755 | 18.755 | 18.755 |
+| wait.stable Khan navigation state | 7 | 14.03 | 2.004 | 6.332 |
+| wait.assignments_report after score dialog close | 7 | 10.69 | 1.527 | 1.63 |
+| wait.score dialog | 7 | 10.566 | 1.509 | 1.64 |
+| phase.fixed_point_verify | 1 | 9.169 | 9.169 | 9.169 |
+| startup.launch | 1 | 8.82 | 8.82 | 8.82 |
+| adb.swipe | 16 | 8.429 | 0.527 | 0.703 |
+| adb.tap | 29 | 5.779 | 0.199 | 0.307 |
+| adb.other | 23 | 5.21 | 0.227 | 0.829 |
+| teardown.switch_user | 1 | 4.847 | 4.847 | 4.847 |
+| wait.assignment saved | 2 | 3.416 | 1.708 | 2.055 |
+| wait.lesson variant 'Words on Signs 2'/'Practice 2' after expand lesson 'Words on Signs 2' | 1 | 3.224 | 3.224 | 3.224 |
+| wait.assignments_report after Assignments tab | 1 | 3.176 | 3.176 | 3.176 |
+| adb.screenshot | 4 | 2.546 | 0.637 | 0.741 |
+| wait.complete assignment dialog for Words on Signs 1 — Practice 2 | 1 | 2.334 | 2.334 | 2.334 |
+| wait.complete assignment dialog for Words on Signs 2 — Practice 2 | 1 | 2.15 | 2.15 | 2.15 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.965 | 1.965 | 1.965 |
+| wait.teacher roster after login | 1 | 1.86 | 1.86 | 1.86 |
+| wait.parent password dialog | 1 | 1.654 | 1.654 | 1.654 |
+| wait.teacher_roster after Class Report back | 1 | 1.505 | 1.505 | 1.505 |
+| adb.keyevent | 7 | 1.475 | 0.211 | 0.287 |
+| wait.all_progress_report after All Progress tab | 1 | 1.457 | 1.457 | 1.457 |
+| wait.profile_chooser after Switch User | 1 | 1.367 | 1.367 | 1.367 |
+| startup.ui_backend | 1 | 1.279 | 1.279 | 1.279 |
+| teardown.android_home | 1 | 1.031 | 1.031 | 1.031 |
+| adb.secret_entry | 1 | 1.029 | 1.029 | 1.029 |
+| startup.preflight | 1 | 0.651 | 0.651 | 0.651 |
+| adb.settings | 4 | 0.614 | 0.154 | 0.179 |
+| phase.plan_queue | 1 | 0.011 | 0.011 | 0.011 |
+
+## 2026-09-20T16:19:45-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 13
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Sounds: sh — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+81.708 seconds
+
+## 2026-09-20T16:19:45-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 13
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Sounds: th — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+81.721 seconds
+
+## 2026-09-20T16:20:31-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 14
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Words on Signs 2 — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Ending Sound d — Practice 2
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+44.853 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound j — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.852 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound k — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.859 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound l — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.864 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound n — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.87 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sound q — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.875 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Ending Sound n — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.88 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Ending Sound s — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.885 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Ending Sound t — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.891 seconds
+
+## 2026-09-20T16:24:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 23
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Ending Sound x — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+217.896 seconds
+
+## 2026-09-20T16:26:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 27
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Rhyming — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+119.269 seconds
+
+## 2026-09-20T16:26:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 27
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Hear Syllables — Main: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+119.277 seconds
+
+## 2026-09-20T16:26:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 27
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sounds 1 — Practice 1: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+119.282 seconds
+
+## 2026-09-20T16:26:10-04:00 — applied
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 27
+- Assignment changes: 1
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied unchecks
+
+None.
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+- Beginning Sounds 1 — Practice 2: Parent assigned this variant; protected until mastered or unassigned
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+119.288 seconds
+
+## 2026-09-20T16:26:10-04:00 — no_op
+
+- Student: Student A
+- Path: unknown
+- New attempt records: 0
+- Desired queue size: 27
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Verified unchecks
+
+None.
+
+### Verified promotions
+
+None.
+
+### Verified additions
+
+None.
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Ending Sound d — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words on Signs 2 — Practice 2 — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Beginning Sound j — Practice 2
+- Beginning Sound k — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+- Words on Signs 2 — Main
+- Words on Signs 2 — Practice 2
+- Words with a — Main
+- Words with b & d — Main
+- Words with e — Main
+- Words with i — Main
+- Words with o — Main
+- Words with u — Main
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+119.295 seconds
+
+## 2026-09-21T08:50:57-04:00 — interrupted
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 0
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied before interruption unchecks
+
+None.
+
+### Applied before interruption promotions
+
+None.
+
+### Applied before interruption additions
+
+None.
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+None; recommendations require a successfully verified queue and score evidence.
+
+### Desired queue
+
+No lessons selected.
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Live queue unavailable: workflow stopped before mutation
+
+### Duration
+
+13.214 seconds

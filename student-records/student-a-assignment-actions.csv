@@ -129,3 +129,21 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-20,Student A,unchecked,Make New Words,Practice 1,mastered: two consecutive attempts are at least 90%; promote to Make New Words — Practice 2,saved,2026-09-20T14:39:50.553368-04:00
 2026-09-20,Student A,checked,Words with u,Main,queue-target fallback beyond the normal diversity cap: first unmastered activity in short_u_cvc_middle,saved; final verification pending,2026-09-20T15:10:35.214181-04:00
 2026-09-20,Student A,unchecked,Beginning Sound z,Practice 2,mastered: latest attempt is 100%,saved,2026-09-20T15:10:55.310880-04:00
+2026-09-20,Student A,checked,Words on Signs 2,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; final verification pending,2026-09-20T15:49:54.327971-04:00
+2026-09-20,Student A,unchecked,Words on Signs 1,Practice 2,mastered: latest attempt is 100%,saved,2026-09-20T15:50:18.987777-04:00
+2026-09-20,Student A,checked,Sounds: sh,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:19:45.666890-04:00
+2026-09-20,Student A,checked,Sounds: th,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:19:45.680277-04:00
+2026-09-20,Student A,checked,Words on Signs 2,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:20:31.549388-04:00
+2026-09-20,Student A,checked,Beginning Sound j,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.389411-04:00
+2026-09-20,Student A,checked,Beginning Sound k,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.396451-04:00
+2026-09-20,Student A,checked,Beginning Sound l,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.401846-04:00
+2026-09-20,Student A,checked,Beginning Sound n,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.407159-04:00
+2026-09-20,Student A,checked,Beginning Sound q,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.412542-04:00
+2026-09-20,Student A,checked,Ending Sound n,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.417790-04:00
+2026-09-20,Student A,checked,Ending Sound s,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.422780-04:00
+2026-09-20,Student A,checked,Ending Sound t,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.428095-04:00
+2026-09-20,Student A,checked,Ending Sound x,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:24:10.433361-04:00
+2026-09-20,Student A,checked,Rhyming,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.592813-04:00
+2026-09-20,Student A,checked,Hear Syllables,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.600632-04:00
+2026-09-20,Student A,checked,Beginning Sounds 1,Practice 1,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.606013-04:00
+2026-09-20,Student A,checked,Beginning Sounds 1,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.611698-04:00

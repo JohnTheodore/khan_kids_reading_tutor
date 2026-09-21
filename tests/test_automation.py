@@ -241,7 +241,10 @@ class AutomationTests(unittest.TestCase):
         with self.assertRaisesRegex(AutomationError, "without restarting"):
             automation.ready_for_sync()
         automation.live_root = Mock(return_value=_screen_with_text())
-        with self.assertRaisesRegex(AutomationError, "without restarting"):
+        with self.assertRaisesRegex(
+            AutomationError,
+            "without restarting.*Khan package=no; child Library anchors=0/5",
+        ):
             automation.ready_for_sync()
 
     def test_supplied_navigation_root_cannot_bypass_state_validation(self) -> None:
@@ -264,6 +267,33 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(
             [c.kwargs["target_state"] for c in calls], ["child_home", "profile_chooser"]
         )
+
+    def test_scrolled_child_library_reuses_guarded_navigation_to_chooser(self) -> None:
+        _, automation = _automation()
+        library = _child_library_screen()
+        home = _screen_with_text(("Student A", Rect(2169, 42, 2356, 166)))
+        automation.live_root = Mock(return_value=library)
+        automation._tap_navigation_control = Mock(side_effect=(home, _chooser_screen()))
+
+        self.assertEqual(automation._navigation_state(library), "child_library")
+        self.assertTrue(automation.ready_for_sync())
+        calls = automation._tap_navigation_control.call_args_list
+        self.assertEqual([c.kwargs["source_state"] for c in calls], ["child_library", "child_home"])
+        self.assertEqual(
+            [c.kwargs["target_state"] for c in calls], ["child_home", "profile_chooser"]
+        )
+
+    def test_child_library_signature_rejects_partial_or_foreign_chrome(self) -> None:
+        _, automation = _automation()
+        missing_tab = _child_library_screen()
+        for node in list(missing_tab.iter("node")):
+            if node.get("bounds") == "[2027,167][2202,391]":
+                next(parent for parent in missing_tab.iter() if node in list(parent)).remove(node)
+                break
+        self.assertIsNone(automation._navigation_state(missing_tab))
+
+        foreign = _child_library_screen(package="com.example.unrelated")
+        self.assertIsNone(automation._navigation_state(foreign))
 
     def test_child_home_skips_back_and_navigation_failure_preserves_prompt(self) -> None:
         _, automation = _automation()
@@ -834,6 +864,37 @@ def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
             bounds=f"[{rect.left},{rect.top}][{rect.right},{rect.bottom}]",
             text=text,
         )
+    return root
+
+
+def _child_library_screen(*, package: str = "org.khankids.android") -> ET.Element:
+    """Synthetic model of image-backed Library chrome with its body scrolled."""
+    root = ET.Element("hierarchy", rotation="3")
+    parent = ET.SubElement(
+        root,
+        "node",
+        bounds="[0,0][2560,1600]",
+        text="",
+        package=package,
+        **{"class": "android.widget.FrameLayout"},
+    )
+    for class_name, bounds in (
+        ("android.widget.ImageView", "[0,0][2560,416]"),
+        ("android.view.ViewGroup", "[38,38][171,171]"),
+        ("android.view.ViewGroup", "[1102,53][1452,153]"),
+        ("android.view.ViewGroup", "[381,167][564,391]"),
+        ("android.view.ViewGroup", "[381,167][564,391]"),
+        ("android.view.ViewGroup", "[2027,167][2202,391]"),
+        ("android.view.ViewGroup", "[2027,167][2202,391]"),
+    ):
+        ET.SubElement(
+            parent, "node", bounds=bounds, text="", package=package, **{"class": class_name}
+        )
+    for text, bounds in (
+        ("Practice 2", "[385,843][578,878]"),
+        ("Friday, September 18", "[354,997][1099,1075]"),
+    ):
+        ET.SubElement(parent, "node", bounds=bounds, text=text, package=package)
     return root
 
 

@@ -1176,3 +1176,73 @@ small to affect guarded tap regions. Portrait, split-screen and any geometry two
 or more pixels outside the tested surface still fail closed. Regression tests
 cover the captured `2559×1600` case, the one-pixel boundary, portrait rejection
 and competing status-bar/full-screen roots.
+
+## KKRT-2026-09-20-AUTO-162728-288891 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-20 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Open |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+
+### Observed failure
+
+`AutomationError: Timed out waiting for stable Khan navigation state`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+## KKRT-2026-09-21-AUTO-085057-039332 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-21 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved in code; live verification pending |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260921T125042992502Z-ed552538` |
+
+### Observed failure
+
+`AutomationError: Startup blocked; app left open without restarting. Inspect the screen before retrying. Diagnostics: private/startup-blocked-v25qs9om.`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+### Root cause
+
+The preserved screen is Khan Kids' child Library on its Assignments tab, scrolled
+below the page introduction. In this state Khan's accessibility hierarchy omits
+the visible `Library` and `Assignments` artwork and exposes only lesson variants,
+lesson titles and date headings. The startup classifier recognizes this route
+only when the top-of-page subtitle `Lessons assigned to you by dad` is exposed.
+Because that subtitle had scrolled offscreen, the otherwise valid child-library
+state was classified as unknown. The safety guard correctly avoided both a blind
+Back tap and an app restart, but the sync could not proceed.
+
+### Correction
+
+Startup now recognizes the child Library from five stable, package-scoped chrome
+anchors instead of scroll-dependent lesson text. It still requires two stable
+reads, validated landscape geometry and the exact guarded Back control. After
+Back, the existing child-home identity guard must succeed before the profile
+chooser can open; mismatches continue to fail closed.
+
+Synthetic regression coverage models the captured scrolled state and rejects
+both incomplete chrome and the same geometry from another package. The complete
+Library → child home → profile chooser path is covered. Unknown startup failures
+now report a secret-safe package result and matched-anchor count before retaining
+the private screenshot and hierarchy.
