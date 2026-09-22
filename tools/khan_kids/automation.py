@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .adb import AndroidDevice, AutomationError
 from .constants import KHAN_KIDS_PACKAGE, LEARNING_SEQUENCE, REPORT_GRADE_LABELS
+from .report_archive import progress_history_close_rect
 from .reports import (
     DEFAULT_REPORT_LAYOUT,
     AssignmentRow,
@@ -1348,12 +1349,7 @@ class KhanKidsAutomation:
             target=lambda candidate: (
                 is_assignment_report(candidate) and title not in text_set(candidate)
             ),
-            control=lambda candidate: Rect(
-                int(_screen_rect(candidate).right * 0.66),
-                int(_screen_rect(candidate).bottom * 0.30),
-                int(_screen_rect(candidate).right * 0.66) + 1,
-                int(_screen_rect(candidate).bottom * 0.30) + 1,
-            ),
+            control=lambda candidate: progress_history_close_rect(candidate, self.student),
             source_name="score_dialog",
             target_name="assignments_report",
             control_name="score dialog close",

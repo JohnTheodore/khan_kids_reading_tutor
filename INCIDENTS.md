@@ -738,7 +738,7 @@ and competing status-bar/full-screen roots.
 |---|---|
 | Date | 2026-09-16 |
 | Severity | SEV-3 — automation interruption; review required before retry |
-| Status | Open |
+| Status | Root cause corrected 2026-09-22; live verification pending |
 | Detected by | Automated mastery-sync failure handler |
 | Affected student | Student A |
 
@@ -756,6 +756,16 @@ histories and verified the unchanged ten-item queue. No assignment mutation
 occurred during the failed sample or the recovery run. Status: resolved in
 code and verified live; monitor future modal-close behavior. This failure does
 not establish whether warm startup caused the Khan-side close interruption.
+
+### Root-cause correction — 2026-09-22
+
+A later recurrence retained complete failure evidence and disproved the dropped-tap
+diagnosis. The close path used one fixed screen-relative point rather than the
+dialog's live X-button bounds. Retrying therefore repeated the same wrong point
+when a taller score history shifted the centered modal upward. The bounded retry
+remains useful for genuinely dropped input, but it was not the underlying fix.
+The corrected implementation resolves the unique close control from every fresh
+dialog hierarchy before each guarded attempt.
 
 ### Automatic response
 
@@ -1246,3 +1256,42 @@ both incomplete chrome and the same geometry from another package. The complete
 Library → child home → profile chooser path is covered. Unknown startup failures
 now report a secret-safe package result and matched-anchor count before retaining
 the private screenshot and hierarchy.
+
+## KKRT-2026-09-22-AUTO-150831-447379 — Mastery sync interruption
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-22 |
+| Severity | SEV-3 — automation interruption; review required before retry |
+| Status | Resolved in code; live verification pending |
+| Detected by | Automated mastery-sync failure handler |
+| Affected student | Student A |
+| Diagnostic run | `sync-20260922T190702167364Z-2c59cebe` |
+
+### Observed failure
+
+`AutomationError: score dialog close remained on 'score_dialog' after 3 guarded attempts`
+
+### Automatic response
+
+- The invocation stopped with a nonzero exit status.
+- The normal workflow safety guards remained in force.
+- Completed assignment actions: none recorded.
+- Live queue after interruption: unavailable.
+- Diagnose the exact device state before retrying.
+
+### Root cause and correction
+
+The first five, shorter score histories closed successfully because their centered
+dialogs placed the X button over the legacy fixed tap at `(1689, 480)`. The
+`Letters & Words — Practice 2` history contained nine attempts, making the modal
+taller and moving its X button to `[1634,338][1758,462]`, centered at
+`(1696, 400)`. The fixed tap landed below the button, and all three retries
+repeated that same invalid point.
+
+The close path now reuses the existing image-backed history-close resolver. Each
+guarded attempt validates the target student's score dialog, requires exactly one
+plausible close control, and taps its current live bounds. Regression tests cover
+the tall failure geometry, a lower short-dialog geometry, movement between retry
+attempts, missing controls and unexpected navigation states. No coordinate
+fallback remains.

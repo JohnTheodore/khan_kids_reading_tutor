@@ -216,7 +216,7 @@ class AutomationTests(unittest.TestCase):
 
     def test_score_close_does_not_retry_from_unexpected_screen(self) -> None:
         device, automation = _automation()
-        dialog = _screen_with_text(("Student A's Lesson Scores", Rect(100, 100, 600, 160)))
+        dialog = _score_dialog(Rect(1634, 429, 1758, 553))
         automation._wait_for_stable_root = Mock(side_effect=AutomationError("timeout"))
         automation.live_root = Mock(return_value=_screen_with_text())
         with self.assertRaisesRegex(AutomationError, "unexpected navigation"):
@@ -225,12 +225,37 @@ class AutomationTests(unittest.TestCase):
 
     def test_score_close_retries_dropped_tap_only_from_same_dialog(self) -> None:
         device, automation = _automation()
-        dialog = _screen_with_text(("Student A's Lesson Scores", Rect(100, 100, 600, 160)))
+        dialog = _score_dialog(Rect(1634, 429, 1758, 553))
+        shifted = _score_dialog(Rect(1634, 338, 1758, 462))
         report = _assignment_screen()
         automation._wait_for_stable_root = Mock(side_effect=(AutomationError("dropped"), report))
-        automation.live_root = Mock(return_value=dialog)
+        automation.live_root = Mock(return_value=shifted)
         automation._close_score_dialog(dialog)
-        self.assertEqual(device.tap_rect.call_count, 2)
+        self.assertEqual(
+            device.tap_rect.call_args_list,
+            [call(Rect(1634, 429, 1758, 553)), call(Rect(1634, 338, 1758, 462))],
+        )
+
+    def test_score_close_uses_tall_dialog_button_not_fixed_screen_fraction(self) -> None:
+        device, automation = _automation()
+        dialog = _score_dialog(Rect(1634, 338, 1758, 462))
+        automation._wait_for_stable_root = Mock(return_value=_assignment_screen())
+
+        automation._close_score_dialog(dialog)
+
+        device.tap_rect.assert_called_once_with(Rect(1634, 338, 1758, 462))
+        self.assertNotEqual(device.tap_rect.call_args.args[0].center, (1689, 480))
+
+    def test_score_close_rejects_missing_or_ambiguous_controls_without_tapping(self) -> None:
+        for dialog in (
+            _score_dialog(None),
+            _score_dialog(Rect(1634, 338, 1758, 462), Rect(1800, 338, 1924, 462)),
+        ):
+            with self.subTest(dialog=dialog):
+                device, automation = _automation()
+                with self.assertRaisesRegex(AutomationError, "one progress-history close"):
+                    automation._close_score_dialog(dialog)
+                device.tap_rect.assert_not_called()
 
     def test_warm_reuse_requires_two_matching_supported_screens(self) -> None:
         _, automation = _automation()
@@ -864,6 +889,13 @@ def _screen_with_text(*items: tuple[str, Rect]) -> ET.Element:
             bounds=f"[{rect.left},{rect.top}][{rect.right},{rect.bottom}]",
             text=text,
         )
+    return root
+
+
+def _score_dialog(close: Rect | None, *additional: Rect) -> ET.Element:
+    root = _screen_with_text(("Student A's Lesson Scores", Rect(984, 418, 1577, 482)))
+    for control in ((close,) if close is not None else ()) + additional:
+        _add_control(root, control)
     return root
 
 

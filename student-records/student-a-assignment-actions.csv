@@ -147,3 +147,9 @@ action_date,student,action,lesson_title,activity_variant,reason,result,recorded_
 2026-09-20,Student A,checked,Hear Syllables,Main,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.600632-04:00
 2026-09-20,Student A,checked,Beginning Sounds 1,Practice 1,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.606013-04:00
 2026-09-20,Student A,checked,Beginning Sounds 1,Practice 2,parent assigned this variant; protected until mastered or unassigned,saved; verified,2026-09-20T16:26:10.611698-04:00
+2026-09-21,Student A,unchecked,Beginning Sound k,Practice 2,mastered: latest attempt is 100%,saved,2026-09-21T09:18:10.712628-04:00
+2026-09-21,Student A,unchecked,Words on Signs 2,Main,mastered: latest attempt is 100%,saved,2026-09-21T09:18:31.554915-04:00
+2026-09-21,Student A,unchecked,Words on Signs 2,Practice 2,mastered: latest attempt is 100%,saved,2026-09-21T09:18:51.837568-04:00
+2026-09-22,Student A,unchecked,Beginning Sound j,Practice 2,mastered: latest attempt is 100%,saved,2026-09-22T08:23:06.470110-04:00
+2026-09-22,Student A,unchecked,Ending Sound n,Main,mastered: latest attempt is 100%,saved,2026-09-22T08:23:25.775434-04:00
+2026-09-22,Student A,unchecked,Beginning Sound l,Practice 2,mastered: latest attempt is 100%,saved,2026-09-22T10:22:46.415937-04:00

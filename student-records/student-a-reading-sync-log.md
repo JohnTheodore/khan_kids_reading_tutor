@@ -10661,3 +10661,534 @@ Live queue unavailable: workflow stopped before mutation
 ### Duration
 
 13.214 seconds
+
+## 2026-09-21T09:19:13-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 5
+- Desired queue size: 24
+- Assignment changes: 3
+
+### New scores
+
+- Words on Signs 2 — Practice 2: 100% on 2026-09-21 (history: 100%)
+- Words on Signs 2 — Main: 100% on 2026-09-21 (history: 100%)
+- Beginning Sound k — Practice 2: 100% on 2026-09-21 (history: 100%)
+- Beginning Sounds 1 — Practice 1: 72% on 2026-09-21 (history: 72%)
+- Letters & Words — Practice 2: 80% on 2026-09-21 (history: 67% → 93% → 88% → 87% → 83% → 77% → 80%)
+
+### Score controls read
+
+- Make New Words — Practice 2: 73% on 2026-09-20
+- Words on Signs 2 — Practice 2: 100% on 2026-09-21
+- Words on Signs 2 — Main: 100% on 2026-09-21
+- Beginning Sound k — Practice 2: 100% on 2026-09-21
+- Beginning Sounds 1 — Practice 1: 72% on 2026-09-21
+- Words with e — Main: 63% on 2026-09-19
+- Letters & Words — Practice 2: 80% on 2026-09-21, 77% on 2026-09-20, 83% on 2026-09-20, 87% on 2026-09-20, 88% on 2026-09-20, 93% on 2026-09-19, 67% on 2026-09-19
+- Letters & Numbers — Practice 2: 83% on 2026-09-20, 61% on 2026-09-20
+- Words with i — Main: 29% on 2026-09-20
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Beginning Sound k — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Words on Signs 2 — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Words on Signs 2 — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied unchecks
+
+- Beginning Sound k — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Words on Signs 2 — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Words on Signs 2 — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Letters & Words — Practice 2 — 80%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words with o — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Words with a — Main
+- Words with i — Main
+- Words with e — Main
+- Words with o — Main
+- Words with u — Main
+- Words with b & d — Main
+- Beginning Sound j — Practice 2
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound n — Main
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Rhyming — Main
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 2: not_mastered (73%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (29%)
+- Words with e — Main: not_mastered (63%)
+- Words with o — Main: not_mastered (not attempted)
+- Words with u — Main: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 154.356 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 107 | 106.074 | 0.991 | 2.16 |
+| workflow.scan_assignments | 5 | 93.655 | 18.731 | 55.095 |
+| phase.remove_and_verify | 3 | 66.181 | 22.06 | 24.821 |
+| phase.review_assignments | 1 | 55.095 | 55.095 | 55.095 |
+| wait.assignments_report after score dialog close | 10 | 15.703 | 1.57 | 1.813 |
+| adb.swipe | 30 | 15.458 | 0.515 | 0.663 |
+| wait.score dialog | 10 | 15.383 | 1.538 | 1.783 |
+| phase.fixed_point_verify | 1 | 12.768 | 12.768 | 12.768 |
+| wait.stable Khan navigation state | 9 | 12.337 | 1.371 | 5.803 |
+| startup.launch | 1 | 9.415 | 9.415 | 9.415 |
+| adb.tap | 35 | 7.448 | 0.213 | 0.297 |
+| adb.other | 23 | 5.679 | 0.247 | 0.907 |
+| teardown.switch_user | 1 | 4.366 | 4.366 | 4.366 |
+| wait.assignment saved | 3 | 4.244 | 1.415 | 1.491 |
+| adb.screenshot | 6 | 4.155 | 0.693 | 0.934 |
+| wait.complete assignment dialog for Beginning Sound k — Practice 2 | 1 | 2.595 | 2.595 | 2.595 |
+| wait.complete assignment dialog for Words on Signs 2 — Practice 2 | 1 | 1.778 | 1.778 | 1.778 |
+| wait.complete assignment dialog for Words on Signs 2 — Main | 1 | 1.735 | 1.735 | 1.735 |
+| adb.keyevent | 7 | 1.701 | 0.243 | 0.288 |
+| wait.teacher_roster after Class Report back | 1 | 1.552 | 1.552 | 1.552 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.503 | 1.503 | 1.503 |
+| wait.profile_chooser after Switch User | 1 | 1.489 | 1.489 | 1.489 |
+| startup.ui_backend | 1 | 1.452 | 1.452 | 1.452 |
+| teardown.android_home | 1 | 1.182 | 1.182 | 1.182 |
+| wait.teacher roster after login | 1 | 1.169 | 1.169 | 1.169 |
+| adb.secret_entry | 1 | 0.939 | 0.939 | 0.939 |
+| startup.preflight | 1 | 0.78 | 0.78 | 0.78 |
+| adb.settings | 4 | 0.699 | 0.175 | 0.207 |
+| wait.parent password dialog | 1 | 0.56 | 0.56 | 0.56 |
+| phase.plan_queue | 1 | 0.015 | 0.015 | 0.015 |
+
+## 2026-09-22T08:23:43-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 3
+- Desired queue size: 22
+- Assignment changes: 2
+
+### New scores
+
+- Beginning Sound j — Practice 2: 100% on 2026-09-21 (history: 100%)
+- Beginning Sound l — Practice 2: 67% on 2026-09-21 (history: 67%)
+- Ending Sound n — Main: 100% on 2026-09-21 (history: 100%)
+
+### Score controls read
+
+- Make New Words — Practice 2: 73% on 2026-09-20
+- Beginning Sound j — Practice 2: 100% on 2026-09-21
+- Beginning Sound l — Practice 2: 67% on 2026-09-21
+- Ending Sound n — Main: 100% on 2026-09-21
+- Beginning Sounds 1 — Practice 1: 72% on 2026-09-21
+- Words with e — Main: 63% on 2026-09-19
+- Letters & Words — Practice 2: 80% on 2026-09-21, 77% on 2026-09-20, 83% on 2026-09-20, 87% on 2026-09-20, 88% on 2026-09-20, 93% on 2026-09-19, 67% on 2026-09-19
+- Letters & Numbers — Practice 2: 83% on 2026-09-20, 61% on 2026-09-20
+- Words with i — Main: 29% on 2026-09-20
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Beginning Sound j — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Ending Sound n — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied unchecks
+
+- Beginning Sound j — Practice 2
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+- Ending Sound n — Main
+  - Scores: 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Letters & Words — Practice 2 — 80%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words with o — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Words with a — Main
+- Words with i — Main
+- Words with e — Main
+- Words with o — Main
+- Words with u — Main
+- Words with b & d — Main
+- Beginning Sound l — Practice 2
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Rhyming — Main
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 2: not_mastered (73%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (29%)
+- Words with e — Main: not_mastered (63%)
+- Words with o — Main: not_mastered (not attempted)
+- Words with u — Main: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 118.278 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 94 | 84.637 | 0.9 | 2.219 |
+| workflow.scan_assignments | 4 | 78.055 | 19.514 | 53.917 |
+| phase.review_assignments | 1 | 53.917 | 53.917 | 53.917 |
+| phase.remove_and_verify | 2 | 38.804 | 19.402 | 19.424 |
+| wait.assignments_report after score dialog close | 10 | 16.009 | 1.601 | 2.136 |
+| wait.score dialog | 10 | 13.767 | 1.377 | 1.811 |
+| wait.stable Khan navigation state | 7 | 12.493 | 1.785 | 6.249 |
+| phase.fixed_point_verify | 1 | 11.396 | 11.396 | 11.396 |
+| adb.swipe | 19 | 9.777 | 0.515 | 0.668 |
+| adb.tap | 32 | 5.857 | 0.183 | 0.291 |
+| teardown.switch_user | 1 | 4.727 | 4.727 | 4.727 |
+| adb.other | 21 | 4.426 | 0.211 | 0.913 |
+| startup.launch | 1 | 4.357 | 4.357 | 4.357 |
+| wait.assignment saved | 2 | 3.898 | 1.949 | 2.321 |
+| adb.screenshot | 4 | 2.806 | 0.701 | 0.776 |
+| wait.complete assignment dialog for Ending Sound n — Main | 1 | 1.64 | 1.64 | 1.64 |
+| wait.teacher_roster after Class Report back | 1 | 1.51 | 1.51 | 1.51 |
+| wait.profile_chooser after Switch User | 1 | 1.462 | 1.462 | 1.462 |
+| wait.complete assignment dialog for Beginning Sound j — Practice 2 | 1 | 1.451 | 1.451 | 1.451 |
+| startup.ui_backend | 1 | 1.435 | 1.435 | 1.435 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.41 | 1.41 | 1.41 |
+| wait.teacher roster after login | 1 | 1.093 | 1.093 | 1.093 |
+| adb.secret_entry | 1 | 1.034 | 1.034 | 1.034 |
+| teardown.android_home | 1 | 0.982 | 0.982 | 0.982 |
+| wait.parent password dialog | 1 | 0.924 | 0.924 | 0.924 |
+| adb.settings | 4 | 0.679 | 0.17 | 0.195 |
+| startup.preflight | 1 | 0.637 | 0.637 | 0.637 |
+| adb.keyevent | 1 | 0.225 | 0.225 | 0.225 |
+| phase.plan_queue | 1 | 0.013 | 0.013 | 0.013 |
+
+## 2026-09-22T10:23:04-04:00 — applied
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 3
+- Desired queue size: 21
+- Assignment changes: 1
+
+### New scores
+
+- Beginning Sound l — Practice 2: 100% on 2026-09-22 (history: 67% → 100%)
+- Beginning Sounds 1 — Practice 1: 64% on 2026-09-22 (history: 72% → 64%)
+- Letters & Numbers — Practice 2: 83% on 2026-09-22 (history: 61% → 83% → 83%)
+
+### Score controls read
+
+- Make New Words — Practice 2: 73% on 2026-09-20
+- Beginning Sound l — Practice 2: 100% on 2026-09-22, 67% on 2026-09-21
+- Beginning Sounds 1 — Practice 1: 64% on 2026-09-22, 72% on 2026-09-21
+- Words with e — Main: 63% on 2026-09-19
+- Letters & Words — Practice 2: 80% on 2026-09-21, 77% on 2026-09-20, 83% on 2026-09-20, 87% on 2026-09-20, 88% on 2026-09-20, 93% on 2026-09-19, 67% on 2026-09-19
+- Letters & Numbers — Practice 2: 83% on 2026-09-22, 83% on 2026-09-20, 61% on 2026-09-20
+- Words with i — Main: 29% on 2026-09-20
+- Words with a — Main: 38% on 2026-09-16, 88% on 2026-09-16
+
+### Mastered
+
+- Beginning Sound l — Practice 2
+  - Scores: 67% → 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied unchecks
+
+- Beginning Sound l — Practice 2
+  - Scores: 67% → 100%
+  - Why: Mastered: latest attempt is 100%
+
+### Applied promotions
+
+None.
+
+### Applied additions
+
+None.
+
+### Active quarantines
+
+- Words with b, c, d: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine after the latest Main attempt scored 39%; preserve for later retry
+- Words with f, g, h: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with j, k, l: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words with m, n, p: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Other Words: excluded through 2026-10-10; eligible again 2026-10-11. Why: 30-day instructional quarantine of the CVC beginning-sounds lesson type after poor transfer on Words with b, c, d
+- Words: End Sound: excluded through 2026-09-25; eligible again 2026-09-26. Why: 14-day instructional quarantine after 4 Main attempts; latest score is below 70% (69%); scores: 83% → 56% → 68% → 69%
+
+### Do next (advisory)
+
+1. Letters & Numbers — Practice 2 — 83%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+2. Letters & Words — Practice 2 — 80%. Strong recent score; practice toward mastery. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+3. Words with o — Main — not attempted. Unattempted next assigned activity; adds variety. 100% establishes mastery; otherwise two consecutive 90%+ results are needed.
+
+### Desired queue
+
+- Words with a — Main
+- Words with i — Main
+- Words with e — Main
+- Words with o — Main
+- Words with u — Main
+- Words with b & d — Main
+- Beginning Sound n — Practice 2
+- Beginning Sound q — Practice 2
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Ending Sound d — Practice 2
+- Ending Sound s — Main
+- Ending Sound t — Main
+- Ending Sound x — Main
+- Hear Syllables — Main
+- Letters & Numbers — Practice 2
+- Letters & Words — Practice 2
+- Make New Words — Practice 2
+- Rhyming — Main
+- Sounds: sh — Main
+- Sounds: th — Main
+
+### Stretch slots
+
+- Words with b & d — Main
+- Beginning Sounds 1 — Practice 1
+- Beginning Sounds 1 — Practice 2
+- Rhyming — Main
+
+### Mastery holds in the desired queue
+
+- Make New Words — Practice 2: not_mastered (73%)
+- Words with a — Main: not_mastered (88%, 38%)
+- Words with i — Main: not_mastered (29%)
+- Words with e — Main: not_mastered (63%)
+- Words with o — Main: not_mastered (not attempted)
+- Words with u — Main: not_mastered (not attempted)
+
+### Interruption recovery
+
+Not applicable.
+
+### Duration
+
+Not recorded.
+
+### Performance
+
+- Outcome: applied
+- UI backend: uiautomator2
+- Wall time: 88.608 seconds
+- Score-history cache: 0 hits, 0 misses
+
+| Step | Calls | Total (s) | Average (s) | Max (s) |
+|---|---:|---:|---:|---:|
+| ui.hierarchy | 64 | 63.547 | 0.993 | 3.506 |
+| workflow.scan_assignments | 3 | 58.267 | 19.422 | 40.083 |
+| phase.review_assignments | 1 | 40.083 | 40.083 | 40.083 |
+| phase.remove_and_verify | 1 | 20.217 | 20.217 | 20.217 |
+| wait.assignments_report after score dialog close | 8 | 15.722 | 1.965 | 4.364 |
+| phase.fixed_point_verify | 1 | 11.198 | 11.198 | 11.198 |
+| wait.score dialog | 8 | 8.87 | 1.109 | 1.487 |
+| startup.launch | 1 | 7.117 | 7.117 | 7.117 |
+| adb.swipe | 13 | 6.827 | 0.525 | 0.705 |
+| adb.tap | 27 | 5.366 | 0.199 | 0.298 |
+| wait.stable Khan navigation state | 5 | 4.961 | 0.992 | 1.4 |
+| teardown.switch_user | 1 | 4.855 | 4.855 | 4.855 |
+| adb.other | 20 | 4.28 | 0.214 | 0.355 |
+| wait.complete assignment dialog for Beginning Sound l — Practice 2 | 1 | 1.737 | 1.737 | 1.737 |
+| wait.child_home after Child library back | 1 | 1.653 | 1.653 | 1.653 |
+| wait.teacher_roster after Class Report back | 1 | 1.62 | 1.62 | 1.62 |
+| wait.assignments_report after Class Reports roster card | 1 | 1.413 | 1.413 | 1.413 |
+| adb.screenshot | 2 | 1.411 | 0.706 | 0.725 |
+| wait.assignment saved | 1 | 1.399 | 1.399 | 1.399 |
+| wait.profile_chooser after Switch User | 1 | 1.396 | 1.396 | 1.396 |
+| wait.profile_chooser after Child profile circle | 1 | 1.334 | 1.334 | 1.334 |
+| startup.ui_backend | 1 | 1.322 | 1.322 | 1.322 |
+| teardown.android_home | 1 | 1.075 | 1.075 | 1.075 |
+| adb.secret_entry | 1 | 1.023 | 1.023 | 1.023 |
+| wait.parent password dialog | 1 | 0.894 | 0.894 | 0.894 |
+| startup.preflight | 1 | 0.843 | 0.843 | 0.843 |
+| wait.teacher roster after login | 1 | 0.836 | 0.836 | 0.836 |
+| adb.settings | 4 | 0.666 | 0.167 | 0.198 |
+| adb.keyevent | 1 | 0.163 | 0.163 | 0.163 |
+| phase.plan_queue | 1 | 0.01 | 0.01 | 0.01 |
+
+## 2026-09-22T15:08:31-04:00 — interrupted
+
+- Student: Student A
+- Path: minimum-viable-reading-path-v1
+- New attempt records: 0
+- Desired queue size: 0
+- Assignment changes: 0
+
+### New scores
+
+None.
+
+### Score controls read
+
+None were available.
+
+### Mastered
+
+None this run.
+
+### Applied before interruption unchecks
+
+None.
+
+### Applied before interruption promotions
+
+None.
+
+### Applied before interruption additions
+
+None.
+
+### Active quarantines
+
+None.
+
+### Do next (advisory)
+
+None; recommendations require a successfully verified queue and score evidence.
+
+### Desired queue
+
+No lessons selected.
+
+### Stretch slots
+
+None.
+
+### Mastery holds in the desired queue
+
+None.
+
+### Interruption recovery
+
+Live queue unavailable: workflow stopped before mutation
+
+### Duration
+
+88.539 seconds
